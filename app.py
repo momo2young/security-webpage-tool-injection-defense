@@ -14,7 +14,7 @@ import streamlit as st
 
 # --- Page Configuration ---
 st.set_page_config(
-    page_title="SMOL Agent UI",
+    page_title="SUZ AGENT UI",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -44,6 +44,10 @@ def main():
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
+    if st.sidebar.button("New Chat"):
+        st.session_state.messages = []
+        st.rerun()
+
     for message in st.session_state.messages:
         render_message(message)
 
@@ -55,7 +59,7 @@ def main():
             process_agent_response(prompt)
 
 
-def process_agent_response(prompt):
+def process_agent_response(prompt, reset: bool = False):
     """
     Processes the user's prompt, sends it to the agent, and displays the response.
     """
@@ -65,7 +69,7 @@ def process_agent_response(prompt):
 
     try:
         with requests.post(
-            SERVER_URL, json={"message": prompt}, stream=True, timeout=600
+            SERVER_URL, json={"message": prompt, "reset": reset}, stream=True, timeout=600
         ) as r:
             r.raise_for_status()
             for chunk in r.iter_lines():

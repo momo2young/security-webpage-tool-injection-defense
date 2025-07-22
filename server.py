@@ -28,7 +28,7 @@ from starlette.routing import Route
 load_dotenv()
 
 # --- Agent Configuration ---
-AGENT_MODEL = os.getenv("AGENT_MODEL", "gemini/gemini-1.5-pro")
+AGENT_MODEL = os.getenv("AGENT_MODEL", "gemini/gemini-2.5-pro")
 agent = CodeAgent(
     model=LiteLLMModel(model_id=AGENT_MODEL),
     tools=[WebSearchTool()],
@@ -106,12 +106,14 @@ def step_to_json_event(chunk):
     return {"type": event_type, "data": data}
 
 
-async def stream_agent_responses(message: str):
+async def stream_agent_responses(message: str, reset: bool = False):
     """
     Runs the agent with the given message and yields JSON-formatted server-sent events.
     """
     try:
-        result_generator = await asyncio.to_thread(agent.run, message, stream=True, reset=False)
+        result_generator = await asyncio.to_thread(
+            agent.run, message, stream=True, reset=reset
+        )
 
         if isinstance(result_generator, types.GeneratorType):
             for chunk in result_generator:
@@ -142,6 +144,7 @@ async def chat(request):
     try:
         data = await request.json()
         message = data.get("message", "").strip()
+        reset = data.get("reset", False)
 
         if not message:
             return StreamingResponse(
@@ -155,7 +158,7 @@ async def chat(request):
             )
 
         return StreamingResponse(
-            stream_agent_responses(message),
+            stream_agent_responses(message, reset=reset),
             media_type="text/event-stream",
             headers={
                 "Content-Type": "text/event-stream",
