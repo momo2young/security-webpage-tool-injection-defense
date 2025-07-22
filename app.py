@@ -1,4 +1,3 @@
-
 """
 This module implements a Streamlit-based user interface for interacting with a code-generating agent.
 
@@ -32,32 +31,7 @@ def render_message(message):
     Renders a single message in the chat interface, handling different roles and content types.
     """
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-
-def render_observation(observations):
-    """
-    Renders observations from the agent in a distinct, formatted block.
-    """
-    st.markdown(
-        f"""
-        <div style="background-color:#f9f6e7; border-left: 6px solid #f7c873; padding: 12px; margin: 10px 0; border-radius: 6px;">
-            <strong>Observations:</strong><br>
-            {observations}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_tool_call(response_data):
-    """
-    Renders a notification indicating which tool the agent is using.
-    """
-    match = re.search(r"name='([^']*)'", response_data)
-    if match:
-        tool_name = match.group(1)
-        st.info(f"*Tool: `{tool_name}`*", icon="🛠️")
+        st.markdown(message["content"], unsafe_allow_html=True)
 
 
 # --- Main Application Logic ---
@@ -167,7 +141,5 @@ def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block):
     return full_response, is_in_code_block
 
 
-
 if __name__ == "__main__":
     main()
-
