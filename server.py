@@ -1,123 +1,200 @@
-from anyio import to_thread
+
+"""
+This module implements a Starlette-based web server to interact with a code-generating agent.
+
+The server exposes a /chat endpoint that accepts POST requests with a JSON body
+containing a "message" field. It streams back a series of server-sent events (SSEs)
+representing the agent's thought process, actions, and final answer.
+"""
+
+import asyncio
+import json
+import os
+import types
+from dataclasses import asdict, is_dataclass
+from json import JSONEncoder
+
+from dotenv import load_dotenv
+from smolagents import CodeAgent, LiteLLMModel, WebSearchTool
+from smolagents.agents import ActionOutput, PlanningStep
+from smolagents.memory import ActionStep, FinalAnswerStep
+from smolagents.models import ChatMessageStreamDelta
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse
 from starlette.routing import Route
 
-from smolagents import CodeAgent, LiteLLMModel, MCPClient, WebSearchTool
-from dotenv import load_dotenv
 load_dotenv()
-import types, re, json
-from smolagents.models import ChatMessageStreamDelta
-from smolagents.memory import FinalAnswerStep, ActionStep
-from smolagents.agents import ActionOutput, PlanningStep
-from dataclasses import asdict, is_dataclass, fields
 
-# Create an MCP client to connect to the MCP server
-mcp_server_parameters = {
-    "url": "https://evalstate-hf-mcp-server.hf.space/mcp",
-    "transport": "streamable-http",
-}
-mcp_client = MCPClient(server_parameters=mcp_server_parameters)
-tools = mcp_client.get_tools()
-# Create a CodeAgent with a specific model and the tools from the MCP client
+# --- Agent Configuration ---
+AGENT_MODEL = os.getenv("AGENT_MODEL", "gemini/gemini-1.5-pro")
 agent = CodeAgent(
-    model=LiteLLMModel(model_id="gemini/gemini-2.5-pro"),
+    model=LiteLLMModel(model_id=AGENT_MODEL),
     tools=[WebSearchTool()],
     stream_outputs=True,
 )
 
-# Helper to recursively convert objects to serializable dicts/lists
+
+# --- JSON Serialization ---
+class CustomJsonEncoder(JSONEncoder):
+    """
+    Custom JSON encoder to handle serialization of various object types,
+    including dataclasses and exceptions.
+    """
+
+    def default(self, o):
+        if is_dataclass(o):
+            return asdict(o)
+        if isinstance(o, Exception):
+            return str(o)
+        if hasattr(o, "dict"):
+            return o.dict()
+        if hasattr(o, "__dict__"):
+            return {
+                k: v
+                for k, v in o.__dict__.items()
+                if not k.startswith("_") and self._is_json_serializable(v)
+            }
+        if isinstance(o, types.GeneratorType):
+            return list(o)
+        return super().default(o)
+
+    def _is_json_serializable(self, value):
+        try:
+            json.dumps(value)
+            return True
+        except (TypeError, OverflowError):
+            return False
+
 
 def to_serializable(obj):
-    # Only call asdict on dataclass instances, not classes
-    if is_dataclass(obj) and not isinstance(obj, type):
-        result = {}
-        for f in fields(obj):
-            value = getattr(obj, f.name)
-            # If the field is an exception, convert to string
-            if isinstance(value, Exception):
-                result[f.name] = str(value)
-            else:
-                result[f.name] = to_serializable(value)
-        return result
-    elif hasattr(obj, "dict") and not isinstance(obj, type):
-        return obj.dict()
-    elif isinstance(obj, Exception):
-        # Serialize exceptions as strings
-        return str(obj)
-    elif hasattr(obj, "__dict__") and not isinstance(obj, type):
-        return {k: to_serializable(v) for k, v in obj.__dict__.items() if not k.startswith("_")}
-    elif isinstance(obj, (list, tuple)):
-        return [to_serializable(i) for i in obj]
-    elif isinstance(obj, dict):
-        return {k: to_serializable(v) for k, v in obj.items()}
-    elif isinstance(obj, types.GeneratorType):
-        return [to_serializable(i) for i in obj]
+    """
+    Recursively converts an object to a JSON-serializable format.
+    """
+    return json.loads(json.dumps(obj, cls=CustomJsonEncoder))
+
+
+# --- Event Stream Handling ---
+def step_to_json_event(chunk):
+    """
+    Converts an agent's step into a JSON event dictionary.
+    """
+    event_map = {
+        ActionStep: "action",
+        PlanningStep: "planning",
+        FinalAnswerStep: "final_answer",
+        ChatMessageStreamDelta: "stream_delta",
+        ActionOutput: "action_output",
+    }
+    event_type = next(
+        (event_map[t] for t in event_map if isinstance(chunk, t)), "other"
+    )
+
+    if event_type == "final_answer":
+        output = getattr(chunk, "output", str(chunk))
+        data = (
+            output.to_string()
+            if hasattr(output, "to_string") and not isinstance(output, str)
+            else str(output)
+        )
+    elif event_type == "action_output" and chunk.output is None:
+        return None
     else:
-        return obj
+        data = to_serializable(chunk)
 
-# Define the shutdown handler to disconnect the MCP client
-async def shutdown():
-    mcp_client.disconnect()
+    return {"type": event_type, "data": data}
 
-async def chat(request):
-    data = await request.json()
-    message = data.get("message", "").strip()
 
-    def step_to_json(chunk):
-        if isinstance(chunk, ActionStep):
-            return {"type": "action", "data": to_serializable(chunk)}
-        elif isinstance(chunk, PlanningStep):
-            return {"type": "planning", "data": to_serializable(chunk)}
-        elif isinstance(chunk, FinalAnswerStep):
-            output = getattr(chunk, 'output', str(chunk))
-            serial = to_serializable(output)
-            if isinstance(serial, (dict, list)) and not serial:
-                serial = str(output)
-            elif hasattr(output, 'to_string') and not isinstance(output, str):
+async def stream_agent_responses(message: str):
+    """
+    Runs the agent with the given message and yields JSON-formatted server-sent events.
+    """
+    try:
+        result_generator = await asyncio.to_thread(agent.run, message, stream=True)
+
+        if isinstance(result_generator, types.GeneratorType):
+            for chunk in result_generator:
                 try:
-                    serial = output.to_string()
-                except Exception:
-                    serial = str(output)
-            elif not isinstance(serial, (str, int, float, bool, dict, list)):
-                serial = str(output)
-            return {"type": "final_answer", "data": serial}
-        elif isinstance(chunk, ChatMessageStreamDelta):
-            return {"type": "stream_delta", "data": to_serializable(chunk)}
-        elif isinstance(chunk, ActionOutput):
-            if chunk.output is None:
-                return {}
-            return {"type": "action_output", "data": to_serializable(chunk)}
+                    json_event = step_to_json_event(chunk)
+                    if json_event:
+                        yield f"data: {json.dumps(json_event)}\n\n"
+                except Exception as e:
+                    error_event = {
+                        "type": "error",
+                        "data": f"Serialization error: {e!s} | Raw: {chunk!s}",
+                    }
+                    yield f"data: {json.dumps(error_event)}\n\n"
         else:
-            return {"type": "other", "data": str(chunk)}
+            result_event = {"type": "result", "data": str(result_generator)}
+            yield f"data: {json.dumps(result_event)}\n\n"
 
-    def stream_agent():
-        try:
-            result = agent.run(message, stream=True)
-            if isinstance(result, types.GeneratorType):
-                for chunk in result:
-                    try:
-                        json_chunk = step_to_json(chunk)
-                        if json_chunk is None:
-                            continue
-                        json_str = json.dumps(json_chunk) + "\n"
-                        yield json_str
-                    except Exception as e:
-                        error_str = json.dumps({"type": "error", "data": f"Serialization error: {str(e)} | Raw: {str(chunk)}"}) + "\n"
-                        yield error_str
-            else:
-                json_str = json.dumps({"type": "result", "data": str(result)}) + "\n"
-                yield json_str
-        except Exception as e:
-            error_str = json.dumps({"type": "error", "data": str(e)}) + "\n"
-            yield error_str
+    except Exception as e:
+        error_event = {"type": "error", "data": str(e)}
+        yield f"data: {json.dumps(error_event)}\n\n"
 
-    return StreamingResponse(stream_agent(), media_type="application/json")
 
+# --- API Endpoint ---
+async def chat(request):
+    """
+    Handles chat requests, streams agent responses, and manages the SSE stream.
+    """
+    try:
+        data = await request.json()
+        message = data.get("message", "").strip()
+
+        if not message:
+            return StreamingResponse(
+                iter(
+                    [
+                        'data: {"type": "error", "data": "Empty message received."}\n\n'
+                    ]
+                ),
+                media_type="text/event-stream",
+                status_code=400,
+            )
+
+        return StreamingResponse(
+            stream_agent_responses(message),
+            media_type="text/event-stream",
+            headers={
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+    except json.JSONDecodeError:
+        return StreamingResponse(
+            iter(['data: {"type": "error", "data": "Invalid JSON."}\n\n']),
+            media_type="text/event-stream",
+            status_code=400,
+        )
+    except Exception as e:
+        return StreamingResponse(
+            iter([f'data: {{\"type\": \"error\", \"data\": \"An unexpected error occurred: {e!s}\"}}\n\n']),
+            media_type="text/event-stream",
+            status_code=500,
+        )
+
+
+# --- Application Setup ---
 app = Starlette(
     debug=True,
     routes=[
         Route("/chat", chat, methods=["POST"]),
     ],
-    on_shutdown=[shutdown],  # Register the shutdown handler: disconnect the MCP client
+    middleware=[
+        Middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    ],
 )
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

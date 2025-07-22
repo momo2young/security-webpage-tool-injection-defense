@@ -1,92 +1,173 @@
 
-import streamlit as st
-import requests
+"""
+This module implements a Streamlit-based user interface for interacting with a code-generating agent.
+
+It provides a chat-like interface where users can send messages to the agent and receive real-time
+responses. The UI handles various types of messages from the agent, including streaming text,
+code blocks, tool usage, and final answers, displaying them in a structured and readable format.
+"""
+
 import json
 import re
 
-st.title("SMOL Agent UI")
+import requests
+import streamlit as st
 
+# --- Page Configuration ---
+st.set_page_config(
+    page_title="SMOL Agent UI",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# --- Constants ---
+SERVER_URL = "http://localhost:8000/chat"
 CODE_TAG = "<code>"
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
 
-for message in st.session_state.messages:
+# --- UI Components ---
+def render_message(message):
+    """
+    Renders a single message in the chat interface, handling different roles and content types.
+    """
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("What is up?"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
 
-    with st.chat_message("assistant"):
-        final_answer = ""
-        with st.status("Thinking...", expanded=True) as status:
-            try:
-                placeholder = st.empty()
-                streaming_content = ""
-                with requests.post("http://localhost:8000/chat", json={"message": prompt}, stream=True) as r:
-                    r.raise_for_status()
-                    is_streaming = False
-                    code_content = ""
-                    for chunk in r.iter_content(chunk_size=None):
-                        if chunk:
-                            try:
-                                data = json.loads(chunk)
-                                response_type = data.get("type")
-                                response_data = data.get("data")
-                                
-                                if response_type == "stream_delta":
-                                    content = response_data.get("content", "")
-                                    if content:
-                                        if CODE_TAG not in content and not code_content:
-                                            is_streaming = True
-                                            streaming_content += content
-                                            placeholder.markdown(streaming_content)
+def render_observation(observations):
+    """
+    Renders observations from the agent in a distinct, formatted block.
+    """
+    st.markdown(
+        f"""
+        <div style="background-color:#f9f6e7; border-left: 6px solid #f7c873; padding: 12px; margin: 10px 0; border-radius: 6px;">
+            <strong>Observations:</strong><br>
+            {observations}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-                                        else:
-                                            code_index = content.find(CODE_TAG)
-                                            if code_index != -1:
-                                                content_for_stream = content[:content.index(CODE_TAG)]
-                                                streaming_content += content_for_stream
-                                                if content_for_stream:
-                                                    placeholder.markdown(streaming_content)
-                                                code_content += content[content.index(CODE_TAG) + len(CODE_TAG):]
-                                            else:
-                                                code_content += content
-                                else:
-                                    if code_content:
-                                        st.code(code_content)
-                                        code_content = ""
-                                    is_streaming = False
-                                    streaming_content = ""
-                                    
-                                    if response_type == "final_answer":
-                                        final_answer = response_data
-                                        status.update(label="Done!", state="complete", expanded=False)
-                                    elif response_type == "action":
-                                        observations = response_data["observations"]
-                                        if observations and not response_data["is_final_answer"]:
-                                            st.markdown(
-                                                f"""
-                                                <div style="background-color:#f9f6e7; border-left: 6px solid #f7c873; padding: 12px; margin: 10px 0; border-radius: 6px;">
-                                                    <strong>Observations:</strong><br>
-                                                    {observations}
-                                                </div>
-                                                """,
-                                                unsafe_allow_html=True
-                                            )
-                                        
-                                    elif response_type == "other" and isinstance(response_data, str) and response_data.startswith("ToolCall"):
-                                        match = re.search(r"name='([^']*)'", response_data)
-                                        if match:
-                                            tool_name = match.group(1)
-                                            st.write(f"*Tool: `{tool_name}`*")
-                            except json.JSONDecodeError:
-                                # Handle cases where a chunk is not a valid JSON object
-                                pass
-            except requests.exceptions.RequestException as e:
-                st.error(f"Error connecting to the server: {e}")
-        st.markdown(final_answer)
-        st.session_state.messages.append({"role": "assistant", "content": final_answer})
+
+def render_tool_call(response_data):
+    """
+    Renders a notification indicating which tool the agent is using.
+    """
+    match = re.search(r"name='([^']*)'", response_data)
+    if match:
+        tool_name = match.group(1)
+        st.info(f"*Tool: `{tool_name}`*", icon="🛠️")
+
+
+# --- Main Application Logic ---
+def main():
+    """
+    Main function to run the Streamlit application.
+    """
+    st.title("SMOL Agent UI")
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    for message in st.session_state.messages:
+        render_message(message)
+
+    if prompt := st.chat_input("What is up?"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        render_message({"role": "user", "content": prompt})
+
+        with st.chat_message("assistant"):
+            process_agent_response(prompt)
+
+
+def process_agent_response(prompt):
+    """
+    Processes the user's prompt, sends it to the agent, and displays the response.
+    """
+    placeholder = st.empty()
+    full_response = ""
+    is_in_code_block = False
+
+    try:
+        with requests.post(
+            SERVER_URL, json={"message": prompt}, stream=True, timeout=600
+        ) as r:
+            r.raise_for_status()
+            for chunk in r.iter_lines():
+                if chunk:
+                    full_response, is_in_code_block = handle_stream_chunk(
+                        chunk, placeholder, full_response, is_in_code_block
+                    )
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error connecting to the server: {e}")
+        return
+
+    if full_response:
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
+        # Final render to clean up any open code blocks
+        if is_in_code_block:
+            full_response += "\n```\n"
+        placeholder.markdown(full_response, unsafe_allow_html=True)
+
+
+def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block):
+    """
+    Handles a single chunk from the streaming response, parsing and displaying it.
+    """
+    try:
+        data_str = chunk.decode('utf-8').strip()
+        if data_str.startswith("data:"):
+            data_str = data_str[len("data:") :].strip()
+
+        if not data_str:
+            return full_response, is_in_code_block
+
+        data = json.loads(data_str)
+        response_type = data.get("type")
+        response_data = data.get("data")
+
+        if response_type == "stream_delta":
+            content = response_data.get("content")
+            if content:
+                if not is_in_code_block:
+                    if CODE_TAG in content:
+                        before, _, after = content.partition(CODE_TAG)
+                        full_response += before
+                        full_response += f"\n```\n{after}"
+                        is_in_code_block = True
+                    else:
+                        full_response += content
+                else:
+                    full_response += content
+        else:
+            if is_in_code_block:
+                full_response += "\n```\n"
+                is_in_code_block = False
+
+            if response_type == "final_answer":
+                final_answer = response_data
+                full_response += f"\n\n**Final Answer:**\n{final_answer}"
+            elif response_type == "action":
+                observations = response_data.get("observations")
+                if observations and not response_data.get("is_final_answer"):
+                    full_response += f"\n\n<div style='background-color:#f9f6e7; border-left: 6px solid #f7c873; padding: 12px; margin: 10px 0; border-radius: 6px;'><strong>Observations:</strong><br>{observations}</div>"
+            elif response_type == "other" and isinstance(response_data, str):
+                match = re.search(r"name='([^']*)'", response_data)
+                if match:
+                    tool_name = match.group(1)
+                    full_response += f"\n\n*Tool: `{tool_name}`*"
+
+        placeholder.markdown(full_response, unsafe_allow_html=True)
+
+    except json.JSONDecodeError:
+        pass
+
+    return full_response, is_in_code_block
+
+
+
+if __name__ == "__main__":
+    main()
+
