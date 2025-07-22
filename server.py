@@ -15,7 +15,7 @@ from dataclasses import asdict, is_dataclass
 from json import JSONEncoder
 
 from dotenv import load_dotenv
-from smolagents import CodeAgent, LiteLLMModel, WebSearchTool
+from smolagents import CodeAgent, LiteLLMModel, WebSearchTool, MCPClient
 from smolagents.agents import ActionOutput, PlanningStep
 from smolagents.memory import ActionStep, FinalAnswerStep
 from smolagents.models import ChatMessageStreamDelta
@@ -24,14 +24,34 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse
 from starlette.routing import Route
+from mcp import StdioServerParameters
 
 load_dotenv()
 
 # --- Agent Configuration ---
 AGENT_MODEL = os.getenv("AGENT_MODEL", "gemini/gemini-2.5-pro")
+
+
+
+mcp_server_parameters = [
+    {
+        "url": "https://evalstate-hf-mcp-server.hf.space/mcp",
+        "transport": "streamable-http",
+    },
+    # StdioServerParameters(
+    #     command="npx",
+    #     args=[
+    #         "@playwright/mcp@latest"
+    #     ]
+    # )
+]
+mcp_client = MCPClient(server_parameters=mcp_server_parameters)
+
+
+
 agent = CodeAgent(
     model=LiteLLMModel(model_id=AGENT_MODEL),
-    tools=[WebSearchTool()],
+    tools=[WebSearchTool()] + mcp_client.get_tools(),
     stream_outputs=True
 )
 

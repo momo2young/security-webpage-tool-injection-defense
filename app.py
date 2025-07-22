@@ -12,9 +12,11 @@ import re
 import requests
 import streamlit as st
 
+TITLE = "SUZ AGENT"
+
 # --- Page Configuration ---
 st.set_page_config(
-    page_title="SUZ AGENT UI",
+    page_title=TITLE,
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -39,7 +41,7 @@ def main():
     """
     Main function to run the Streamlit application.
     """
-    st.title("SMOL Agent UI")
+    st.title(TITLE)
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -126,7 +128,7 @@ def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block):
 
             if response_type == "final_answer":
                 final_answer = response_data
-                full_response += f"\n\n**Final Answer:**\n{final_answer}"
+                full_response += f"\n\n{final_answer}"
             elif response_type == "action":
                 observations = response_data.get("observations")
                 if observations and not response_data.get("is_final_answer"):
