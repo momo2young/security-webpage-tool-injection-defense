@@ -32,7 +32,7 @@ AGENT_MODEL = os.getenv("AGENT_MODEL", "gemini/gemini-1.5-pro")
 agent = CodeAgent(
     model=LiteLLMModel(model_id=AGENT_MODEL),
     tools=[WebSearchTool()],
-    stream_outputs=True,
+    stream_outputs=True
 )
 
 
@@ -111,7 +111,7 @@ async def stream_agent_responses(message: str):
     Runs the agent with the given message and yields JSON-formatted server-sent events.
     """
     try:
-        result_generator = await asyncio.to_thread(agent.run, message, stream=True)
+        result_generator = await asyncio.to_thread(agent.run, message, stream=True, reset=False)
 
         if isinstance(result_generator, types.GeneratorType):
             for chunk in result_generator:
