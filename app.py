@@ -43,6 +43,26 @@ def main():
     """
     st.title(TITLE)
 
+    # --- Sidebar ---
+    st.sidebar.title("Configuration")
+
+    # Model selection
+    model_options = [
+        "gemini/gemini-2.5-flash",
+        "gemini/gemini-2.5-pro",
+        "anthropic/claude-sonnet-4-20250514",
+        "openai/gpt-4.1",
+    ]
+    selected_model = st.sidebar.selectbox("Select Model", model_options, index=0)
+
+    # Agent selection
+    agent_options = ["CodeAgent"]
+    selected_agent = st.sidebar.selectbox("Select Agent", agent_options, index=0)
+
+    # Tool selection
+    tool_options = ["WebSearchTool", "MCPClient"]
+    selected_tools = st.sidebar.multiselect("Select Tools", tool_options, default=["WebSearchTool"])
+
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -58,10 +78,17 @@ def main():
         render_message({"role": "user", "content": prompt})
 
         with st.chat_message("assistant"):
-            process_agent_response(prompt)
+            process_agent_response(
+                prompt,
+                config={
+                    "model": selected_model,
+                    "agent": selected_agent,
+                    "tools": selected_tools,
+                },
+            )
 
 
-def process_agent_response(prompt, reset: bool = False):
+def process_agent_response(prompt, config, reset: bool = False):
     """
     Processes the user's prompt, sends it to the agent, and displays the response.
     """
@@ -71,7 +98,10 @@ def process_agent_response(prompt, reset: bool = False):
 
     try:
         with requests.post(
-            SERVER_URL, json={"message": prompt, "reset": reset}, stream=True, timeout=600
+            SERVER_URL,
+            json={"message": prompt, "reset": reset, "config": config},
+            stream=True,
+            timeout=600,
         ) as r:
             r.raise_for_status()
             for chunk in r.iter_lines():

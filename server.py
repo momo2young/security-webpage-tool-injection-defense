@@ -1,4 +1,3 @@
-
 """
 This module implements a Starlette-based web server to interact with a code-generating agent.
 
@@ -29,31 +28,38 @@ from mcp import StdioServerParameters
 load_dotenv()
 
 # --- Agent Configuration ---
-AGENT_MODEL = os.getenv("AGENT_MODEL", "gemini/gemini-2.5-pro")
+def create_agent(config: dict):
+    """
+    Creates an agent based on the provided configuration.
+    """
+    model_id = config.get("model", "gemini/gemini-2.5-pro")
+    agent_name = config.get("agent", "CodeAgent")
+    tool_names = config.get("tools", ["WebSearchTool"])
 
+    model = LiteLLMModel(model_id=model_id)
 
+    tools = []
+    if "WebSearchTool" in tool_names:
+        tools.append(WebSearchTool())
+    if "MCPClient" in tool_names:
+        mcp_server_parameters = [
+            {
+                "url": "https://evalstate-hf-mcp-server.hf.space/mcp",
+                "transport": "streamable-http",
+            },
+        ]
+        mcp_client = MCPClient(server_parameters=mcp_server_parameters)
+        tools.extend(mcp_client.get_tools())
 
-mcp_server_parameters = [
-    {
-        "url": "https://evalstate-hf-mcp-server.hf.space/mcp",
-        "transport": "streamable-http",
-    },
-    # StdioServerParameters(
-    #     command="npx",
-    #     args=[
-    #         "@playwright/mcp@latest"
-    #     ]
-    # )
-]
-mcp_client = MCPClient(server_parameters=mcp_server_parameters)
+    agent_map = {
+        "CodeAgent": CodeAgent,
+    }
 
+    agent_class = agent_map.get(agent_name)
+    if not agent_class:
+        raise ValueError(f"Unknown agent: {agent_name}")
 
-
-agent = CodeAgent(
-    model=LiteLLMModel(model_id=AGENT_MODEL),
-    tools=[WebSearchTool()] + mcp_client.get_tools(),
-    stream_outputs=True
-)
+    return agent_class(model=model, tools=tools, stream_outputs=True)
 
 
 # --- JSON Serialization ---
@@ -126,7 +132,7 @@ def step_to_json_event(chunk):
     return {"type": event_type, "data": data}
 
 
-async def stream_agent_responses(message: str, reset: bool = False):
+async def stream_agent_responses(agent, message: str, reset: bool = False):
     """
     Runs the agent with the given message and yields JSON-formatted server-sent events.
     """
@@ -165,6 +171,7 @@ async def chat(request):
         data = await request.json()
         message = data.get("message", "").strip()
         reset = data.get("reset", False)
+        config = data.get("config", {})
 
         if not message:
             return StreamingResponse(
@@ -176,9 +183,11 @@ async def chat(request):
                 media_type="text/event-stream",
                 status_code=400,
             )
+        
+        agent = create_agent(config)
 
         return StreamingResponse(
-            stream_agent_responses(message, reset=reset),
+            stream_agent_responses(agent, message, reset=reset),
             media_type="text/event-stream",
             headers={
                 "Content-Type": "text/event-stream",
