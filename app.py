@@ -52,6 +52,7 @@ def main():
         "gemini/gemini-2.5-pro",
         "anthropic/claude-sonnet-4-20250514",
         "openai/gpt-4.1",
+        "deepseek/deepseek-chat"
     ]
     selected_model = st.sidebar.selectbox("Select Model", model_options, index=0)
 
@@ -62,6 +63,13 @@ def main():
     # Tool selection
     tool_options = ["WebSearchTool", "MCPClient"]
     selected_tools = st.sidebar.multiselect("Select Tools", tool_options, default=["WebSearchTool"])
+
+    mcp_urls = []
+    if "MCPClient" in selected_tools:
+        mcp_urls_str = st.sidebar.text_area(
+            "MCP URLs (comma-separated)", "https://evalstate-hf-mcp-server.hf.space/mcp"
+        )
+        mcp_urls = [url.strip() for url in mcp_urls_str.split(",") if url.strip()]
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -84,6 +92,7 @@ def main():
                     "model": selected_model,
                     "agent": selected_agent,
                     "tools": selected_tools,
+                    "mcp_urls": mcp_urls,
                 },
             )
 
@@ -161,14 +170,13 @@ def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block):
                 full_response += f"\n\n{final_answer}"
             elif response_type == "action":
                 observations = response_data.get("observations")
-                if observations and not response_data.get("is_final_answer"):
+                if observations:
                     full_response += f"\n\n<div style='background-color:#f9f6e7; border-left: 6px solid #f7c873; padding: 12px; margin: 10px 0; border-radius: 6px;'><strong>Observations:</strong><br>{observations}</div>"
             elif response_type == "other" and isinstance(response_data, str):
                 match = re.search(r"name='([^']*)'", response_data)
                 if match:
                     tool_name = match.group(1)
                     full_response += f"\n\n*Tool: `{tool_name}`*"
-
         placeholder.markdown(full_response, unsafe_allow_html=True)
 
     except json.JSONDecodeError:
