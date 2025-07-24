@@ -7,6 +7,7 @@ import streamlit as st
 
 from suzent.config import Config
 
+
 # --- Page Configuration ---
 st.set_page_config(
     page_title=Config.TITLE,
@@ -45,6 +46,14 @@ def save_mcp_urls(servers):
         servers_to_save = [{"name": s["name"], "url": s["url"]} for s in servers]
         json.dump(servers_to_save, f, indent=2)
 
+def get_step_footnote_content(step_log: dict, step_name: str) -> str:
+    """Get a footnote string for a step log with duration and token information"""
+    step_footnote = f"**{step_name}**"
+    if step_log.get("token_usage"):
+        step_footnote += f" | Input tokens: {step_log["token_usage"]["input_tokens"]:,} | Output tokens: {step_log["token_usage"]["output_tokens"]:,}"
+    step_footnote += f" | Duration: {round(float(step_log["timing"]["duration"]), 2)}s" if step_log["timing"].get("duration") else ""
+    step_footnote_content = f"""<span style="color: #bbbbc2; font-size: 12px;">{step_footnote}</span>\n\n"""
+    return step_footnote_content
 
 # --- UI Components ---
 def render_message(message):
@@ -156,6 +165,7 @@ def process_agent_response(prompt, config, reset: bool = False):
     placeholder = st.empty()
     full_response = ""
     is_in_code_block = False
+    current_tool_name = ""
 
     try:
         with requests.post(
@@ -167,8 +177,8 @@ def process_agent_response(prompt, config, reset: bool = False):
             r.raise_for_status()
             for chunk in r.iter_lines():
                 if chunk:
-                    full_response, is_in_code_block = handle_stream_chunk(
-                        chunk, placeholder, full_response, is_in_code_block
+                    full_response, is_in_code_block, current_tool_name = handle_stream_chunk(
+                        chunk, placeholder, full_response, is_in_code_block, current_tool_name
                     )
 
     except requests.exceptions.RequestException as e:
@@ -183,7 +193,7 @@ def process_agent_response(prompt, config, reset: bool = False):
         placeholder.markdown(full_response, unsafe_allow_html=True)
 
 
-def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block):
+def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block, current_tool_name):
     """
     Handles a single chunk from the streaming response, parsing and displaying it.
     """
@@ -193,7 +203,7 @@ def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block):
             data_str = data_str[len("data:") :].strip()
 
         if not data_str:
-            return full_response, is_in_code_block
+            return full_response, is_in_code_block, current_tool_name
 
         data = json.loads(data_str)
         response_type = data.get("type")
@@ -228,17 +238,17 @@ def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block):
                     observations = split_result[0].rstrip()
                     last_output_from_code = split_result[1] if len(split_result) > 1 else ""
                     full_response += f"\n\n<div style='background-color:#f9f6e7; border-left: 6px solid #f7c873; padding: 12px; margin: 10px 0; border-radius: 6px;'><strong>📝 Execution Logs</strong><br>{observations}</div>"
-            elif response_type == "other" and isinstance(response_data, str):
-                match = re.search(r"name='([^']*)'", response_data)
-                if match:
-                    tool_name = match.group(1)
-                    full_response += f"\n\n*Tool: `{tool_name}`*"
+                step_name = f"Step: {response_data["step_number"]}"
+                full_response += get_step_footnote_content(response_data, step_name)
+
+
         placeholder.markdown(full_response, unsafe_allow_html=True)
 
     except json.JSONDecodeError:
         pass
 
-    return full_response, is_in_code_block
+    return full_response, is_in_code_block, current_tool_name
+
 
 
 if __name__ == "__main__":
