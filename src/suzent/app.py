@@ -1,6 +1,8 @@
 import json
 import re
 from pathlib import Path
+from dataclasses import dataclass, field
+from typing import Optional
 
 import requests
 import streamlit as st
@@ -20,6 +22,83 @@ st.set_page_config(
 SERVER_URL = Config.SERVER_URL
 CODE_TAG = Config.CODE_TAG
 MCP_URLS_FILE = Path("mcp_urls.json")
+TODO_FILE = Path("TODO.md")
+
+
+# --- Plan dataclasses and parsing ---
+STATUS_MAP = {
+    "pending": " ",
+    "in_progress": ">",
+    "completed": "x",
+    "failed": "!",
+}
+REVERSE_STATUS_MAP = {v: k for k, v in STATUS_MAP.items()}
+
+
+@dataclass
+class Task:
+    """Represents a single task in the plan."""
+    number: int
+    description: str
+    status: str = "pending"
+    note: Optional[str] = None
+
+@dataclass
+class Plan:
+    """Represents the overall plan."""
+    objective: str
+    tasks: list[Task] = field(default_factory=list)
+
+
+def read_plan_from_file() -> Optional[Plan]:
+    """Reads the plan from the TODO.md file."""
+    if not TODO_FILE.exists():
+        return None
+
+    content = TODO_FILE.read_text()
+    objective_match = re.search(r"# Plan for: (.*)", content)
+    objective = objective_match.group(1).strip() if objective_match else "Unknown Objective"
+
+    tasks = []
+    for match in re.finditer(r"- \[(.)\] (\d+)\. (.*?)(?: - Note: (.*))?$", content, re.MULTILINE):
+        status_char, num_str, desc, note = match.groups()
+        tasks.append(Task(
+            number=int(num_str),
+            description=desc.strip(),
+            status=REVERSE_STATUS_MAP.get(status_char, "unknown"),
+            note=note.strip() if note else None
+        ))
+    return Plan(objective=objective, tasks=tasks)
+
+def display_plan(placeholder):
+    """Displays the current plan from TODO.md in a placeholder."""
+    with placeholder.container():
+        st.title("Current Plan")
+        plan = read_plan_from_file()
+        if plan and plan.tasks:
+            completed_tasks = sum(1 for task in plan.tasks if task.status == "completed")
+            total_tasks = len(plan.tasks)
+            progress = completed_tasks / total_tasks if total_tasks > 0 else 0
+            
+            st.markdown(f"**{completed_tasks}/{total_tasks} tasks completed**")
+
+            with st.expander(f"Objective: {plan.objective}", expanded=True):
+                st.progress(progress)
+                for task in plan.tasks:
+                    status_icon = {
+                        "pending": "⚪",
+                        "in_progress": "🔵",
+                        "completed": "🟢",
+                        "failed": "🔴"
+                    }.get(task.status, "❓")
+                    st.markdown(f"{status_icon} **{task.number}.** {task.description}")
+                    if task.note:
+                        st.markdown(f"> _Note: {task.note}_")
+        elif plan:
+             with st.expander(f"Objective: {plan.objective}", expanded=True):
+                st.info("No tasks in the plan yet.")
+        else:
+            st.info("No plan has been created yet.")
 
 
 # --- MCP URL Persistence ---
@@ -72,72 +151,90 @@ def main():
     st.title(Config.TITLE)
 
     # --- Sidebar ---
-    st.sidebar.title("Configuration")
-
-    # Model selection
-    model_options = Config.MODEL_OPTIONS
-    selected_model = st.sidebar.selectbox("Select Model", model_options, index=0)
-
-    # Agent selection
-    agent_options = Config.AGENT_OPTIONS
-    selected_agent = st.sidebar.selectbox("Select Agent", agent_options, index=0)
-
-    # Tool selection
-    tool_options = Config.TOOL_OPTIONS
-    selected_tools = st.sidebar.multiselect("Select Tools", tool_options, default=Config.DEFAULT_TOOLS)
-
-    st.sidebar.title("MCP Configuration")
-
-    # Initialize mcp_servers in session state if not present
+    # Initialize session state for config values if they don't exist
+    if "selected_model" not in st.session_state:
+        st.session_state.selected_model = Config.MODEL_OPTIONS[0]
+    if "selected_agent" not in st.session_state:
+        st.session_state.selected_agent = Config.AGENT_OPTIONS[0]
+    if "selected_tools" not in st.session_state:
+        st.session_state.selected_tools = Config.DEFAULT_TOOLS
     if "mcp_servers" not in st.session_state:
         servers = load_mcp_urls()
         st.session_state.mcp_servers = [
             {"name": s["name"], "url": s["url"], "enabled": True} for s in servers
         ]
 
-    # Input for adding a new MCP URL
-    st.sidebar.markdown("Add New MCP Server")
-    new_mcp_name = st.sidebar.text_input("Server Name", key="new_mcp_name_input")
-    new_mcp_url = st.sidebar.text_input("Server URL", key="new_mcp_url_input")
+    if st.sidebar.button("New Chat"):
+        st.session_state.messages = []
+        st.rerun()
 
-    if st.sidebar.button("Add MCP") and new_mcp_name and new_mcp_url:
-        if not any(s["url"] == new_mcp_url for s in st.session_state.mcp_servers):
-            st.session_state.mcp_servers.append(
-                {"name": new_mcp_name, "url": new_mcp_url, "enabled": True}
+    sidebar_view = st.sidebar.radio("Select View", ["Plan", "Configuration"])
+    
+    plan_placeholder = st.sidebar.empty()
+        
+    if sidebar_view == "Plan":
+        display_plan(plan_placeholder)
+    else:
+        plan_placeholder.empty()
+        st.sidebar.title("Configuration")
+
+        # Model selection
+        st.session_state.selected_model = st.sidebar.selectbox(
+            "Select Model", Config.MODEL_OPTIONS, index=Config.MODEL_OPTIONS.index(st.session_state.selected_model)
+        )
+
+        # Agent selection
+        st.session_state.selected_agent = st.sidebar.selectbox(
+            "Select Agent", Config.AGENT_OPTIONS, index=Config.AGENT_OPTIONS.index(st.session_state.selected_agent)
+        )
+
+        # Tool selection
+        st.session_state.selected_tools = st.sidebar.multiselect(
+            "Select Tools", Config.TOOL_OPTIONS, default=st.session_state.selected_tools
+        )
+
+        st.sidebar.divider()
+        st.sidebar.title("MCP Configuration")
+
+        # Input for adding a new MCP URL
+        st.sidebar.markdown("Add New MCP Server")
+        new_mcp_name = st.sidebar.text_input("Server Name", key="new_mcp_name_input")
+        new_mcp_url = st.sidebar.text_input("Server URL", key="new_mcp_url_input")
+
+        if st.sidebar.button("Add MCP") and new_mcp_name and new_mcp_url:
+            if not any(s["url"] == new_mcp_url for s in st.session_state.mcp_servers):
+                st.session_state.mcp_servers.append(
+                    {"name": new_mcp_name, "url": new_mcp_url, "enabled": True}
+                )
+                save_mcp_urls(st.session_state.mcp_servers)
+                st.rerun()
+
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("**Registered MCP Servers**")
+
+        # Display and manage existing MCP servers
+        indices_to_remove = []
+        for i, server in enumerate(st.session_state.mcp_servers):
+            cols = st.sidebar.columns([0.1, 0.7, 0.2])
+            server["enabled"] = cols[0].checkbox(
+                "", server["enabled"], key=f"mcp_enabled_{i}", label_visibility="collapsed"
             )
+            cols[1].write(f"**{server['name']}**: `{server['url']}`")
+            if cols[2].button("X", key=f"mcp_remove_{i}"):
+                indices_to_remove.append(i)
+
+        if indices_to_remove:
+            st.session_state.mcp_servers = [
+                s for i, s in enumerate(st.session_state.mcp_servers) if i not in indices_to_remove
+            ]
             save_mcp_urls(st.session_state.mcp_servers)
             st.rerun()
-
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("**Registered MCP Servers**")
-
-    # Display and manage existing MCP servers
-    indices_to_remove = []
-    for i, server in enumerate(st.session_state.mcp_servers):
-        cols = st.sidebar.columns([0.1, 0.7, 0.2])
-        server["enabled"] = cols[0].checkbox(
-            "", server["enabled"], key=f"mcp_enabled_{i}", label_visibility="collapsed"
-        )
-        cols[1].write(f"**{server['name']}**: `{server['url']}`")
-        if cols[2].button("X", key=f"mcp_remove_{i}"):
-            indices_to_remove.append(i)
-
-    if indices_to_remove:
-        st.session_state.mcp_servers = [
-            s for i, s in enumerate(st.session_state.mcp_servers) if i not in indices_to_remove
-        ]
-        save_mcp_urls(st.session_state.mcp_servers)
-        st.rerun()
 
     # Collect enabled MCP URLs to be used by the agent
     mcp_urls = [s["url"] for s in st.session_state.mcp_servers if s["enabled"]]
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
-
-    if st.sidebar.button("New Chat"):
-        st.session_state.messages = []
-        st.rerun()
 
     for message in st.session_state.messages:
         render_message(message)
@@ -150,15 +247,16 @@ def main():
             process_agent_response(
                 prompt,
                 config={
-                    "model": selected_model,
-                    "agent": selected_agent,
-                    "tools": selected_tools,
+                    "model": st.session_state.selected_model,
+                    "agent": st.session_state.selected_agent,
+                    "tools": st.session_state.selected_tools,
                     "mcp_urls": mcp_urls,
                 },
+                plan_placeholder=plan_placeholder
             )
 
 
-def process_agent_response(prompt, config, reset: bool = False):
+def process_agent_response(prompt, config, plan_placeholder, reset: bool = False):
     """
     Processes the user's prompt, sends it to the agent, and displays the response.
     """
@@ -177,9 +275,11 @@ def process_agent_response(prompt, config, reset: bool = False):
             r.raise_for_status()
             for chunk in r.iter_lines():
                 if chunk:
-                    full_response, is_in_code_block, current_tool_name = handle_stream_chunk(
+                    full_response, is_in_code_block, current_tool_name, action_happened = handle_stream_chunk(
                         chunk, placeholder, full_response, is_in_code_block, current_tool_name
                     )
+                    if action_happened:
+                        display_plan(plan_placeholder)
 
     except requests.exceptions.RequestException as e:
         st.error(f"Error connecting to the server: {e}")
@@ -193,17 +293,19 @@ def process_agent_response(prompt, config, reset: bool = False):
         placeholder.markdown(full_response, unsafe_allow_html=True)
 
 
+
 def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block, current_tool_name):
     """
     Handles a single chunk from the streaming response, parsing and displaying it.
     """
+    action_happened = False
     try:
         data_str = chunk.decode('utf-8').strip()
         if data_str.startswith("data:"):
             data_str = data_str[len("data:") :].strip()
 
         if not data_str:
-            return full_response, is_in_code_block, current_tool_name
+            return full_response, is_in_code_block, current_tool_name, action_happened
 
         data = json.loads(data_str)
         response_type = data.get("type")
@@ -231,6 +333,7 @@ def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block, cur
                 final_answer = response_data
                 full_response += f"\n\n{final_answer}"
             elif response_type == "action":
+                action_happened = True
                 observations = response_data.get("observations")
                 if observations and not response_data.get("is_final_answer"):
                     observations = re.sub(r"^Execution logs:\s*", "", observations.strip())
@@ -247,7 +350,8 @@ def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block, cur
     except json.JSONDecodeError:
         pass
 
-    return full_response, is_in_code_block, current_tool_name
+    return full_response, is_in_code_block, current_tool_name, action_happened
+
 
 
 

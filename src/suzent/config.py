@@ -34,7 +34,7 @@ class Config:
                     if isinstance(attribute, type) and issubclass(attribute, Tool) and attribute.__name__ != "Tool" and attribute.__module__.startswith("suzent.tools"):
                         tool_options.append(attribute.__name__)
         return tool_options
-    DEFAULT_TOOLS = ["WebSearchTool"]
+    DEFAULT_TOOLS = ["WebSearchTool", "PlanningTool"]
     TOOL_OPTIONS = get_tool_options() + DEFAULT_TOOLS
     DEFAULT_MCP_URLS = "https://evalstate-hf-mcp-server.hf.space/mcp"
 

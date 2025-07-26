@@ -87,7 +87,9 @@ def create_agent(config: dict):
     if not agent_class:
         raise ValueError(f"Unknown agent: {agent_name}")
 
-    return agent_class(model=model, tools=tools, stream_outputs=True)
+    instructions = config.get("instructions", "")
+    
+    return agent_class(model=model, tools=tools, stream_outputs=True, instructions=instructions)
 
 
 # --- JSON Serialization ---
