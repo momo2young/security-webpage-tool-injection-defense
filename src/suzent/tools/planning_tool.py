@@ -4,10 +4,10 @@ This module provides a unified tool for creating and managing a plan in a TODO.m
 The tool is inspired by the smolagents style, providing a single class to interact
 with the plan. It supports creating a plan, checking its status, and updating steps.
 """
-
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from smolagents.tools import Tool
 
@@ -22,22 +22,58 @@ STATUS_MAP = {
 REVERSE_STATUS_MAP = {v: k for k, v in STATUS_MAP.items()}
 
 
+@dataclass
+class Task:
+    """Represents a single task in the plan."""
+    number: int
+    description: str
+    status: str = "pending"
+    note: Optional[str] = None
+
+    def __str__(self):
+        note_str = f" - Note: {self.note}" if self.note else ""
+        return f"- [{STATUS_MAP[self.status]}] {self.number}. {self.description}{note_str}\n"
+
+
+@dataclass
+class Plan:
+    """Represents the overall plan."""
+    objective: str
+    tasks: list[Task] = field(default_factory=list)
+
+    def to_markdown(self, hide_completed: bool = False, newly_completed_step: Optional[int] = None) -> str:
+        """Converts the plan to a markdown string."""
+        markdown = f"### Current Plan for Objective: {self.objective}\n\n"
+        visible_tasks = []
+        for task in self.tasks:
+            if hide_completed and task.status == "completed" and task.number != newly_completed_step:
+                continue
+            task_item = f"- Step {task.number}: {task.description} - **{task.status.upper()}**"
+            if task.note:
+                task_item += f" (Note: {task.note})"
+            visible_tasks.append(task_item)
+        markdown += "\n".join(visible_tasks)
+        return markdown
+
+
 class PlanningTool(Tool):
     """
-    A tool for managing a project plan in a TODO.md file.
+    A tool that should be actively used to solve complex tasks or problems.
     """
     description: str = "A tool for managing a project plan in a TODO.md file."
     name: str = "PlanningTool"
     is_initialized: bool = False
+
     def __init__(self):
         pass
-    inputs: dict[str, dict[str, str | type | bool]] = {
+
+    inputs: dict[str, dict[str, Union[str, type, bool]]] = {
         "action": {"type": "string", "description": "The operation to perform. Must be one of 'create_plan', 'status', 'update_plan', or 'mark_step'."},
-        "objective": {"type": "string", "description": "The high-level objective for the plan. Required for the 'create_plan' action.", "nullable": True},
-        "action_items": {"type": "array", "description": "A list of action items for the plan. Required for the 'create_plan' action.", "nullable": True},
-        "overwrite_plan_items": {"type": "array", "description": "A list of action items to overwrite the current plan. Required for the 'update_plan' action.", "nullable": True},
-        "step_number": {"type": "integer", "description": "The number of the step to mark. Required for the 'mark_step' action.", "nullable": True},
-        "status": {"type": "string", "description": "The new status for the step. Required for the 'mark_step' action. Valid statuses are: pending, in_progress, completed, failed.", "nullable": True},
+        "objective": {"type": "string", "description": "The high-level objective for the plan. Required for 'create_plan'.", "nullable": True},
+        "action_items": {"type": "array", "description": "A list of action items for the plan. Required for 'create_plan'.", "nullable": True},
+        "overwrite_plan_items": {"type": "array", "description": "A list of action items to overwrite the current plan. Required for 'update_plan'.", "nullable": True},
+        "step_number": {"type": "integer", "description": "The number of the step to mark. Required for 'mark_step'.", "nullable": True},
+        "status": {"type": "string", "description": "The new status for the step. Required for 'mark_step'. Valid statuses are: pending, in_progress, completed, failed.", "nullable": True},
         "step_note": {"type": "string", "description": "A note to add or update for the step.", "nullable": True},
     }
     output_type: str = "string"
@@ -52,115 +88,110 @@ class PlanningTool(Tool):
         status: Optional[str] = None,
         step_note: Optional[str] = None,
     ) -> str:
-        """
-        Manages a project plan in a TODO.md file.
+        """Manages a project plan in a TODO.md file."""
+        action_map = {
+            "create_plan": self._create_plan,
+            "status": self._get_status,
+            "update_plan": self._update_plan,
+            "mark_step": self._mark_step,
+        }
 
-        Args:
-            action: The operation to perform. Must be one of 'create_plan', 'status', 'update_plan', or 'mark_step'.
-            objective: The high-level objective for the plan. Required for the 'create_plan' action.
-            action_items: A list of action items for the plan. Required for the 'create_plan' action.
-            overwrite_plan_items: A list of action items to overwrite the current plan. Required for the 'update_plan' action.
-            step_number: The number of the step to mark. Required for the 'mark_step' action.
-            status: The new status for the step. Required for the 'mark_step' action. Valid statuses are: pending, in_progress, completed, failed.
-            step_note: A note to add or update for the step.
-
-        Returns:
-            A string indicating the result of the action.
-        """
-        if action == "create_plan":
-            if not objective or not action_items:
-                return "Error: 'objective' and 'action_items' are required for the 'create_plan' action."
-            return self._initialize_plan(objective, action_items)
-        elif action == "status":
-            return self._get_plan_status()
-        elif action == "update_plan":
-            if not overwrite_plan_items:
-                return "Error: 'overwrite_plan_items' is required for the 'update_plan' action."
-            return self._overwrite_plan(overwrite_plan_items)
-        elif action == "mark_step":
-            if not step_number or not status:
-                return "Error: 'step_number' and 'status' are required for the 'mark_step' action."
-            return self._mark_step_status(step_number, status, step_note)
-        else:
+        if action not in action_map:
             return "Error: Invalid action. Must be one of 'create_plan', 'status', 'update_plan', or 'mark_step'."
 
-    def _initialize_plan(self, objective: str, action_items: list[str]) -> str:
-        """Creates a TODO.md file with a plan to achieve the objective and provided action items."""
-        with open(TODO_FILE, "w") as f:
-            f.write(f"# Plan for: {objective}\n\n")
-            for i, step in enumerate(action_items):
-                f.write(f"- [ ] {i+1}. {step}\n")
+        # Prepare arguments for the respective methods
+        args = {
+            "create_plan": (objective, action_items),
+            "status": (),
+            "update_plan": (overwrite_plan_items,),
+            "mark_step": (step_number, status, step_note),
+        }
         
-        return f"Successfully created plan for Objective: {objective}\nAction Items:\n" + "\n".join([f"- {item}" for item in action_items])
+        # Validate required arguments for the action
+        required_args = {
+            "create_plan": (objective, action_items),
+            "update_plan": (overwrite_plan_items,),
+            "mark_step": (step_number, status),
+        }
+        if any(arg is None for arg in required_args.get(action, [])):
+            return f"Error: Missing required arguments for the '{action}' action."
 
-    def _get_plan_status(self) -> str:
-        """Reads and parses the TODO.md file to return a status string."""
+        return action_map[action](*args[action])
+
+    def _read_plan_from_file(self) -> Optional[Plan]:
+        """Reads the plan from the TODO.md file."""
         if not TODO_FILE.exists():
-            return "No plan found. Please create a plan first using the 'create_plan' action."
-        
-        with open(TODO_FILE, "r") as f:
-            content = f.read()
+            return None
 
+        content = TODO_FILE.read_text()
         objective_match = re.match(r"# Plan for: (.*)\n", content)
         objective = objective_match.group(1).strip() if objective_match else "Unknown Objective"
 
         tasks = []
-        for match in re.finditer(r"- \[(.)\] (\d+)\. (.*)", content):
-            status_char = match.group(1)
-            status = REVERSE_STATUS_MAP.get(status_char, "unknown")
-            tasks.append(f"Step {match.group(2)}: {match.group(3).strip()} - **{status.upper()}**")
+        for match in re.finditer(r"- \[(.)\] (\d+)\. (.*?)(?: - Note: (.*))?$", content, re.MULTILINE):
+            status_char, num_str, desc, note = match.groups()
+            tasks.append(Task(
+                number=int(num_str),
+                description=desc.strip(),
+                status=REVERSE_STATUS_MAP.get(status_char, "unknown"),
+                note=note.strip() if note else None
+            ))
+        return Plan(objective=objective, tasks=tasks)
 
-        if not tasks:
-            return "The plan is empty or in an invalid format."
+    def _write_plan_to_file(self, plan: Plan):
+        """Writes the plan to the TODO.md file."""
+        with open(TODO_FILE, "w") as f:
+            f.write(f"# Plan for: {plan.objective}\n\n")
+            for task in plan.tasks:
+                f.write(str(task))
 
-        return f"Current Plan for Objective: {objective}\n" + "\n".join(tasks)
+    def _create_plan(self, objective: str, action_items: list[str]) -> str:
+        """Creates a new plan."""
+        tasks = [Task(number=i + 1, description=item) for i, item in enumerate(action_items)]
+        plan = Plan(objective=objective, tasks=tasks)
+        self._write_plan_to_file(plan)
+        return f"Successfully created plan for Objective: {objective}\n\nAction Items:\n\n" + "\n".join([f"- {item}" for item in action_items])
 
-    def _overwrite_plan(self, overwrite_plan_items: list[str]) -> str:
-        """Overwrites the current plan in TODO.md with new action items."""
-        if not TODO_FILE.exists():
+    def _get_status(self) -> str:
+        """Gets the current status of the plan."""
+        plan = self._read_plan_from_file()
+        if not plan:
+            return "No plan found. Please create a plan first using the 'create_plan' action."
+        return plan.to_markdown()
+
+    def _update_plan(self, overwrite_plan_items: list[str]) -> str:
+        """Overwrites the current plan with new action items."""
+        plan = self._read_plan_from_file()
+        if not plan:
             return "No plan found to update. Please create a plan first."
 
-        # Preserve the objective if it exists
-        objective = "Unknown Objective"
-        with open(TODO_FILE, "r") as f:
-            content = f.read()
-            objective_match = re.match(r"# Plan for: (.*)\n", content)
-            if objective_match:
-                objective = objective_match.group(1).strip()
-
-        with open(TODO_FILE, "w") as f:
-            f.write(f"# Plan for: {objective}\n\n")
-            for i, step in enumerate(overwrite_plan_items):
-                f.write(f"- [ ] {i+1}. {step}\n")
-        
+        plan.tasks = [Task(number=i + 1, description=item) for i, item in enumerate(overwrite_plan_items)]
+        self._write_plan_to_file(plan)
         return f"Successfully updated plan in {TODO_FILE}"
 
-    def _mark_step_status(self, step_number: int, status: str, step_note: Optional[str] = None) -> str:
-        """Marks a step in the TODO.md file with a new status."""
+    def _mark_step(self, step_number: int, status: str, step_note: Optional[str] = None) -> str:
+        """Marks a step with a new status and optionally adds a note."""
         if status not in STATUS_MAP:
             return f"Invalid status. Valid statuses are: {list(STATUS_MAP.keys())}"
 
-        if not TODO_FILE.exists():
+        plan = self._read_plan_from_file()
+        if not plan:
             return "TODO.md file not found."
 
-        with open(TODO_FILE, "r") as f:
-            lines = f.readlines()
-
-        updated = False
-        for i, line in enumerate(lines):
-            if re.match(rf"- \[(.)\] {step_number}\.", line.strip()):
-                new_line = re.sub(r"- \[(.)\]", f"- [{STATUS_MAP[status]}]", line)
-                if step_note:
-                    new_line = re.sub(r"\s*-\s*Note:.*", "", new_line).rstrip()
-                    new_line += f" - Note: {step_note}\n"
-                lines[i] = new_line
-                updated = True
-                break
-
-        if not updated:
+        task_to_update = next((task for task in plan.tasks if task.number == step_number), None)
+        if not task_to_update:
             return f"Step {step_number} not found."
 
-        with open(TODO_FILE, "w") as f:
-            f.writelines(lines)
+        task_to_update.status = status
+        if step_note:
+            task_to_update.note = step_note
 
-        return f"Updated step {step_number} to {status}.\n\n" + self._get_plan_status()
+        self._write_plan_to_file(plan)
+
+        hide_completed = status == "completed"
+        newly_completed_step = step_number if status == "completed" else None
+        
+        return f"Updated step {step_number} to {status}.\n\n" + plan.to_markdown(
+            hide_completed=hide_completed,
+            newly_completed_step=newly_completed_step
+        )

@@ -1,6 +1,7 @@
 import os
 import importlib
 from pathlib import Path
+from smolagents import Tool
 
 class Config:
     # Application Configuration
@@ -30,7 +31,7 @@ class Config:
                 for attribute_name in dir(module):
                     attribute = getattr(module, attribute_name)
                     # Check if it's a class, a subclass of Tool, and not Tool itself
-                    if isinstance(attribute, type) and issubclass(attribute, object) and attribute.__name__ != "Tool" and attribute.__module__.startswith("suzent.tools"):
+                    if isinstance(attribute, type) and issubclass(attribute, Tool) and attribute.__name__ != "Tool" and attribute.__module__.startswith("suzent.tools"):
                         tool_options.append(attribute.__name__)
         return tool_options
     DEFAULT_TOOLS = ["WebSearchTool"]

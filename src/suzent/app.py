@@ -237,7 +237,7 @@ def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block, cur
                     split_result = re.split(r"Last output from code snippet:\s*", observations)
                     observations = split_result[0].rstrip()
                     last_output_from_code = split_result[1] if len(split_result) > 1 else ""
-                    full_response += f"\n\n<div style='background-color:#f9f6e7; border-left: 6px solid #f7c873; padding: 12px; margin: 10px 0; border-radius: 6px;'><strong>📝 Execution Logs</strong><br>{observations}</div>"
+                    full_response += f"\n\n<details><summary>📝 Execution Logs</summary>\n\n{observations}\n\n</details>"
                 step_name = f"Step: {response_data["step_number"]}"
                 full_response += get_step_footnote_content(response_data, step_name)
 
