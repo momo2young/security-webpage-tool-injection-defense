@@ -197,6 +197,7 @@ def main():
         st.session_state.messages.append({"role": "user", "content": prompt})
         render_message({"role": "user", "content": prompt})
 
+        reset = st.session_state.pop("reset_agent", False)
         with st.chat_message("assistant"):
             process_agent_response(
                 prompt,
@@ -206,7 +207,8 @@ def main():
                     "tools": st.session_state.selected_tools,
                     "mcp_urls": mcp_urls,
                 },
-                plan_placeholder=plan_placeholder
+                plan_placeholder=plan_placeholder,
+                reset=reset,
             )
 
 

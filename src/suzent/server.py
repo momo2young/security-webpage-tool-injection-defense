@@ -11,6 +11,7 @@ import json
 import os
 import types
 from dataclasses import asdict, is_dataclass
+from typing import Optional
 from json import JSONEncoder
 import importlib
 
@@ -28,6 +29,11 @@ from starlette.routing import Route
 from mcp import StdioServerParameters
 
 load_dotenv()
+
+# --- Agent State ---
+agent_instance: Optional[CodeAgent] = None
+agent_config: Optional[dict] = None
+agent_lock = asyncio.Lock()
 
 # --- Agent Configuration ---
 def create_agent(config: dict):
@@ -197,6 +203,7 @@ async def chat(request):
     """
     Handles chat requests, streams agent responses, and manages the SSE stream.
     """
+    global agent_instance, agent_config
     try:
         data = await request.json()
         message = data.get("message", "").strip()
@@ -213,20 +220,27 @@ async def chat(request):
                 media_type="text/event-stream",
                 status_code=400,
             )
-        
-        try:
-            agent = create_agent(config)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return StreamingResponse(
-                iter([f'data: {{\"type\": \"error\", \"data\": \"Error creating agent: {e!s}\"}}\n\n']),
-                media_type="text/event-stream",
-                status_code=500,
-            )
 
+        async def response_generator():
+            global agent_instance, agent_config
+            async with agent_lock:
+                # Re-create agent if config changes or if it's not initialized
+                if agent_instance is None or config != agent_config:
+                    try:
+                        agent_instance = create_agent(config)
+                        agent_config = config
+                    except Exception as e:
+                        import traceback
+                        traceback.print_exc()
+                        yield f'data: {{\"type\": \"error\", \"data\": \"Error creating agent: {e!s}\"}}\n\n'
+                        return
+
+                # Stream agent responses
+                async for chunk in stream_agent_responses(agent_instance, message, reset=reset):
+                    yield chunk
+        
         return StreamingResponse(
-            stream_agent_responses(agent, message, reset=reset),
+            response_generator(),
             media_type="text/event-stream",
             headers={
                 "Content-Type": "text/event-stream",
