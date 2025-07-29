@@ -217,7 +217,7 @@ def process_agent_response(prompt, config, plan_placeholder, reset: bool = False
     Processes the user's prompt, sends it to the agent, and displays the response.
     """
     placeholder = st.empty()
-    full_response = ""
+    content_blocks = [{"type": "markdown", "content": ""}]
     is_in_code_block = False
     current_tool_name = ""
 
@@ -231,8 +231,8 @@ def process_agent_response(prompt, config, plan_placeholder, reset: bool = False
             r.raise_for_status()
             for chunk in r.iter_lines():
                 if chunk:
-                    full_response, is_in_code_block, current_tool_name, action_happened = handle_stream_chunk(
-                        chunk, placeholder, full_response, is_in_code_block, current_tool_name
+                    content_blocks, is_in_code_block, current_tool_name, action_happened = handle_stream_chunk(
+                        chunk, placeholder, content_blocks, is_in_code_block, current_tool_name
                     )
                     if action_happened:
                         display_plan(plan_placeholder)
@@ -241,16 +241,24 @@ def process_agent_response(prompt, config, plan_placeholder, reset: bool = False
         st.error(f"Error connecting to the server: {e}")
         return
 
-    if full_response:
+    # Reconstruct the full response string for session state storage
+    full_response_parts = []
+    for block in content_blocks:
+        if block["type"] == "markdown":
+            full_response_parts.append(block["content"])
+        elif block["type"] == "code":
+            # Use markdown format for storage
+            full_response_parts.append(f"\n```\n{block['content']}\n```\n")
+    
+    full_response = "".join(full_response_parts)
+
+    if full_response.strip():
         st.session_state.messages.append({"role": "assistant", "content": full_response})
-        # Final render to clean up any open code blocks
-        # if is_in_code_block:
-        #     full_response += "\n```\n"
-        placeholder.markdown(full_response, unsafe_allow_html=True)
 
 
 
-def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block, current_tool_name):
+
+def handle_stream_chunk(chunk, placeholder, content_blocks, is_in_code_block, current_tool_name):
     """
     Handles a single chunk from the streaming response, parsing and displaying it.
     """
@@ -261,7 +269,7 @@ def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block, cur
             data_str = data_str[len("data:") :].strip()
 
         if not data_str:
-            return full_response, is_in_code_block, current_tool_name, action_happened
+            return content_blocks, is_in_code_block, current_tool_name, action_happened
 
         data = json.loads(data_str)
         response_type = data.get("type")
@@ -270,43 +278,54 @@ def handle_stream_chunk(chunk, placeholder, full_response, is_in_code_block, cur
         if response_type == "stream_delta":
             content = response_data.get("content")
             if content:
-                if not is_in_code_block:
-                    if CODE_TAG in content:
-                        before, _, after = content.partition(CODE_TAG)
-                        full_response += before
-                        full_response += f"\n```\n{after}"
-                        is_in_code_block = True
+                while CODE_TAG in content:
+                    before, _, after = content.partition(CODE_TAG)
+                    if is_in_code_block:
+                        content_blocks[-1]["content"] += before
+                        content_blocks.append({"type": "markdown", "content": ""})
+                        is_in_code_block = False
                     else:
-                        full_response += content
-                else:
-                    full_response += content
+                        content_blocks[-1]["content"] += before
+                        content_blocks.append({"type": "code", "content": ""})
+                        is_in_code_block = True
+                    content = after
+                
+                if content_blocks:
+                    content_blocks[-1]["content"] += content
         else:
             if is_in_code_block:
-                full_response += "\n```\n"
+                content_blocks.append({"type": "markdown", "content": ""})
                 is_in_code_block = False
 
             if response_type == "final_answer":
                 final_answer = response_data
-                full_response += f"\n\n{final_answer}"
+                content_blocks[-1]["content"] += f"\n\n{final_answer}"
             elif response_type == "action":
                 action_happened = True
+                action_markdown = ""
                 observations = response_data.get("observations")
                 if observations and not response_data.get("is_final_answer"):
                     observations = re.sub(r"^Execution logs:\s*", "", observations.strip())
                     split_result = re.split(r"Last output from code snippet:\s*", observations)
                     observations = split_result[0].rstrip()
-                    last_output_from_code = split_result[1] if len(split_result) > 1 else ""
-                    full_response += f"\n\n<details><summary>📝 Execution Logs</summary>\n\n{observations}\n\n</details>"
-                step_name = f"Step: {response_data["step_number"]}"
-                full_response += get_step_footnote_content(response_data, step_name)
+                    action_markdown += f"\n\n<details><summary>📝 Execution Logs</summary>\n\n{observations}\n\n</details>"
+                step_name = f"Step: {response_data['step_number']}"
+                action_markdown += get_step_footnote_content(response_data, step_name)
+                content_blocks[-1]["content"] += action_markdown
 
-
-        placeholder.markdown(full_response, unsafe_allow_html=True)
+        with placeholder.container():
+            for block in content_blocks:
+                if block["type"] == "markdown" and block["content"]:
+                    st.markdown(block["content"], unsafe_allow_html=True)
+                elif block["type"] == "code" and block["content"]:
+                    st.code(block["content"])
 
     except json.JSONDecodeError:
         pass
 
-    return full_response, is_in_code_block, current_tool_name, action_happened
+    return content_blocks, is_in_code_block, current_tool_name, action_happened
+
+
 
 
 
