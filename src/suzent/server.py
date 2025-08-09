@@ -24,9 +24,11 @@ from smolagents.tools import Tool # Import the base Tool class
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, JSONResponse
 from starlette.routing import Route
 from mcp import StdioServerParameters
+from suzent.config import Config
+from suzent.plan import read_plan_from_file
 
 load_dotenv()
 
@@ -263,11 +265,46 @@ async def chat(request):
         )
 
 
+async def get_config(request):
+    """Return frontend-consumable configuration derived from Config class."""
+    data = {
+        "title": Config.TITLE,
+        "models": Config.MODEL_OPTIONS,
+        "agents": Config.AGENT_OPTIONS,
+        "tools": Config.TOOL_OPTIONS,
+        "defaultTools": Config.DEFAULT_TOOLS,
+        "codeTag": Config.CODE_TAG,
+    }
+    return JSONResponse(data)
+
+async def get_plan(request):
+    """Return current plan (objective + tasks) as JSON."""
+    try:
+        plan = read_plan_from_file()
+        if not plan:
+            return JSONResponse({"objective": "", "tasks": []})
+        tasks = []
+        for t in plan.tasks:
+            tasks.append({
+                "number": t.number,
+                "description": t.description,
+                "status": t.status,
+                "note": getattr(t, 'note', None)
+            })
+        return JSONResponse({"objective": plan.objective, "tasks": tasks})
+    except FileNotFoundError:
+        return JSONResponse({"objective": "", "tasks": []})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 # --- Application Setup ---
 app = Starlette(
     debug=True,
     routes=[
         Route("/chat", chat, methods=["POST"]),
+        Route("/config", get_config, methods=["GET"]),
+        Route("/plan", get_plan, methods=["GET"]),
     ],
     middleware=[
         Middleware(

@@ -1,0 +1,15 @@
+export interface Message { role: 'user' | 'assistant'; content: string; }
+export interface ChatConfig { model: string; agent: string; tools: string[]; }
+
+export interface PlanTask { number: number; description: string; status: 'pending' | 'in_progress' | 'completed' | 'failed'; note?: string }
+export interface Plan { objective: string; tasks: PlanTask[] }
+
+// Added: configuration options exposed by backend (derived from suzent.config.Config)
+export interface ConfigOptions {
+  title: string;
+  models: string[];
+  agents: string[];
+  tools: string[];        // full list of tool options
+  defaultTools: string[]; // default enabled tools
+  codeTag: string;        // CODE_TAG (e.g. <code>) so frontend can parse blocks consistently
+}
