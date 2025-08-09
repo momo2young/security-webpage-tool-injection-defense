@@ -9,27 +9,61 @@ import 'prismjs/components/prism-javascript';
 import { usePlan } from '../hooks/usePlan';
 
 // Configure marked for safer line breaks and code highlighting placeholders
-marked.setOptions({ gfm: true, breaks: true });
+marked.use({
+  breaks: true,
+  gfm: true,
+});
 
-// Helper to split assistant content into markdown + code bubbles
+// Helper to split assistant content into markdown + code blocks, tolerant of an open (unclosed) fence while streaming
 function splitAssistantContent(content: string): { type: 'markdown' | 'code'; content: string; lang?: string }[] {
   const blocks: { type: 'markdown' | 'code'; content: string; lang?: string }[] = [];
-  const codeFenceRegex = /```(\w+)?\n([\s\S]*?)```/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = codeFenceRegex.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      blocks.push({ type: 'markdown', content: content.slice(lastIndex, match.index) });
+  let i = 0;
+  const len = content.length;
+  let currentMarkdown = '';
+  while (i < len) {
+    const fenceStart = content.indexOf('```', i);
+    if (fenceStart === -1) { // no more fences
+      currentMarkdown += content.slice(i);
+      break;
     }
-    const lang = match[1] || 'text';
-    const codeBody = match[2];
-    blocks.push({ type: 'code', content: codeBody, lang });
-    lastIndex = codeFenceRegex.lastIndex;
+    // append markdown before fence
+    currentMarkdown += content.slice(i, fenceStart);
+    // detect language
+    const langLineEnd = content.indexOf('\n', fenceStart + 3);
+    if (langLineEnd === -1) { // fence not complete yet
+      currentMarkdown += content.slice(fenceStart); // treat as plain until newline arrives
+      i = len;
+      break;
+    }
+    const langToken = content.slice(fenceStart + 3, langLineEnd).trim();
+    const lang = langToken || 'text';
+    // look for closing fence
+    const closingFence = content.indexOf('\n```', langLineEnd + 1);
+    if (closingFence === -1) {
+      // Open code fence without closure yet -> push accumulated markdown, then code block with current partial code
+      if (currentMarkdown) {
+        blocks.push({ type: 'markdown', content: currentMarkdown });
+        currentMarkdown = '';
+      }
+      const codeBody = content.slice(langLineEnd + 1); // everything after lang line
+      blocks.push({ type: 'code', content: codeBody, lang });
+      i = len; // done
+      break;
+    } else {
+      // Closed block
+      if (currentMarkdown) {
+        blocks.push({ type: 'markdown', content: currentMarkdown });
+        currentMarkdown = '';
+      }
+      const codeBody = content.slice(langLineEnd + 1, closingFence);
+      blocks.push({ type: 'code', content: codeBody, lang });
+      i = closingFence + 4; // skip over \n```
+    }
   }
-  if (lastIndex < content.length) {
-    blocks.push({ type: 'markdown', content: content.slice(lastIndex) });
+  if (currentMarkdown.trim() !== '') {
+    blocks.push({ type: 'markdown', content: currentMarkdown });
   }
-  return blocks.filter(b => b.content.trim() !== '');
+  return blocks.filter(b => b.content !== '');
 }
 
 const CopyButton: React.FC<{ text: string }> = ({ text }) => {
@@ -81,7 +115,7 @@ export const ChatWindow: React.FC = () => {
             <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
               <div className={`group max-w-3xl w-fit ${isUser ? 'bg-gradient-to-tr from-brand-600 to-brand-500 text-white' : 'bg-white/90 border border-neutral-200 text-neutral-800'} rounded-xl shadow-sm px-5 py-3 space-y-3 text-sm leading-relaxed relative`}>                
                 {blocks.map((b, bi) => b.type === 'markdown' ? (
-                  <div key={bi} className="prose prose-sm max-w-none [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_code]:text-[12px]" dangerouslySetInnerHTML={{ __html: marked.parse(b.content) }} />
+                  <div key={bi} className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: marked.parse(b.content) }} />
                 ) : (
                   <div key={bi} className="relative">
                     <CopyButton text={b.content} />

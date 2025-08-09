@@ -5,3 +5,17 @@
 html, body, #root { height: 100%; }
 
 .prose pre { background: #111827; }
+
+/* Custom scrollbar */
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(82,82,91,0.6); border-radius: 4px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgba(113,113,122,0.7); }
+
+/* Code block styling */
+pre[class*="language-"] { position: relative; }
+pre code { font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+/* Fade-in animation */
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(4px);} to { opacity:1; transform: translateY(0);} }
+.group { animation: fadeInUp 0.25s ease; }
