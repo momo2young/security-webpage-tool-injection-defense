@@ -1,7 +1,13 @@
 import os
 import importlib
 from pathlib import Path
-from smolagents import Tool
+
+# Graceful import of smolagents Tool base class
+try:
+    from smolagents import Tool as _SmolTool  # type: ignore
+except ImportError:  # Fallback so config import does not fail in environments without smolagents installed yet
+    class _SmolTool:  # type: ignore
+        pass
 
 class Config:
     # Application Configuration
@@ -24,18 +30,32 @@ class Config:
     def get_tool_options():
         tools_dir = Path(__file__).parent / "tools"
         tool_options = []
+        if not tools_dir.exists():
+            return tool_options
         for f in os.listdir(tools_dir):
             if f.endswith(".py") and not f.startswith("__"):
                 module_name = f"suzent.tools.{f[:-3]}"
-                module = importlib.import_module(module_name)
+                try:
+                    module = importlib.import_module(module_name)
+                except Exception:
+                    continue
                 for attribute_name in dir(module):
                     attribute = getattr(module, attribute_name)
-                    # Check if it's a class, a subclass of Tool, and not Tool itself
-                    if isinstance(attribute, type) and issubclass(attribute, Tool) and attribute.__name__ != "Tool" and attribute.__module__.startswith("suzent.tools"):
+                    if (
+                        isinstance(attribute, type)
+                        and issubclass(attribute, _SmolTool)
+                        and attribute is not _SmolTool
+                        and getattr(attribute, "__module__", "").startswith("suzent.tools")
+                    ):
                         tool_options.append(attribute.__name__)
         return tool_options
+
     DEFAULT_TOOLS = ["WebSearchTool", "PlanningTool"]
-    TOOL_OPTIONS = get_tool_options() + DEFAULT_TOOLS
+
+    # Deduplicate while preserving order (discovered first, then defaults appended if absent)
+    _DISCOVERED = get_tool_options.__func__()  # call static without binding
+    TOOL_OPTIONS = list(dict.fromkeys(_DISCOVERED + DEFAULT_TOOLS))
+
     DEFAULT_MCP_URLS = "https://evalstate-hf-mcp-server.hf.space/mcp"
 
     # Example configuration options (can be removed if not used)
