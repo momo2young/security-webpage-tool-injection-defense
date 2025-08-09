@@ -8,7 +8,11 @@ import { ChatProvider, useChatStore } from './hooks/useChatStore';
 
 const HeaderTitle: React.FC = () => {
   const { backendConfig } = useChatStore();
-  return <h1 className="font-semibold text-lg">{backendConfig?.title || 'Suzent'}</h1>;
+  return (
+    <h1 className="font-semibold text-lg bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent tracking-tight">
+      {backendConfig?.title || 'Suzent'}
+    </h1>
+  );
 };
 
 export default function App() {
@@ -17,18 +21,20 @@ export default function App() {
 
   return (
     <ChatProvider>
-      <div className="flex h-full">
-        <Sidebar
-          activeTab={sidebarTab}
-          onTabChange={setSidebarTab}
-          planContent={<PlanView plan={plan} onRefresh={refresh} />}
-          configContent={<ConfigView />}
-        />
-        <div className="flex-1 flex flex-col">
-          <header className="border-b border-neutral-800 px-4 py-2 flex items-center justify-between">
-            <HeaderTitle />
-          </header>
-          <ChatWindow />
+      <div className="h-full w-full bg-neutral-50 text-neutral-800 font-sans">
+        <div className="flex h-full">
+          <Sidebar
+            activeTab={sidebarTab}
+            onTabChange={setSidebarTab}
+            planContent={<PlanView plan={plan} onRefresh={refresh} />}
+            configContent={<ConfigView />}
+          />
+          <div className="flex-1 flex flex-col">
+            <header className="border-b border-neutral-200 px-6 py-3 flex items-center justify-between bg-white/90 backdrop-blur">
+              <HeaderTitle />
+            </header>
+            <ChatWindow />
+          </div>
         </div>
       </div>
     </ChatProvider>
