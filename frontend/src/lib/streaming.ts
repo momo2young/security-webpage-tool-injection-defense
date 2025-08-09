@@ -13,9 +13,10 @@ export interface StreamCallbacks {
 interface ContentBlock { type: 'markdown' | 'code'; content: string }
 
 function assembleForStorage(blocks: ContentBlock[]): string {
-  return blocks.map(b => b.type === 'markdown' ? b.content : `\n\n\
-\n${b.content}\n\n\
-\n`).join('');
+  // Wrap code blocks in triple backticks so downstream markdown splitter can detect & render
+  return blocks
+    .map(b => b.type === 'markdown' ? b.content : `\n\n\u0060\u0060\u0060python\n${b.content}\n\u0060\u0060\u0060\n\n`)
+    .join('');
 }
 
 function getStepFootnote(step: any, stepName: string): string {

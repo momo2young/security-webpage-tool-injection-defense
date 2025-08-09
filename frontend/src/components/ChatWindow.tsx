@@ -64,7 +64,7 @@ export const ChatWindow: React.FC = () => {
     setLoading(true);
     try {
       await streamChat(prompt, config, {
-        onDelta: (partial: string) => { updateAssistantStreaming(partial); },
+        onDelta: (partial: string) => { updateAssistantStreaming(partial); Prism.highlightAll(); },
         onAction: () => { refresh(); },
         onNewAssistantMessage: () => { newAssistantMessage(); }
       }, backendConfig?.codeTag || '<code>');
