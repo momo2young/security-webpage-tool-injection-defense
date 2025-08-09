@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Plan } from '../../types/api.js';
+import type { Plan } from '../../types/api';
 
 export const PlanView: React.FC<{ plan: Plan | null; onRefresh: () => void }> = ({ plan, onRefresh }) => {
   if (!plan) {

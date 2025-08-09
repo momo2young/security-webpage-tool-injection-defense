@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Sidebar } from './components/sidebar/Sidebar.js';
-import { ChatWindow } from './components/ChatWindow.js';
-import { PlanView } from './components/sidebar/PlanView.js';
-import { ConfigView } from './components/sidebar/ConfigView.js';
+import { Sidebar } from './components/sidebar/Sidebar';
+import { ChatWindow } from './components/ChatWindow';
+import { PlanView } from './components/sidebar/PlanView';
+import { ConfigView } from './components/sidebar/ConfigView';
 import { PlanProvider, usePlan } from './hooks/usePlan';
 import { ChatProvider, useChatStore } from './hooks/useChatStore.js';
 

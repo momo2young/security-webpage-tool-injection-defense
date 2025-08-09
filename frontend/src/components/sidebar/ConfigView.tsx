@@ -1,5 +1,5 @@
 import React from 'react';
-import { useChatStore } from '../../hooks/useChatStore.js';
+import { useChatStore } from '../../hooks/useChatStore';
 
 export const ConfigView: React.FC = () => {
   const { config, setConfig, backendConfig } = useChatStore();

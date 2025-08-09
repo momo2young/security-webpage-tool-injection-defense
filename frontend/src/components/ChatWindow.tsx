@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useChatStore } from '../hooks/useChatStore.js';
-import { streamChat } from '../lib/streaming.js';
-import type { Message } from '../types/api.js';
+import { useChatStore } from '../hooks/useChatStore';
+import { streamChat } from '../lib/streaming';
+import type { Message } from '../types/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypePrism from 'rehype-prism-plus';
 import { usePlan } from '../hooks/usePlan';
-import Prism from 'prismjs';
 
 // Helper to split assistant content into markdown + code blocks, tolerant of an open (unclosed) fence while streaming
 function splitAssistantContent(content: string): { type: 'markdown' | 'code'; content: string; lang?: string }[] {
@@ -76,12 +75,13 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
 const MarkdownRenderer = (props: { content: string }) => {
   const RM: any = ReactMarkdown;
   return (
-    <RM
-      remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeSanitize, rehypePrism]}
-      components={{
-        code(codeProps: any) {
-          const { inline, className, children, ...rest } = codeProps;
+    <div className="prose prose-sm max-w-none">
+      <RM
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeSanitize, rehypePrism]}
+        components={{
+          code(codeProps: any) {
+            const { inline, className, children, ...rest } = codeProps;
             const match = /language-(\w+)/.exec(className || '');
             if (!inline && match) {
               return (
@@ -91,23 +91,23 @@ const MarkdownRenderer = (props: { content: string }) => {
               );
             }
             return <code className="bg-neutral-100 px-1.5 py-0.5 rounded text-[11px] font-mono text-brand-600" {...rest}>{children}</code>;
-        },
-        a(aProps: any) { const { href, children } = aProps; return <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">{children}</a>; },
-        table(p: any) { return <div className="overflow-x-auto"><table className="text-xs border border-neutral-200">{p.children}</table></div>; },
-        th(p: any) { return <th className="border px-2 py-1 bg-neutral-50 font-semibold">{p.children}</th>; },
-        td(p: any) { return <td className="border px-2 py-1 align-top">{p.children}</td>; },
-        ul(p: any) { return <ul className="list-disc ml-5 space-y-1">{p.children}</ul>; },
-        ol(p: any) { return <ol className="list-decimal ml-5 space-y-1">{p.children}</ol>; },
-        h1(p: any) { return <h1 className="text-xl font-semibold mt-4 mb-2">{p.children}</h1>; },
-        h2(p: any) { return <h2 className="text-lg font-semibold mt-4 mb-2">{p.children}</h2>; },
-        h3(p: any) { return <h3 className="text-base font-semibold mt-4 mb-2">{p.children}</h3>; },
-        p(pArg: any) { return <p className="leading-relaxed">{pArg.children}</p>; },
-        blockquote(p: any) { return <blockquote className="border-l-4 border-brand-600/30 pl-3 italic text-neutral-600">{p.children}</blockquote>; }
-      }}
-      className="prose prose-sm max-w-none"
-    >
-      {props.content}
-    </RM>
+          },
+          a(aProps: any) { const { href, children } = aProps; return <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">{children}</a>; },
+          table(p: any) { return <div className="overflow-x-auto"><table className="text-xs border border-neutral-200">{p.children}</table></div>; },
+          th(p: any) { return <th className="border px-2 py-1 bg-neutral-50 font-semibold">{p.children}</th>; },
+          td(p: any) { return <td className="border px-2 py-1 align-top">{p.children}</td>; },
+          ul(p: any) { return <ul className="list-disc ml-5 space-y-1">{p.children}</ul>; },
+          ol(p: any) { return <ol className="list-decimal ml-5 space-y-1">{p.children}</ol>; },
+          h1(p: any) { return <h1 className="text-xl font-semibold mt-4 mb-2">{p.children}</h1>; },
+            h2(p: any) { return <h2 className="text-lg font-semibold mt-4 mb-2">{p.children}</h2>; },
+            h3(p: any) { return <h3 className="text-base font-semibold mt-4 mb-2">{p.children}</h3>; },
+            p(pArg: any) { return <p className="leading-relaxed">{pArg.children}</p>; },
+            blockquote(p: any) { return <blockquote className="border-l-4 border-brand-600/30 pl-3 italic text-neutral-600">{p.children}</blockquote>; }
+        }}
+      >
+        {props.content}
+      </RM>
+    </div>
   );
 };
 
@@ -119,7 +119,6 @@ export const ChatWindow: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-  useEffect(() => { Prism.highlightAll(); }, [messages]);
 
   const configReady = backendConfig && config.model && config.agent;
 
@@ -131,7 +130,7 @@ export const ChatWindow: React.FC = () => {
     setLoading(true);
     try {
       await streamChat(prompt, config, {
-        onDelta: (partial: string) => { updateAssistantStreaming(partial); Prism.highlightAll(); },
+        onDelta: (partial: string) => { updateAssistantStreaming(partial); },
         onAction: () => { /* compatibility */ },
         onNewAssistantMessage: () => { newAssistantMessage(); },
         onPlanUpdate: (p: any) => { setPlan(p); }

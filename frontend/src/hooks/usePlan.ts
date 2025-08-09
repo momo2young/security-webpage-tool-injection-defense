@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import type { Plan } from '../types/api.js';
+import type { Plan } from '../types/api';
 
 interface PlanContextValue {
   plan: Plan | null;
