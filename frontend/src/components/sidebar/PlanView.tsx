@@ -1,11 +1,11 @@
 import React from 'react';
-import { Plan } from '../../types/api';
+import type { Plan } from '../../types/api.js';
 
 export const PlanView: React.FC<{ plan: Plan | null; onRefresh: () => void }> = ({ plan, onRefresh }) => {
   if (!plan) {
     return <div className="text-xs text-neutral-500">No plan loaded.</div>;
   }
-  const completed = plan.tasks.filter(t => t.status === 'completed').length;
+  const completed = plan.tasks.filter((t: any) => t.status === 'completed').length;
   const progress = plan.tasks.length ? completed / plan.tasks.length : 0;
   return (
     <div className="space-y-4">
@@ -14,12 +14,16 @@ export const PlanView: React.FC<{ plan: Plan | null; onRefresh: () => void }> = 
         <button onClick={onRefresh} className="text-[11px] text-brand-600 hover:text-brand-500 transition-colors">Refresh</button>
       </div>
       <div className="text-sm font-semibold leading-snug text-neutral-900">{plan.objective}</div>
-      <div className="w-full h-2 rounded bg-neutral-200 overflow-hidden">
-        <div className="h-2 bg-gradient-to-r from-brand-600 to-brand-400 transition-all duration-300" style={{ width: `${progress * 100}%` }} />
+      <div className="w-full h-2 rounded bg-neutral-200 overflow-hidden relative">
+        <div
+          className="h-2 bg-gradient-to-r from-brand-600 to-brand-400 transition-[width] duration-500 ease-out will-change-[width]"
+          style={{ width: `${progress * 100}%` }}
+        />
+        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(120deg,rgba(255,255,255,0)_0%,rgba(255,255,255,.4)_50%,rgba(255,255,255,0)_100%)] bg-[length:200%_100%] animate-[shimmer_2.5s_linear_infinite]" />
       </div>
       <div className="text-[11px] text-neutral-500">{completed}/{plan.tasks.length} tasks completed</div>
       <ul className="space-y-2 text-[11px]">
-        {plan.tasks.map(task => {
+        {plan.tasks.map((task: any) => {
           const statusIcons: Record<string,string> = { pending: '⚪', in_progress: '🔵', completed: '🟢', failed: '🔴' };
           return (
             <li key={task.number} className="bg-white/70 rounded border border-neutral-200 p-2.5">
@@ -35,3 +39,5 @@ export const PlanView: React.FC<{ plan: Plan | null; onRefresh: () => void }> = 
     </div>
   );
 };
+
+// Add keyframes (Tailwind not custom-defined here, but we embed minimal CSS via style tag in index if needed)

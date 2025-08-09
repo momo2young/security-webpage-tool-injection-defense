@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Message, ChatConfig, ConfigOptions } from '../types/api';
+import { Message, ChatConfig, ConfigOptions } from '../types/api.js';
 
 interface ChatContextValue {
   messages: Message[];
@@ -33,7 +33,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const data: ConfigOptions = await res.json();
           setBackendConfig(data);
           // Initialize config with backend defaults if available
-          setConfig(c => ({
+          setConfig((c: ChatConfig) => ({
             model: data.models[0] || '',
             agent: data.agents[0] || '',
             tools: data.defaultTools || []

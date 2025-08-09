@@ -47,6 +47,18 @@ class Plan:
         markdown += "\n".join(visible_tasks)
         return markdown
 
+    def first_pending(self) -> Optional['Task']:
+        for t in self.tasks:
+            if t.status == "pending":
+                return t
+        return None
+
+    def first_in_progress(self) -> Optional['Task']:
+        for t in self.tasks:
+            if t.status == "in_progress":
+                return t
+        return None
+
 
 def read_plan_from_file() -> Optional[Plan]:
     """Reads the plan from the TODO.md file."""
@@ -75,3 +87,27 @@ def write_plan_to_file(plan: Plan):
         f.write(f"# Plan for: {plan.objective}\n\n")
         for task in plan.tasks:
             f.write(str(task))
+
+
+def auto_mark_in_progress():
+    """If no task is in progress, mark the first pending as in_progress."""
+    plan = read_plan_from_file()
+    if not plan:
+        return
+    if plan.first_in_progress():
+        return
+    pending = plan.first_pending()
+    if pending:
+        pending.status = "in_progress"
+        write_plan_to_file(plan)
+
+
+def auto_complete_current():
+    """Mark the current in_progress task as completed."""
+    plan = read_plan_from_file()
+    if not plan:
+        return
+    cur = plan.first_in_progress()
+    if cur:
+        cur.status = "completed"
+        write_plan_to_file(plan)

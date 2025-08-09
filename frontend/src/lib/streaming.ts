@@ -5,9 +5,10 @@ import { useChatStore } from '../hooks/useChatStore'; // (Note: runtime import n
 // Maintains content blocks (markdown/code) toggled by CODE_TAG sentinel.
 
 export interface StreamCallbacks {
-  onDelta: (delta: string) => void;            // incremental markdown delta appended to current assistant message
-  onAction?: () => void;                       // plan refresh trigger
-  onNewAssistantMessage?: () => void;          // create a new assistant message container (step split)
+  onDelta: (delta: string) => void;
+  onAction?: () => void;
+  onNewAssistantMessage?: () => void;
+  onPlanUpdate?: (plan: any) => void; // new
 }
 
 interface ContentBlock { type: 'markdown' | 'code'; content: string }
@@ -167,6 +168,9 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
         blocks[blocks.length - 1].content += `\n\n**Error:** ${data}`;
         emitDiff();
         resetForNewAssistantMessage();
+      } else if (type === 'plan_refresh') {
+        if (data && callbacks.onPlanUpdate) callbacks.onPlanUpdate(data);
+        if (onAction) onAction();
       }
     }
   }

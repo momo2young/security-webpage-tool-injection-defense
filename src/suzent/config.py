@@ -17,9 +17,9 @@ class Config:
 
     # Model and Agent Options
     MODEL_OPTIONS = [
+        "anthropic/claude-sonnet-4-20250514",
         "gemini/gemini-2.5-flash",
         "gemini/gemini-2.5-pro",
-        "anthropic/claude-sonnet-4-20250514",
         "openai/gpt-4.1",
         "deepseek/deepseek-chat"
     ]

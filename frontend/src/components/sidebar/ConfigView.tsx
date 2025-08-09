@@ -1,5 +1,5 @@
 import React from 'react';
-import { useChatStore } from '../../hooks/useChatStore';
+import { useChatStore } from '../../hooks/useChatStore.js';
 
 export const ConfigView: React.FC = () => {
   const { config, setConfig, backendConfig } = useChatStore();
@@ -11,7 +11,7 @@ export const ConfigView: React.FC = () => {
   const update = (patch: Partial<typeof config>) => setConfig({ ...config, ...patch });
 
   const toggleTool = (tool: string) => {
-    const tools = config.tools.includes(tool) ? config.tools.filter(t => t !== tool) : [...config.tools, tool];
+    const tools = config.tools.includes(tool) ? config.tools.filter((t: string) => t !== tool) : [...config.tools, tool];
     update({ tools });
   };
 
@@ -24,7 +24,7 @@ export const ConfigView: React.FC = () => {
           onChange={e => update({ model: e.target.value })}
           className="w-full bg-white/70 border border-neutral-300 rounded-lg px-3 py-2 focus:border-brand-500 focus:outline-none"
         >
-          {backendConfig.models.map(m => <option key={m} value={m}>{m}</option>)}
+          {backendConfig.models.map((m: string) => <option key={m} value={m}>{m}</option>)}
         </select>
       </div>
       <div className="space-y-1">
@@ -34,13 +34,13 @@ export const ConfigView: React.FC = () => {
           onChange={e => update({ agent: e.target.value })}
           className="w-full bg-white/70 border border-neutral-300 rounded-lg px-3 py-2 focus:border-brand-500 focus:outline-none"
         >
-          {backendConfig.agents.map(a => <option key={a} value={a}>{a}</option>)}
+          {backendConfig.agents.map((a: string) => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
       <div className="space-y-2">
         <label className="block font-medium tracking-wide text-neutral-700">Tools</label>
         <div className="flex flex-wrap gap-2">
-          {backendConfig.tools.map(tool => {
+          {backendConfig.tools.map((tool: string) => {
             const active = config.tools.includes(tool);
             return (
               <button

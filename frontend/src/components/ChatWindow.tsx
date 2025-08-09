@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useChatStore } from '../hooks/useChatStore';
-import { streamChat } from '../lib/streaming';
-import { Message } from '../types/api';
+import { useChatStore } from '../hooks/useChatStore.js';
+import { streamChat } from '../lib/streaming.js';
+import type { Message } from '../types/api.js';
 import { marked } from 'marked';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-python';
@@ -80,7 +80,7 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
 
 export const ChatWindow: React.FC = () => {
   const { messages, addMessage, updateAssistantStreaming, config, backendConfig, newAssistantMessage } = useChatStore();
-  const { refresh } = usePlan();
+  const { refresh, setPlan } = usePlan();
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);
@@ -99,8 +99,9 @@ export const ChatWindow: React.FC = () => {
     try {
       await streamChat(prompt, config, {
         onDelta: (partial: string) => { updateAssistantStreaming(partial); Prism.highlightAll(); },
-        onAction: () => { refresh(); },
-        onNewAssistantMessage: () => { newAssistantMessage(); }
+        onAction: () => { /* compatibility */ },
+        onNewAssistantMessage: () => { newAssistantMessage(); },
+        onPlanUpdate: (p: any) => { setPlan(p); }
       }, backendConfig?.codeTag || '<code>');
     } finally { setLoading(false); }
   };

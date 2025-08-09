@@ -14,6 +14,7 @@ from dataclasses import asdict, is_dataclass
 from typing import Optional
 from json import JSONEncoder
 import importlib
+import contextlib
 
 from dotenv import load_dotenv
 from smolagents import CodeAgent, LiteLLMModel, MCPClient, WebSearchTool
@@ -170,34 +171,107 @@ def step_to_json_event(chunk):
     return {"type": event_type, "data": data}
 
 
-async def stream_agent_responses(agent, message: str, reset: bool = False):
-    """
-    Runs the agent with the given message and yields JSON-formatted server-sent events.
-    """
+def _plan_snapshot():
     try:
-        result_generator = await asyncio.to_thread(
-            agent.run, message, stream=True, reset=reset
-        )
+        plan = read_plan_from_file()
+        if not plan:
+            return {"objective": "", "tasks": []}
+        return {
+            "objective": plan.objective,
+            "tasks": [
+                {
+                    "number": t.number,
+                    "description": t.description,
+                    "status": t.status,
+                    "note": getattr(t, "note", None),
+                }
+                for t in plan.tasks
+            ],
+        }
+    except Exception:
+        return {"objective": "", "tasks": []}
 
-        if isinstance(result_generator, types.GeneratorType):
-            for chunk in result_generator:
+
+async def stream_agent_responses(agent, message: str, reset: bool = False):
+    """Runs the agent with the given message and yields JSON-formatted SSE events.
+    Uses a background thread + asyncio.Queue so the event loop is not blocked and
+    deltas flush to the client sooner. Adds a plan file watcher to emit timely updates."""
+    queue: asyncio.Queue = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+    stop_event = asyncio.Event()
+
+    class _PlanTick:
+        __slots__ = ["snapshot"]
+        def __init__(self, snapshot):
+            self.snapshot = snapshot
+
+    def worker():  # runs in thread
+        try:
+            gen = agent.run(message, stream=True, reset=reset)
+            for chunk in gen:
+                loop.call_soon_threadsafe(queue.put_nowait, chunk)
+        except Exception as e:  # propagate error
+            loop.call_soon_threadsafe(queue.put_nowait, e)
+        finally:
+            loop.call_soon_threadsafe(queue.put_nowait, None)  # sentinel
+            loop.call_soon_threadsafe(stop_event.set)
+
+    async def plan_watcher(interval: float = 0.7):
+        """Watch the plan file for changes and enqueue updates (no yields)."""
+        last_snapshot = None
+        try:
+            while not stop_event.is_set():
+                await asyncio.sleep(interval)
                 try:
-                    json_event = step_to_json_event(chunk)
-                    if json_event:
-                        yield f"data: {json.dumps(json_event)}\n\n"
+                    snapshot = _plan_snapshot()
+                    if snapshot != last_snapshot:
+                        last_snapshot = snapshot
+                        await queue.put(_PlanTick(snapshot))
                 except Exception as e:
-                    error_event = {
-                        "type": "error",
-                        "data": f"Serialization error: {e!s} | Raw: {chunk!s}",
-                    }
-                    yield f"data: {json.dumps(error_event)}\n\n"
-        else:
-            result_event = {"type": "result", "data": str(result_generator)}
-            yield f"data: {json.dumps(result_event)}\n\n"
+                    await queue.put(_PlanTick({"error": str(e)}))
+        except asyncio.CancelledError:
+            pass
 
-    except Exception as e:
-        error_event = {"type": "error", "data": str(e)}
-        yield f"data: {json.dumps(error_event)}\n\n"
+    # Start worker thread and watcher task
+    import threading
+    threading.Thread(target=worker, daemon=True).start()
+    watcher_task = asyncio.create_task(plan_watcher())
+
+    while True:
+        chunk = await queue.get()
+        if chunk is None:
+            break
+        if isinstance(chunk, Exception):
+            error_event = {"type": "error", "data": str(chunk)}
+            yield f"data: {json.dumps(error_event)}\n\n"
+            continue
+        # Handle plan watcher ticks before generic serialization
+        if isinstance(chunk, _PlanTick):
+            try:
+                plan_event = {"type": "plan_refresh", "data": chunk.snapshot}
+                yield f"data: {json.dumps(plan_event)}\n\n"
+            except Exception as e:
+                error_event = {"type": "error", "data": f"Plan tick error: {e!s}"}
+                yield f"data: {json.dumps(error_event)}\n\n"
+            await asyncio.sleep(0)
+            continue
+        try:
+            json_event = step_to_json_event(chunk)
+            if json_event:
+                yield f"data: {json.dumps(json_event)}\n\n"
+                et = json_event.get("type")
+                if et in ("planning", "action"):
+                    plan_event = {"type": "plan_refresh", "data": _plan_snapshot()}
+                    yield f"data: {json.dumps(plan_event)}\n\n"
+        except Exception as e:
+            error_event = {"type": "error", "data": f"Serialization error: {e!s} | Raw: {chunk!s}"}
+            yield f"data: {json.dumps(error_event)}\n\n"
+        await asyncio.sleep(0)  # allow loop to flush
+
+    stop_event.set()
+    watcher_task.cancel()
+    with contextlib.suppress(Exception):
+        await watcher_task
 
 
 # --- API Endpoint ---
