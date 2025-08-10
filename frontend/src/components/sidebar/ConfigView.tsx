@@ -2,7 +2,7 @@ import React from 'react';
 import { useChatStore } from '../../hooks/useChatStore';
 
 export const ConfigView: React.FC = () => {
-  const { config, setConfig, backendConfig } = useChatStore();
+  const { config, setConfig, backendConfig, resetChat } = useChatStore();
 
   if (!backendConfig) {
     return <div className="text-xs text-neutral-500">Loading config...</div>;
@@ -17,6 +17,10 @@ export const ConfigView: React.FC = () => {
 
   return (
     <div className="space-y-6 text-xs">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold tracking-wide text-neutral-700">Session</div>
+        <button type="button" onClick={resetChat} className="text-[11px] px-2 py-1 rounded bg-neutral-200 hover:bg-neutral-300 text-neutral-700">New Chat</button>
+      </div>
       <div className="space-y-1">
         <label className="block font-medium tracking-wide text-neutral-700">Model</label>
         <select

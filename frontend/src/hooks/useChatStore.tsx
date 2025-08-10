@@ -8,7 +8,10 @@ interface ChatContextValue {
   addMessage: (m: Message) => void;
   updateAssistantStreaming: (delta: string) => void;
   backendConfig: ConfigOptions | null;
-  newAssistantMessage: () => void; // added
+  newAssistantMessage: () => void;
+  resetChat: () => void;
+  shouldResetNext: boolean; // new
+  consumeResetFlag: () => void; // new
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -16,13 +19,15 @@ const ChatContext = createContext<ChatContextValue | null>(null);
 const defaultConfig: ChatConfig = {
   model: '',
   agent: '',
-  tools: []
+  tools: [],
+  mcp_urls: [] // new optional field
 };
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [config, setConfig] = useState<ChatConfig>(defaultConfig);
   const [backendConfig, setBackendConfig] = useState<ConfigOptions | null>(null);
+  const [shouldResetNext, setShouldResetNext] = useState(false); // new
 
   // Fetch backend config once
   useEffect(() => {
@@ -61,8 +66,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
   };
 
+  const resetChat = () => { setMessages([]); setShouldResetNext(true); };
+  const consumeResetFlag = () => setShouldResetNext(false);
+
   return (
-    <ChatContext.Provider value={{ messages, config, setConfig, addMessage, updateAssistantStreaming, backendConfig, newAssistantMessage }}>
+    <ChatContext.Provider value={{ messages, config, setConfig, addMessage, updateAssistantStreaming, backendConfig, newAssistantMessage, resetChat, shouldResetNext, consumeResetFlag }}>
       {children}
     </ChatContext.Provider>
   );

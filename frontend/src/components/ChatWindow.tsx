@@ -112,7 +112,7 @@ const MarkdownRenderer = (props: { content: string }) => {
 };
 
 export const ChatWindow: React.FC = () => {
-  const { messages, addMessage, updateAssistantStreaming, config, backendConfig, newAssistantMessage } = useChatStore();
+  const { messages, addMessage, updateAssistantStreaming, config, backendConfig, newAssistantMessage, shouldResetNext, consumeResetFlag } = useChatStore();
   const { setPlan } = usePlan();
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -125,6 +125,8 @@ export const ChatWindow: React.FC = () => {
   const send = async () => {
     const prompt = input.trim();
     if (!prompt || loading || !configReady) return;
+    const resetFlag = shouldResetNext;
+    if (resetFlag) consumeResetFlag();
     setInput('');
     addMessage({ role: 'user', content: prompt });
     setLoading(true);
@@ -134,7 +136,7 @@ export const ChatWindow: React.FC = () => {
         onAction: () => { /* compatibility */ },
         onNewAssistantMessage: () => { newAssistantMessage(); },
         onPlanUpdate: (p: any) => { setPlan(p); }
-      }, backendConfig?.codeTag || '<code>');
+      }, backendConfig?.codeTag || '<code>', resetFlag);
     } finally { setLoading(false); }
   };
 
@@ -144,22 +146,48 @@ export const ChatWindow: React.FC = () => {
         {messages.map((m: Message, idx: number) => {
           const isUser = m.role === 'user';
           const blocks = isUser ? [{ type: 'markdown', content: m.content } as { type: 'markdown'; content: string; lang?: string }] : splitAssistantContent(m.content);
+          let rawMetaLine: string | null = null;
+          if (!isUser) {
+            const firstMarkdown = blocks.find(b => b.type === 'markdown');
+            if (firstMarkdown) {
+              const lines = firstMarkdown.content.split(/\n/);
+              const metaIdx = lines.findIndex(l => l.trim().startsWith('**Step:'));
+              if (metaIdx !== -1) {
+                rawMetaLine = lines[metaIdx];
+                lines.splice(metaIdx, 1);
+                firstMarkdown.content = lines.join('\n');
+              }
+            }
+          }
+          const displayMeta = rawMetaLine ? rawMetaLine.replace(/\*\*/g, '') : null;
+          const alignClass = isUser ? 'justify-end' : 'justify-start';
           return (
-            <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
-              <div className={`group max-w-3xl w-fit ${isUser ? 'bg-gradient-to-tr from-brand-600 to-brand-500 text-white' : 'bg-white/90 border border-neutral-200 text-neutral-800'} rounded-xl shadow-sm px-5 py-3 space-y-3 text-sm leading-relaxed relative`}>                
-                {blocks.map((b, bi) => b.type === 'markdown' ? (
-                  <MarkdownRenderer key={bi} content={b.content} />
-                ) : (
-                  <div key={bi} className="relative">
-                    <CopyButton text={b.content} />
-                    <pre className="max-w-3xl overflow-x-auto text-xs bg-neutral-50 border border-neutral-200 rounded-lg p-3 font-mono leading-relaxed">
-                      <code className={`language-${(b as any).lang || 'text'}`}>{b.content}</code>
-                    </pre>
-                  </div>
-                ))}
-                {!isUser && idx === messages.length - 1 && loading && (
-                  <div className="flex gap-1 items-center text-[10px] text-neutral-400 animate-pulse">Thinking<span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce [animation-delay:-0.2s]"></span><span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce [animation-delay:-0.05s]"></span><span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce"></span></div>
-                )}
+            <div key={idx} className="w-full flex flex-col">
+              {!isUser && displayMeta && (
+                <div className={`flex ${alignClass} w-full mb-0.5`}> 
+                  <div className="text-[10px] font-medium tracking-wide text-neutral-500 px-1">{displayMeta}</div>
+                </div>
+              )}
+              <div className={`flex ${alignClass} w-full`}>
+                <div className={`group max-w-3xl w-fit ${isUser ? 'bg-gradient-to-tr from-brand-600 to-brand-500 text-white' : 'bg-white/90 border border-neutral-200 text-neutral-800'} rounded-xl shadow-sm px-5 py-3 space-y-3 text-sm leading-relaxed relative`}>
+                  {isUser ? (
+                    <div className="prose prose-sm prose-invert max-w-none text-white whitespace-pre-wrap">{m.content}</div>
+                  ) : (
+                    blocks.map((b, bi) => b.type === 'markdown' ? (
+                      <MarkdownRenderer key={bi} content={b.content} />
+                    ) : (
+                      <div key={bi} className="relative">
+                        <CopyButton text={b.content} />
+                        <pre className="max-w-3xl overflow-x-auto text-xs bg-neutral-50 border border-neutral-200 rounded-lg p-3 font-mono leading-relaxed">
+                          <code className={`language-${(b as any).lang || 'text'}`}>{b.content}</code>
+                        </pre>
+                      </div>
+                    ))
+                  )}
+                  {!isUser && idx === messages.length - 1 && loading && (
+                    <div className="flex gap-1 items-center text-[10px] text-neutral-400 animate-pulse">Thinking<span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce [animation-delay:-0.2s]"></span><span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce [animation-delay:-0.05s]"></span><span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce"></span></div>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -182,12 +210,12 @@ export const ChatWindow: React.FC = () => {
           <div className="absolute bottom-2 right-3 text-[10px] text-neutral-400 select-none">Enter to send • Shift+Enter newline</div>
         </div>
         <button
-          type="submit"
-          className="h-12 self-end rounded-lg bg-brand-600 hover:bg-brand-500 active:bg-brand-500/90 transition-colors px-5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow text-white"
-          disabled={loading || !configReady}
-        >
-          {loading ? 'Sending…' : 'Send'}
-        </button>
+            type="submit"
+            className="h-12 self-end rounded-lg bg-brand-600 hover:bg-brand-500 active:bg-brand-500/90 transition-colors px-5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow text-white"
+            disabled={loading || !configReady}
+          >
+            {loading ? 'Sending…' : 'Send'}
+          </button>
       </form>
     </div>
   );

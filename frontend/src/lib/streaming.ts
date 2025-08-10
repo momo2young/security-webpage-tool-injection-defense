@@ -1,4 +1,4 @@
-import { ChatConfig } from '../types/api';
+import type { ChatConfig } from '../types/api';
 import { useChatStore } from '../hooks/useChatStore'; // (Note: runtime import not used directly here, but kept for context)
 
 // Streaming implementation mirroring logic from Streamlit app.py
@@ -41,14 +41,14 @@ function getStepFootnote(step: any, stepName: string): string {
     const dNum = parseFloat(dur);
     if (!Number.isNaN(dNum)) foot += ` | Duration: ${dNum.toFixed(2)}s`;
   }
-  return `<span style="color:#bbbbc2;font-size:12px;">${foot}</span>\n\n`;
+  return `${foot}\n\n`; // no leading blank lines so it is the first non-empty line
 }
 
-export async function streamChat(prompt: string, config: ChatConfig, callbacks: StreamCallbacks, codeTag = '<code>') {
+export async function streamChat(prompt: string, config: ChatConfig, callbacks: StreamCallbacks, codeTag = '<code>', reset = false) {
   const { onDelta, onAction, onNewAssistantMessage } = callbacks;
   const res = await fetch('/api/chat', {
     method: 'POST',
-    body: JSON.stringify({ message: prompt, config }),
+    body: JSON.stringify({ message: prompt, config, reset }),
     headers: { 'Content-Type': 'application/json' }
   });
   if (!res.body) return;

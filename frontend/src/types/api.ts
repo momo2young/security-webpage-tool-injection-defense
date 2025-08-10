@@ -1,5 +1,5 @@
 export interface Message { role: 'user' | 'assistant'; content: string; }
-export interface ChatConfig { model: string; agent: string; tools: string[]; }
+export interface ChatConfig { model: string; agent: string; tools: string[]; mcp_urls?: string[] }
 
 export interface PlanTask { number: number; description: string; status: 'pending' | 'in_progress' | 'completed' | 'failed'; note?: string }
 export interface Plan { objective: string; tasks: PlanTask[] }
