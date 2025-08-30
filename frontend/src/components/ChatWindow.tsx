@@ -205,6 +205,14 @@ export const ChatWindow: React.FC = () => {
             rows={3}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!loading && configReady && input.trim()) {
+                  send();
+                }
+              }
+            }}
             placeholder={configReady ? 'Ask me anything...' : 'Waiting for config...'}
             disabled={!configReady}
           />
