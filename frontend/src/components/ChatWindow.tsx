@@ -40,7 +40,7 @@ function splitAssistantContent(content: string): { type: 'markdown' | 'code'; co
         currentMarkdown = '';
       }
       const codeBody = content.slice(langLineEnd + 1); // everything after lang line
-      blocks.push({ type: 'code', content: codeBody, lang });
+      blocks.push({ type: 'code', content: codeBody.trim(), lang });
       i = len; // done
       break;
     } else {
@@ -50,7 +50,7 @@ function splitAssistantContent(content: string): { type: 'markdown' | 'code'; co
         currentMarkdown = '';
       }
       const codeBody = content.slice(langLineEnd + 1, closingFence);
-      blocks.push({ type: 'code', content: codeBody, lang });
+      blocks.push({ type: 'code', content: codeBody.trim(), lang });
       i = closingFence + 4; // skip over \n```
     }
   }
