@@ -118,7 +118,53 @@ export const ChatWindow: React.FC = () => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  // Track whether automatic scrolling is allowed. If the user manually scrolls away
+  // from the bottom, disable auto-scroll until they scroll back to the bottom.
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const autoScrollEnabledRef = useRef(true);
+
+  // Helper to determine if the user is at (or very near) the bottom
+  const isAtBottom = (el: Element | null) => {
+    if (!el) return true;
+    const tolerance = 24; // px from bottom to still consider "at bottom"
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= tolerance;
+  };
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const onUserScroll = (e: Event) => {
+      // When the user scrolls (wheel/scroll/touch), if they're not at the bottom,
+      // disable auto-scrolling. If they reach the bottom again, re-enable it.
+      const atBottom = isAtBottom(el);
+      autoScrollEnabledRef.current = atBottom;
+    };
+
+    // Listen to a few events that indicate user interaction
+    el.addEventListener('scroll', onUserScroll, { passive: true });
+    el.addEventListener('wheel', onUserScroll, { passive: true });
+    el.addEventListener('touchstart', onUserScroll, { passive: true });
+
+    return () => {
+      el.removeEventListener('scroll', onUserScroll);
+      el.removeEventListener('wheel', onUserScroll);
+      el.removeEventListener('touchstart', onUserScroll);
+    };
+  }, []);
+
+  // Auto-scroll when messages change, but only if autoScrollEnabledRef is true
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (autoScrollEnabledRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // If auto-scroll is disabled, do nothing. However, if the user has scrolled
+      // back to the bottom (maybe by clicking a "Jump to bottom" UI later),
+      // the scroll listener will re-enable auto-scroll.
+      // Optionally, we could show a subtle indicator here in future.
+    }
+  }, [messages]);
 
   const configReady = backendConfig && config.model && config.agent;
 
@@ -142,7 +188,7 @@ export const ChatWindow: React.FC = () => {
 
   return (
     <div className="flex flex-col flex-1 h-full overflow-hidden bg-white">
-      <div className="flex-1 overflow-y-auto p-6 pb-24 space-y-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300/80">
+  <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 pb-24 space-y-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300/80">
         {messages.map((m: Message, idx: number) => {
           const isUser = m.role === 'user';
           const blocks = isUser ? [{ type: 'markdown', content: m.content } as { type: 'markdown'; content: string; lang?: string }] : splitAssistantContent(m.content);
