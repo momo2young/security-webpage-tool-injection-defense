@@ -16,42 +16,61 @@ function splitAssistantContent(content: string): { type: 'markdown' | 'code'; co
   let currentMarkdown = '';
   while (i < len) {
     const fenceStart = content.indexOf('```', i);
-    if (fenceStart === -1) { // no more fences
+    if (fenceStart === -1) {
       currentMarkdown += content.slice(i);
       break;
     }
-    // append markdown before fence
     currentMarkdown += content.slice(i, fenceStart);
-    // detect language
     const langLineEnd = content.indexOf('\n', fenceStart + 3);
-    if (langLineEnd === -1) { // fence not complete yet
-      currentMarkdown += content.slice(fenceStart); // treat as plain until newline arrives
+    if (langLineEnd === -1) {
+      currentMarkdown += content.slice(fenceStart);
       i = len;
       break;
     }
     const langToken = content.slice(fenceStart + 3, langLineEnd).trim();
     const lang = langToken || 'text';
-    // look for closing fence
     const closingFence = content.indexOf('\n```', langLineEnd + 1);
     if (closingFence === -1) {
-      // Open code fence without closure yet -> push accumulated markdown, then code block with current partial code
       if (currentMarkdown) {
         blocks.push({ type: 'markdown', content: currentMarkdown });
         currentMarkdown = '';
       }
-      const codeBody = content.slice(langLineEnd + 1); // everything after lang line
-      blocks.push({ type: 'code', content: codeBody.trim(), lang });
-      i = len; // done
+      let codeBody = content.slice(langLineEnd + 1);
+      // If codeBody contains <details> or a line starting with **Step:, split them out as markdown
+      const detailsIdx = codeBody.indexOf('<details>');
+      const stepIdx = codeBody.search(/\n\*\*Step:/);
+      let splitIdx = -1;
+      if (detailsIdx !== -1) splitIdx = detailsIdx;
+      if (stepIdx !== -1 && (splitIdx === -1 || stepIdx < splitIdx)) splitIdx = stepIdx;
+      if (splitIdx !== -1) {
+        blocks.push({ type: 'code', content: codeBody.slice(0, splitIdx).trim(), lang });
+        codeBody = codeBody.slice(splitIdx);
+        blocks.push({ type: 'markdown', content: codeBody });
+      } else {
+        blocks.push({ type: 'code', content: codeBody.trim(), lang });
+      }
+      i = len;
       break;
     } else {
-      // Closed block
       if (currentMarkdown) {
         blocks.push({ type: 'markdown', content: currentMarkdown });
         currentMarkdown = '';
       }
-      const codeBody = content.slice(langLineEnd + 1, closingFence);
-      blocks.push({ type: 'code', content: codeBody.trim(), lang });
-      i = closingFence + 4; // skip over \n```
+      let codeBody = content.slice(langLineEnd + 1, closingFence);
+      // If codeBody contains <details> or a line starting with **Step:, split them out as markdown
+      const detailsIdx = codeBody.indexOf('<details>');
+      const stepIdx = codeBody.search(/\n\*\*Step:/);
+      let splitIdx = -1;
+      if (detailsIdx !== -1) splitIdx = detailsIdx;
+      if (stepIdx !== -1 && (splitIdx === -1 || stepIdx < splitIdx)) splitIdx = stepIdx;
+      if (splitIdx !== -1) {
+        blocks.push({ type: 'code', content: codeBody.slice(0, splitIdx).trim(), lang });
+        codeBody = codeBody.slice(splitIdx);
+        blocks.push({ type: 'markdown', content: codeBody });
+      } else {
+        blocks.push({ type: 'code', content: codeBody.trim(), lang });
+      }
+      i = closingFence + 4;
     }
   }
   if (currentMarkdown.trim() !== '') {
@@ -74,8 +93,18 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
 
 const MarkdownRenderer = (props: { content: string }) => {
   const RM: any = ReactMarkdown;
+  // Only minimal normalization: collapse runs of 3+ newlines to 2, trim leading/trailing newlines.
+  // whitespace-pre-wrap handles line breaks elegantly, so no need for further HTML tag/class stripping.
+  const normalized = String(props.content)
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/^\n+/, '')
+    .replace(/\n+$/, '');
+
   return (
-    <div className="prose prose-sm max-w-none break-words whitespace-pre-wrap">
+    // add `tight-lists` to increase selector specificity for our list overrides
+    // remove whitespace-pre-wrap so stray newlines do not render as visible gaps
+    <div className="prose tight-lists prose-sm max-w-none break-words">
       <RM
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSanitize, rehypePrism]}
@@ -96,16 +125,16 @@ const MarkdownRenderer = (props: { content: string }) => {
           table(p: any) { return <div className="overflow-x-auto"><table className="text-xs border border-neutral-200">{p.children}</table></div>; },
           th(p: any) { return <th className="border px-2 py-1 bg-neutral-50 font-semibold">{p.children}</th>; },
           td(p: any) { return <td className="border px-2 py-1 align-top">{p.children}</td>; },
-          ul(p: any) { return <ul className="list-disc ml-5 space-y-1">{p.children}</ul>; },
-          ol(p: any) { return <ol className="list-decimal ml-5 space-y-1">{p.children}</ol>; },
-          h1(p: any) { return <h1 className="text-xl font-semibold mt-4 mb-2 break-words">{p.children}</h1>; },
-          h2(p: any) { return <h2 className="text-lg font-semibold mt-4 mb-2 break-words">{p.children}</h2>; },
-          h3(p: any) { return <h3 className="text-base font-semibold mt-4 mb-2 break-words">{p.children}</h3>; },
-          p(pArg: any) { return <p className="leading-relaxed break-words whitespace-pre-wrap">{pArg.children}</p>; },
+          ul(p: any) { return <ul className="list-disc pl-5">{p.children}</ul>; },
+          ol(p: any) { return <ol className="list-decimal pl-5">{p.children}</ol>; },
+          h1(p: any) { return <h1 className="text-xl font-semibold mb-1 break-words">{p.children}</h1>; },
+          h2(p: any) { return <h2 className="text-lg font-semibold mb-1 break-words">{p.children}</h2>; },
+          h3(p: any) { return <h3 className="text-base font-semibold mb-1 break-words">{p.children}</h3>; },
+          p(pArg: any) { return <p className="leading-relaxed break-words whitespace-pre-wrap m-0">{pArg.children}</p>; },
           blockquote(p: any) { return <blockquote className="border-l-4 border-brand-600/30 pl-3 italic text-neutral-600 break-words">{p.children}</blockquote>; }
         }}
       >
-        {props.content}
+  {normalized}
       </RM>
     </div>
   );
@@ -217,7 +246,7 @@ export const ChatWindow: React.FC = () => {
               <div className={`flex ${alignClass} w-full`}>
                 <div className={`group w-full max-w-3xl break-words overflow-visible ${isUser ? 'bg-gradient-to-tr from-brand-600 to-brand-500 text-white' : 'bg-white/90 border border-neutral-200 text-neutral-800'} rounded-xl shadow-sm px-5 py-3 space-y-3 text-sm leading-relaxed relative`}>
                   {isUser ? (
-                    <div className="prose prose-sm prose-invert max-w-none text-white whitespace-pre-wrap break-words">{m.content}</div>
+                    <div className="prose prose-sm prose-invert max-w-none text-white break-words">{m.content}</div>
                   ) : (
                     blocks.map((b, bi) => b.type === 'markdown' ? (
                       <MarkdownRenderer key={bi} content={b.content} />

@@ -74,13 +74,15 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addMessage = (m: Message) => setMessages(prev => [...prev, m]);
 
   const updateAssistantStreaming = (delta: string) => {
+    // Normalize incoming delta to avoid runs of blank lines or leading/trailing newlines
+    const norm = String(delta).replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '').replace(/\n+$/, '');
     setMessages(prev => {
       const last = prev[prev.length - 1];
       if (!last || last.role !== 'assistant') {
-        return [...prev, { role: 'assistant', content: delta }];
+        return [...prev, { role: 'assistant', content: norm }];
       }
       const updated = [...prev];
-      updated[updated.length - 1] = { ...last, content: last.content + delta };
+      updated[updated.length - 1] = { ...last, content: last.content + norm };
       return updated;
     });
   };
