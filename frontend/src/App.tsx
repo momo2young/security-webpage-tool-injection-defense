@@ -3,6 +3,8 @@ import { Sidebar } from './components/sidebar/Sidebar';
 import { ChatWindow } from './components/ChatWindow';
 import { PlanView } from './components/sidebar/PlanView';
 import { ConfigView } from './components/sidebar/ConfigView';
+import { ChatList } from './components/ChatList';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { PlanProvider, usePlan } from './hooks/usePlan';
 import { ChatProvider, useChatStore } from './hooks/useChatStore.js';
 
@@ -16,7 +18,7 @@ const HeaderTitle: React.FC = () => {
 };
 
 const AppInner: React.FC = () => {
-  const [sidebarTab, setSidebarTab] = useState<'plan' | 'config'>('plan');
+  const [sidebarTab, setSidebarTab] = useState<'chats' | 'plan' | 'config'>('chats');
   const { plan, refresh } = usePlan();
   return (
     <div className="h-full w-full bg-neutral-50 text-neutral-800 font-sans">
@@ -24,6 +26,7 @@ const AppInner: React.FC = () => {
         <Sidebar
           activeTab={sidebarTab}
           onTabChange={setSidebarTab}
+          chatsContent={<ChatList />}
           planContent={<PlanView plan={plan} onRefresh={refresh} />}
           configContent={<ConfigView />}
         />
@@ -40,10 +43,12 @@ const AppInner: React.FC = () => {
 
 export default function App() {
   return (
-    <ChatProvider>
-      <PlanProvider>
-        <AppInner />
-      </PlanProvider>
-    </ChatProvider>
+    <ErrorBoundary>
+      <ChatProvider>
+        <PlanProvider>
+          <AppInner />
+        </PlanProvider>
+      </ChatProvider>
+    </ErrorBoundary>
   );
 }

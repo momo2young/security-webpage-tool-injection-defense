@@ -28,7 +28,10 @@ function splitAssistantContent(content: string): { type: 'markdown' | 'code'; co
       break;
     }
     const langToken = content.slice(fenceStart + 3, langLineEnd).trim();
-    const lang = langToken || 'text';
+    // Clean and validate the language token - only allow valid language identifiers
+    const cleanLang = langToken.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+    const validLanguages = ['python', 'javascript', 'typescript', 'java', 'cpp', 'c', 'go', 'rust', 'sql', 'html', 'css', 'json', 'yaml', 'xml', 'bash', 'shell', 'powershell', 'php', 'ruby', 'swift', 'kotlin', 'dart', 'r', 'matlab', 'scala', 'perl', 'lua', 'haskell', 'clojure', 'elixir', 'erlang', 'fsharp', 'ocaml', 'pascal', 'fortran', 'cobol', 'assembly', 'asm', 'text', 'plain'];
+    const lang = validLanguages.includes(cleanLang) ? cleanLang : 'text';
     const closingFence = content.indexOf('\n```', langLineEnd + 1);
     if (closingFence === -1) {
       if (currentMarkdown) {
@@ -111,11 +114,18 @@ const MarkdownRenderer = (props: { content: string }) => {
         components={{
           code(codeProps: any) {
             const { inline, className, children, ...rest } = codeProps;
+            // More robust language extraction with validation
             const match = /language-(\w+)/.exec(className || '');
-            if (!inline && match) {
+            const lang = match ? match[1] : null;
+            
+            if (!inline && lang) {
+              // Validate and clean the language name
+              const cleanLang = lang.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+              const safeClassName = cleanLang ? `language-${cleanLang}` : 'language-text';
+              
               return (
                 <pre className="max-w-3xl overflow-x-auto text-xs bg-neutral-900 text-neutral-100 border border-neutral-800 rounded-lg p-3 font-mono leading-relaxed break-words">
-                  <code className={className}>{String(children)}</code>
+                  <code className={safeClassName}>{String(children)}</code>
                 </pre>
               );
             }
@@ -141,11 +151,16 @@ const MarkdownRenderer = (props: { content: string }) => {
 };
 
 export const ChatWindow: React.FC = () => {
-  const { messages, addMessage, updateAssistantStreaming, config, backendConfig, newAssistantMessage, shouldResetNext, consumeResetFlag } = useChatStore();
+  const { messages, addMessage, updateAssistantStreaming, config, backendConfig, newAssistantMessage, shouldResetNext, consumeResetFlag, forceSaveNow, setIsStreaming } = useChatStore();
   const { setPlan } = usePlan();
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Safeguard against undefined state
+  const safeMessages = messages || [];
+  const safeConfig = config || { model: '', agent: '', tools: [] };
+  const safeBackendConfig = backendConfig || null;
 
   // Track whether automatic scrolling is allowed. If the user manually scrolls away
   // from the bottom, disable auto-scroll until they scroll back to the bottom.
@@ -193,9 +208,9 @@ export const ChatWindow: React.FC = () => {
       // the scroll listener will re-enable auto-scroll.
       // Optionally, we could show a subtle indicator here in future.
     }
-  }, [messages]);
+  }, [safeMessages]);
 
-  const configReady = backendConfig && config.model && config.agent;
+  const configReady = safeBackendConfig && safeConfig.model && safeConfig.agent;
 
   const send = async () => {
     const prompt = input.trim();
@@ -205,20 +220,54 @@ export const ChatWindow: React.FC = () => {
     setInput('');
     addMessage({ role: 'user', content: prompt });
     setLoading(true);
+    setIsStreaming(true);
     try {
-      await streamChat(prompt, config, {
+      await streamChat(prompt, safeConfig, {
         onDelta: (partial: string) => { updateAssistantStreaming(partial); },
         onAction: () => { /* compatibility */ },
         onNewAssistantMessage: () => { newAssistantMessage(); },
-        onPlanUpdate: (p: any) => { setPlan(p); }
-      }, backendConfig?.codeTag || '<code>', resetFlag);
-    } finally { setLoading(false); }
+        onPlanUpdate: (p: any) => { setPlan(p); },
+        onStreamComplete: () => { 
+          console.log('Stream completed via onStreamComplete callback');
+          setIsStreaming(false);
+          // Add a longer delay to ensure all message updates have processed
+          setTimeout(async () => {
+            console.log('Triggering forceSaveNow after stream completion');
+            try {
+              await forceSaveNow();
+              console.log('forceSaveNow completed from onStreamComplete');
+            } catch (error) {
+              console.error('Error in forceSaveNow from onStreamComplete:', error);
+            }
+          }, 200);
+        }
+      }, safeBackendConfig?.codeTag || '<code>', resetFlag);
+      
+      console.log('streamChat promise resolved, triggering final save');
+      
+    } catch (error) {
+      console.error('Error during streaming:', error);
+    } finally { 
+      setLoading(false); 
+      setIsStreaming(false);
+      // Ensure we save even if onStreamComplete wasn't called
+      console.log('streamChat finally block, triggering final save as backup');
+      setTimeout(async () => {
+        console.log('Finally block forceSaveNow execution');
+        try {
+          await forceSaveNow();
+          console.log('forceSaveNow completed from finally block');
+        } catch (error) {
+          console.error('Error in forceSaveNow from finally block:', error);
+        }
+      }, 600);
+    }
   };
 
   return (
     <div className="flex flex-col flex-1 h-full overflow-hidden bg-white">
-  <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 pb-24 space-y-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300/80">
-        {messages.map((m: Message, idx: number) => {
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 pb-24 space-y-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300/80">
+        {safeMessages.map((m: Message, idx: number) => {
           const isUser = m.role === 'user';
           const blocks = isUser ? [{ type: 'markdown', content: m.content } as { type: 'markdown'; content: string; lang?: string }] : splitAssistantContent(m.content);
           let rawMetaLine: string | null = null;
@@ -254,13 +303,13 @@ export const ChatWindow: React.FC = () => {
                       <div key={bi} className="relative">
                         <CopyButton text={b.content} />
                         <pre className="max-w-3xl overflow-x-auto text-xs bg-neutral-50 border border-neutral-200 rounded-lg p-3 font-mono leading-relaxed">
-                          <code className={`language-${(b as any).lang || 'text'}`}>{b.content}</code>
+                          <code className={`language-${((b as any).lang || 'text').replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase() || 'text'}`}>{b.content}</code>
                         </pre>
                       </div>
                     ))
                   )}
                   {/* end user/assistant content */}
-                  {!isUser && idx === messages.length - 1 && loading && (
+                  {!isUser && idx === safeMessages.length - 1 && loading && (
                     <div className="flex gap-1 items-center text-[10px] text-neutral-400 animate-pulse">Thinking<span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce [animation-delay:-0.2s]"></span><span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce [animation-delay:-0.05s]"></span><span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce"></span></div>
                   )}
                 </div>

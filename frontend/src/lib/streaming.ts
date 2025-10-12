@@ -8,7 +8,8 @@ export interface StreamCallbacks {
   onDelta: (delta: string) => void;
   onAction?: () => void;
   onNewAssistantMessage?: () => void;
-  onPlanUpdate?: (plan: any) => void; // new
+  onPlanUpdate?: (plan: any) => void;
+  onStreamComplete?: () => void; // new callback for when streaming finishes
 }
 
 interface ContentBlock { type: 'markdown' | 'code'; content: string }
@@ -19,12 +20,16 @@ function assembleForStorage(blocks: ContentBlock[], isInCodeBlock: boolean): str
     .map((b, i) => {
       if (b.type === 'markdown') return b.content;
       const isLast = i === blocks.length - 1;
+      // Ensure we have clean content for code blocks
+      const cleanContent = String(b.content || '').trim();
+      if (!cleanContent) return '';
+      
       if (isLast && isInCodeBlock) {
         // Open fence only (no closing) so subsequent stream deltas stay inside
-        return `\n\n\u0060\u0060\u0060python\n${b.content}`;
+        return `\n\n\`\`\`python\n${cleanContent}`;
       }
-      // Closed code block
-      return `\n\n\u0060\u0060\u0060python\n${b.content}\n\u0060\u0060\u0060\n\n`;
+      // Closed code block with proper formatting
+      return `\n\n\`\`\`python\n${cleanContent}\n\`\`\`\n\n`;
     })
     .join('');
 }
@@ -142,9 +147,17 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
         emitDiff();
       } else if (type === 'final_answer') {
         flushPendingIfAny();
-        if (isInCodeBlock) { isInCodeBlock = false; blocks.push({ type: 'markdown', content: '' }); }
-        blocks[blocks.length - 1].content += `\n\n${data}`;
-        emitDiff();
+        // Ensure we're not in a code block for final answer
+        if (isInCodeBlock) { 
+          isInCodeBlock = false; 
+          blocks.push({ type: 'markdown', content: '' }); 
+        }
+        // Add final answer as clean markdown, ensuring proper separation
+        const finalAnswerContent = String(data || '').trim();
+        if (finalAnswerContent) {
+          blocks[blocks.length - 1].content += `\n\n${finalAnswerContent}`;
+          emitDiff();
+        }
       } else if (type === 'action') {
         flushPendingIfAny();
         if (onAction) onAction();
@@ -185,5 +198,15 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
     isInCodeBlock = false;
     // Re-emit to add closing fence
     emitDiff();
+  }
+  
+  console.log('Streaming completed, calling onStreamComplete callback');
+  
+  // Trigger final save when streaming completes
+  if (callbacks.onStreamComplete) {
+    console.log('onStreamComplete callback exists, calling it');
+    callbacks.onStreamComplete();
+  } else {
+    console.log('onStreamComplete callback not provided');
   }
 }

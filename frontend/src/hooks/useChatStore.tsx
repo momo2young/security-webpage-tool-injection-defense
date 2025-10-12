@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { Message, ChatConfig, ConfigOptions } from '../types/api';
+import { Message, ChatConfig, ConfigOptions, Chat, ChatSummary } from '../types/api';
 
 interface ChatContextValue {
   messages: Message[];
@@ -10,8 +10,21 @@ interface ChatContextValue {
   backendConfig: ConfigOptions | null;
   newAssistantMessage: () => void;
   resetChat: () => void;
-  shouldResetNext: boolean; // new
-  consumeResetFlag: () => void; // new
+  shouldResetNext: boolean;
+  consumeResetFlag: () => void;
+  setIsStreaming: (streaming: boolean) => void;
+  
+  // New chat management functionality
+  currentChatId: string | null;
+  chats: ChatSummary[];
+  loadingChats: boolean;
+  createNewChat: () => Promise<void>;
+  loadChat: (chatId: string) => Promise<void>;
+  saveCurrentChat: (skipRefresh?: boolean) => Promise<void>;
+  finalSave: () => Promise<void>;
+  forceSaveNow: () => Promise<void>;
+  deleteChat: (chatId: string) => Promise<void>;
+  refreshChatList: () => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -27,7 +40,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [messages, setMessages] = useState<Message[]>([]);
   const [config, setConfig] = useState<ChatConfig>(defaultConfig);
   const [backendConfig, setBackendConfig] = useState<ConfigOptions | null>(null);
-  const [shouldResetNext, setShouldResetNext] = useState(false); // new
+  const [shouldResetNext, setShouldResetNext] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  
+  // New chat management state
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [loadingChats, setLoadingChats] = useState(false);
+  
+  // Helper function to generate chat title from first message
+  const generateChatTitle = (firstMessage: string): string => {
+    if (!firstMessage.trim()) return "New Chat";
+    const title = firstMessage.trim().split('\n')[0];
+    return title.length > 50 ? title.substring(0, 47) + "..." : title;
+  };
 
   // Fetch backend config once
   useEffect(() => {
@@ -55,6 +81,158 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })();
   }, []);
 
+  // Load chat list on mount
+  useEffect(() => {
+    refreshChatList();
+  }, []);
+
+  // Chat management functions
+  const refreshChatList = async () => {
+    setLoadingChats(true);
+    try {
+      const res = await fetch('/api/chats');
+      if (res.ok) {
+        const data = await res.json();
+        setChats(data.chats || []);
+      } else {
+        console.error('Failed to fetch chats:', res.status, res.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+    } finally {
+      setLoadingChats(false);
+    }
+  };
+
+  const createNewChat = async () => {
+    try {
+      const chatTitle = messages.length > 0 && messages[0].role === 'user' 
+        ? generateChatTitle(messages[0].content)
+        : "New Chat";
+      
+      const res = await fetch('/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: chatTitle,
+          config,
+          messages: []
+        })
+      });
+      
+      if (res.ok) {
+        const newChat: Chat = await res.json();
+        setCurrentChatId(newChat.id);
+        setMessages([]);
+        setShouldResetNext(true);
+        await refreshChatList();
+      } else {
+        console.error('Failed to create chat:', res.status, res.statusText);
+      }
+    } catch (error) {
+      console.error('Error creating chat:', error);
+    }
+  };
+
+  const loadChat = async (chatId: string) => {
+    try {
+      const res = await fetch(`/api/chats/${chatId}`);
+      if (res.ok) {
+        const chat: Chat = await res.json();
+        setCurrentChatId(chat.id);
+        setMessages(chat.messages);
+        setConfig(chat.config);
+        setShouldResetNext(true);
+      } else {
+        console.error('Failed to load chat:', res.status, res.statusText);
+      }
+    } catch (error) {
+      console.error('Error loading chat:', error);
+    }
+  };
+
+  const saveCurrentChat = useCallback(async (skipRefresh = false) => {
+    console.log('saveCurrentChat called with:', { currentChatId, messageCount: messages.length, skipRefresh });
+    
+    if (!currentChatId) {
+      // If no current chat, create a new one
+      if (messages.length > 0) {
+        const chatTitle = messages[0].role === 'user' 
+          ? generateChatTitle(messages[0].content)
+          : "New Chat";
+        
+        console.log('Creating new chat with title:', chatTitle, 'messages:', messages.length);
+        
+        try {
+          const res = await fetch('/api/chats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: chatTitle,
+              config,
+              messages
+            })
+          });
+          
+          if (res.ok) {
+            const newChat: Chat = await res.json();
+            console.log('New chat created:', newChat.id);
+            setCurrentChatId(newChat.id);
+            if (!skipRefresh) await refreshChatList();
+          } else {
+            console.error('Failed to create chat:', res.status, res.statusText);
+          }
+        } catch (error) {
+          console.error('Error saving new chat:', error);
+        }
+      }
+      return;
+    }
+
+    console.log('Updating existing chat:', currentChatId, 'with', messages.length, 'messages');
+    
+    try {
+      const res = await fetch(`/api/chats/${currentChatId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config,
+          messages
+        })
+      });
+      
+      if (res.ok) {
+        console.log('Chat updated successfully');
+        if (!skipRefresh) await refreshChatList();
+      } else {
+        console.error('Failed to save chat:', res.status, res.statusText);
+      }
+    } catch (error) {
+      console.error('Error saving chat:', error);
+    }
+  }, [currentChatId, messages, config, refreshChatList]);
+
+  const deleteChat = async (chatId: string) => {
+    try {
+      const res = await fetch(`/api/chats/${chatId}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        if (currentChatId === chatId) {
+          setCurrentChatId(null);
+          setMessages([]);
+          setShouldResetNext(true);
+        }
+        await refreshChatList();
+      } else {
+        console.error('Failed to delete chat:', res.status, res.statusText);
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+    }
+  };
+
   // Optimized config setter with immediate UI feedback
   const optimizedSetConfig = useCallback((newConfig: ChatConfig | ((prev: ChatConfig) => ChatConfig)) => {
     console.log('optimizedSetConfig called with:', typeof newConfig === 'function' ? 'function' : newConfig);
@@ -71,7 +249,116 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []); // Remove config dependency
 
-  const addMessage = (m: Message) => setMessages(prev => [...prev, m]);
+  // Simple debounced save
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const debouncedSave = useCallback((delay: number = 1000) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      console.log('Debounced save triggered (no refresh)');
+      saveCurrentChat(true); // Skip refresh during streaming
+    }, delay);
+  }, [saveCurrentChat]);
+
+  // Force save function that captures current state at call time
+  const forceSaveNow = useCallback(async () => {
+    console.log('forceSaveNow called - will capture current state');
+    
+    // Clear any pending debounced saves
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+      console.log('forceSaveNow: Cleared pending debounced save');
+    }
+    
+    // Capture state immediately using functional updates
+    let capturedChatId: string | null = null;
+    let capturedMessages: Message[] = [];
+    
+    await new Promise<void>((resolve) => {
+      setCurrentChatId(currentId => {
+        capturedChatId = currentId;
+        setMessages(currentMessages => {
+          capturedMessages = [...currentMessages]; // Create a copy
+          console.log('forceSaveNow: captured state -', {
+            chatId: capturedChatId,
+            messageCount: capturedMessages.length,
+            lastMessageLength: capturedMessages[capturedMessages.length - 1]?.content?.length || 0
+          });
+          resolve();
+          return currentMessages; // Return unchanged
+        });
+        return currentId; // Return unchanged
+      });
+    });
+    
+    // Now save with the captured state
+    try {
+      if (!capturedChatId && capturedMessages.length > 0) {
+        // Create new chat
+        const chatTitle = capturedMessages[0].role === 'user' 
+          ? generateChatTitle(capturedMessages[0].content)
+          : "New Chat";
+        
+        console.log('forceSaveNow: Creating new chat with title:', chatTitle);
+        
+        const res = await fetch('/api/chats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: chatTitle,
+            config,
+            messages: capturedMessages
+          })
+        });
+        
+        if (res.ok) {
+          const newChat: Chat = await res.json();
+          console.log('forceSaveNow: New chat created:', newChat.id);
+          setCurrentChatId(newChat.id);
+          await refreshChatList();
+        } else {
+          console.error('forceSaveNow: Failed to create chat:', res.status);
+        }
+      } else if (capturedChatId) {
+        // Update existing chat
+        console.log('forceSaveNow: Updating existing chat:', capturedChatId);
+        
+        const res = await fetch(`/api/chats/${capturedChatId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            config,
+            messages: capturedMessages
+          })
+        });
+        
+        if (res.ok) {
+          console.log('forceSaveNow: Chat updated successfully');
+          await refreshChatList();
+        } else {
+          console.error('forceSaveNow: Failed to update chat:', res.status);
+        }
+      }
+      console.log('forceSaveNow: Save operation completed');
+    } catch (error) {
+      console.error('forceSaveNow: Error during save:', error);
+    }
+  }, [config, generateChatTitle, refreshChatList]);
+
+  const finalSave = useCallback(async () => {
+    console.log('finalSave: delegating to forceSaveNow');
+    return forceSaveNow();
+  }, [forceSaveNow]);
+
+  const addMessage = (m: Message) => {
+    console.log('Adding message:', m.role, m.content.substring(0, 50) + '...');
+    setMessages(prev => [...prev, m]);
+    // Auto-save after adding a message (debounced, no refresh)
+    debouncedSave(800);
+  };
 
   const updateAssistantStreaming = (delta: string) => {
     // Normalize incoming delta to avoid runs of blank lines or leading/trailing newlines
@@ -79,23 +366,55 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMessages(prev => {
       const last = prev[prev.length - 1];
       if (!last || last.role !== 'assistant') {
+        console.log('updateAssistantStreaming: adding new assistant message');
         return [...prev, { role: 'assistant', content: norm }];
       }
       const updated = [...prev];
       updated[updated.length - 1] = { ...last, content: last.content + norm };
+      const newLength = updated[updated.length - 1].content.length;
+      console.log('updateAssistantStreaming: updated message length:', newLength, 'total messages:', updated.length);
       return updated;
     });
+    // Auto-save during streaming (longer delay, no refresh)
+    debouncedSave(2000);
   };
 
   const newAssistantMessage = () => {
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
   };
 
-  const resetChat = () => { setMessages([]); setShouldResetNext(true); };
+  const resetChat = () => { 
+    setMessages([]); 
+    setShouldResetNext(true);
+    setCurrentChatId(null);
+  };
+  
   const consumeResetFlag = () => setShouldResetNext(false);
 
   return (
-    <ChatContext.Provider value={{ messages, config, setConfig: optimizedSetConfig, addMessage, updateAssistantStreaming, backendConfig, newAssistantMessage, resetChat, shouldResetNext, consumeResetFlag }}>
+    <ChatContext.Provider value={{ 
+      messages, 
+      config, 
+      setConfig: optimizedSetConfig, 
+      addMessage, 
+      updateAssistantStreaming, 
+      backendConfig, 
+      newAssistantMessage, 
+      resetChat, 
+      shouldResetNext, 
+      consumeResetFlag,
+      setIsStreaming,
+      currentChatId,
+      chats,
+      loadingChats,
+      createNewChat,
+      loadChat,
+      saveCurrentChat,
+      finalSave,
+      forceSaveNow,
+      deleteChat,
+      refreshChatList
+    }}>
       {children}
     </ChatContext.Provider>
   );
