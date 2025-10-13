@@ -11,10 +11,7 @@ export const ConfigView: React.FC = () => {
   const [srvUrl, setSrvUrl] = useState('');
   const LS_KEY = 'mcp_servers_v1';
   
-  // Debug render counter
-  const renderCount = useRef(0);
-  renderCount.current++;
-  console.log('ConfigView render #', renderCount.current, 'config:', config);
+
 
   // Load from localStorage OR backend defaults once
   useEffect(() => {
@@ -49,20 +46,12 @@ export const ConfigView: React.FC = () => {
   }
 
   const update = useCallback((patch: Partial<typeof config>) => {
-    console.log('update called with patch:', patch);
-    setConfig(prevConfig => {
-      const newConfig = { ...prevConfig, ...patch };
-      console.log('update: prevConfig:', prevConfig, 'newConfig:', newConfig);
-      return newConfig;
-    });
+    setConfig(prevConfig => ({ ...prevConfig, ...patch }));
   }, [setConfig]);
 
   const toggleTool = (tool: string) => {
-    console.log('toggleTool called for:', tool, 'current config:', config);
-    
     flushSync(() => {
       setConfig(prevConfig => {
-        console.log('toggleTool - prevConfig:', prevConfig);
         const currentTools = prevConfig.tools || [];
         const isActive = currentTools.includes(tool);
         
@@ -70,10 +59,7 @@ export const ConfigView: React.FC = () => {
           ? currentTools.filter((t: string) => t !== tool)
           : [...currentTools, tool];
         
-        const newConfig = { ...prevConfig, tools: newTools };
-        console.log('toggleTool - returning newConfig:', newConfig);
-        
-        return newConfig;
+        return { ...prevConfig, tools: newTools };
       });
     });
   };

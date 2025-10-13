@@ -27,16 +27,27 @@ class ChatDatabase:
                     created_at TIMESTAMP NOT NULL,
                     updated_at TIMESTAMP NOT NULL,
                     config TEXT NOT NULL,
-                    messages TEXT NOT NULL
+                    messages TEXT NOT NULL,
+                    agent_state BLOB
                 )
             """)
             conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_chats_updated_at 
                 ON chats(updated_at DESC)
             """)
+            
+            # Add agent_state column if it doesn't exist (for existing databases)
+            try:
+                conn.execute("ALTER TABLE chats ADD COLUMN agent_state BLOB")
+                conn.commit()
+            except sqlite3.OperationalError:
+                # Column already exists
+                pass
+            
             conn.commit()
     
-    def create_chat(self, title: str, config: Dict[str, Any], messages: List[Dict[str, Any]] = None) -> str:
+    def create_chat(self, title: str, config: Dict[str, Any], messages: List[Dict[str, Any]] = None, 
+                   agent_state: bytes = None) -> str:
         """Create a new chat and return its ID."""
         chat_id = str(uuid.uuid4())
         now = datetime.now().isoformat()
@@ -44,15 +55,16 @@ class ChatDatabase:
         
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
-                INSERT INTO chats (id, title, created_at, updated_at, config, messages)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO chats (id, title, created_at, updated_at, config, messages, agent_state)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
                 chat_id,
                 title,
                 now,
                 now,
                 json.dumps(config),
-                json.dumps(messages)
+                json.dumps(messages),
+                agent_state
             ))
             conn.commit()
         
@@ -68,7 +80,7 @@ class ChatDatabase:
             row = cursor.fetchone()
             
             if row:
-                return {
+                result = {
                     "id": row["id"],
                     "title": row["title"],
                     "createdAt": row["created_at"],
@@ -76,10 +88,16 @@ class ChatDatabase:
                     "config": json.loads(row["config"]),
                     "messages": json.loads(row["messages"])
                 }
+                
+                # Include agent state if it exists
+                if row["agent_state"] is not None:
+                    result["agent_state"] = row["agent_state"]
+                
+                return result
             return None
     
     def update_chat(self, chat_id: str, title: str = None, config: Dict[str, Any] = None, 
-                   messages: List[Dict[str, Any]] = None) -> bool:
+                   messages: List[Dict[str, Any]] = None, agent_state: bytes = None) -> bool:
         """Update an existing chat."""
         with sqlite3.connect(self.db_path) as conn:
             # First check if chat exists
@@ -102,6 +120,10 @@ class ChatDatabase:
             if messages is not None:
                 updates.append("messages = ?")
                 params.append(json.dumps(messages))
+            
+            if agent_state is not None:
+                updates.append("agent_state = ?")
+                params.append(agent_state)
             
             updates.append("updated_at = ?")
             params.append(datetime.now().isoformat())

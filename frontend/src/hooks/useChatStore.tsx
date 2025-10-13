@@ -60,14 +60,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     (async () => {
       try {
-        console.log('Fetching backend config...');
         const res = await fetch('/api/config');
         if (res.ok) {
           const data: ConfigOptions = await res.json();
-          console.log('Backend config received:', data);
           setBackendConfig(data);
           
-          // Manual initialization for testing
           setConfig({
             model: data.models[0] || '',
             agent: data.agents[0] || '',
@@ -123,7 +120,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentChatId(newChat.id);
         setCurrentChatTitle(newChat.title);
         setMessages([]);
-        setShouldResetNext(true);
+        setShouldResetNext(true); // Reset for new chats
         await refreshChatList();
       } else {
         console.error('Failed to create chat:', res.status, res.statusText);
@@ -142,7 +139,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentChatTitle(chat.title);
         setMessages(chat.messages);
         setConfig(chat.config);
-        setShouldResetNext(true);
+        // Don't reset when loading existing chat - we want to preserve agent memory
+        setShouldResetNext(false);
       } else {
         console.error('Failed to load chat:', res.status, res.statusText);
       }
@@ -152,16 +150,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const saveCurrentChat = useCallback(async (skipRefresh = false) => {
-    console.log('saveCurrentChat called with:', { currentChatId, messageCount: messages.length, skipRefresh });
-    
     if (!currentChatId) {
       // If no current chat, create a new one
       if (messages.length > 0) {
         const chatTitle = messages[0].role === 'user' 
           ? generateChatTitle(messages[0].content)
           : "New Chat";
-        
-        console.log('Creating new chat with title:', chatTitle, 'messages:', messages.length);
         
         try {
           const res = await fetch('/api/chats', {
@@ -176,7 +170,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           if (res.ok) {
             const newChat: Chat = await res.json();
-            console.log('New chat created:', newChat.id);
             setCurrentChatId(newChat.id);
             if (!skipRefresh) await refreshChatList();
           } else {
@@ -188,8 +181,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return;
     }
-
-    console.log('Updating existing chat:', currentChatId, 'with', messages.length, 'messages');
     
     try {
       // Determine if we should update the title
@@ -215,7 +206,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (res.ok) {
-        console.log('Chat updated successfully');
         // Update local title state if we sent a title update
         if (updateTitle) {
           setCurrentChatTitle(updateTitle);
@@ -251,21 +241,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Optimized config setter with immediate UI feedback
+  // Optimized config setter
   const optimizedSetConfig = useCallback((newConfig: ChatConfig | ((prev: ChatConfig) => ChatConfig)) => {
-    console.log('optimizedSetConfig called with:', typeof newConfig === 'function' ? 'function' : newConfig);
-    
     if (typeof newConfig === 'function') {
-      setConfig(prevConfig => {
-        const result = newConfig(prevConfig);
-        console.log('Function config update - prev:', prevConfig, 'new:', result);
-        return result;
-      });
+      setConfig(newConfig);
     } else {
-      console.log('Direct config update to:', newConfig);
       setConfig(newConfig);
     }
-  }, []); // Remove config dependency
+  }, []);
 
   // Simple debounced save
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -275,20 +258,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearTimeout(saveTimeoutRef.current);
     }
     saveTimeoutRef.current = setTimeout(() => {
-      console.log('Debounced save triggered (no refresh)');
       saveCurrentChat(true); // Skip refresh during streaming
     }, delay);
   }, [saveCurrentChat]);
 
   // Force save function that captures current state at call time
   const forceSaveNow = useCallback(async () => {
-    console.log('forceSaveNow called - will capture current state');
-    
     // Clear any pending debounced saves
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
-      console.log('forceSaveNow: Cleared pending debounced save');
     }
     
     // Capture state immediately using functional updates
@@ -300,11 +279,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         capturedChatId = currentId;
         setMessages(currentMessages => {
           capturedMessages = [...currentMessages]; // Create a copy
-          console.log('forceSaveNow: captured state -', {
-            chatId: capturedChatId,
-            messageCount: capturedMessages.length,
-            lastMessageLength: capturedMessages[capturedMessages.length - 1]?.content?.length || 0
-          });
           resolve();
           return currentMessages; // Return unchanged
         });
@@ -320,8 +294,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ? generateChatTitle(capturedMessages[0].content)
           : "New Chat";
         
-        console.log('forceSaveNow: Creating new chat with title:', chatTitle);
-        
         const res = await fetch('/api/chats', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -334,16 +306,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (res.ok) {
           const newChat: Chat = await res.json();
-          console.log('forceSaveNow: New chat created:', newChat.id);
           setCurrentChatId(newChat.id);
           await refreshChatList();
         } else {
-          console.error('forceSaveNow: Failed to create chat:', res.status);
+          console.error('Failed to create chat:', res.status);
         }
       } else if (capturedChatId) {
         // Update existing chat
-        console.log('forceSaveNow: Updating existing chat:', capturedChatId);
-        
         // Determine if we should update the title (only if it's still "New Chat")
         let updateTitle = undefined;
         if (capturedMessages.length > 0 && capturedMessages[0].role === 'user' && currentChatTitle === "New Chat") {
@@ -367,29 +336,25 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         
         if (res.ok) {
-          console.log('forceSaveNow: Chat updated successfully');
           // Update local title state if we sent a title update
           if (updateTitle) {
             setCurrentChatTitle(updateTitle);
           }
           await refreshChatList();
         } else {
-          console.error('forceSaveNow: Failed to update chat:', res.status);
+          console.error('Failed to update chat:', res.status);
         }
       }
-      console.log('forceSaveNow: Save operation completed');
     } catch (error) {
-      console.error('forceSaveNow: Error during save:', error);
+      console.error('Error during forceSaveNow:', error);
     }
   }, [config, currentChatTitle, generateChatTitle, refreshChatList]);
 
   const finalSave = useCallback(async () => {
-    console.log('finalSave: delegating to forceSaveNow');
     return forceSaveNow();
   }, [forceSaveNow]);
 
   const addMessage = (m: Message) => {
-    console.log('Adding message:', m.role, m.content.substring(0, 50) + '...');
     setMessages(prev => [...prev, m]);
     // Auto-save after adding a message (debounced, no refresh)
     debouncedSave(800);
@@ -401,13 +366,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMessages(prev => {
       const last = prev[prev.length - 1];
       if (!last || last.role !== 'assistant') {
-        console.log('updateAssistantStreaming: adding new assistant message');
         return [...prev, { role: 'assistant', content: norm }];
       }
       const updated = [...prev];
       updated[updated.length - 1] = { ...last, content: last.content + norm };
-      const newLength = updated[updated.length - 1].content.length;
-      console.log('updateAssistantStreaming: updated message length:', newLength, 'total messages:', updated.length);
       return updated;
     });
     // Auto-save during streaming (longer delay, no refresh)

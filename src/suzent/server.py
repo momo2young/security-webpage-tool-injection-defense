@@ -10,8 +10,10 @@ import asyncio
 import json
 import os
 import types
+import pickle
+import copy
 from dataclasses import asdict, is_dataclass
-from typing import Optional
+from typing import Optional, Dict, Any
 from json import JSONEncoder
 import importlib
 import contextlib
@@ -39,8 +41,84 @@ agent_instance: Optional[CodeAgent] = None
 agent_config: Optional[dict] = None
 agent_lock = asyncio.Lock()
 
+# --- Agent Serialization ---
+def serialize_agent(agent) -> Optional[bytes]:
+    """
+    Serialize an agent and its complete state to bytes.
+    This preserves all memory, configuration, and internal state.
+    """
+    try:
+        # Extract only the serializable parts we need
+        serializable_state = {
+            'memory': agent.memory,
+            'model_id': getattr(agent.model, 'model_id', None) if hasattr(agent, 'model') else None,
+            'instructions': getattr(agent, 'instructions', None),
+            'step_number': getattr(agent, 'step_number', 1),
+            'max_steps': getattr(agent, 'max_steps', 10),
+            # Store tool names/types instead of tool instances
+            'tool_names': [tool.__class__.__name__ for tool in getattr(agent, 'tools', [])],
+            # Store managed agent info if any
+            'managed_agents': getattr(agent, 'managed_agents', []),
+        }
+        
+        # Serialize to bytes
+        return pickle.dumps(serializable_state)
+    except Exception as e:
+        print(f"Error serializing agent: {e}")
+        return None
+
+
+def deserialize_agent(agent_data: bytes, config: Dict[str, Any]) -> Optional[CodeAgent]:
+    """
+    Deserialize agent state and restore it to a new agent instance.
+    """
+    if not agent_data:
+        return None
+        
+    try:
+        # Deserialize the state
+        state = pickle.loads(agent_data)
+        
+        # Create a new agent with the same configuration
+        # Use tool names from saved state to ensure consistency
+        if 'tool_names' in state and state['tool_names']:
+            # Map tool names back to config format
+            tool_name_mapping = {
+                'WebSearchTool': 'WebSearchTool',
+                'PlanningTool': 'PlanningTool', 
+                'WebpageTool': 'WebpageTool',
+            }
+            config_with_tools = config.copy()
+            config_with_tools['tools'] = [
+                tool_name_mapping.get(tool_name, tool_name) 
+                for tool_name in state['tool_names']
+                if tool_name in tool_name_mapping
+            ]
+            agent = create_agent(config_with_tools)
+        else:
+            agent = create_agent(config)
+        
+        # Restore the memory and state
+        if 'memory' in state:
+            agent.memory = state['memory']
+        
+        # Restore other important state
+        if 'step_number' in state:
+            agent.step_number = state['step_number']
+        if 'max_steps' in state:
+            agent.max_steps = state['max_steps']
+        if 'instructions' in state and state['instructions']:
+            agent.instructions = state['instructions']
+            
+        return agent
+        
+    except Exception as e:
+        print(f"Error deserializing agent: {e}")
+        return None
+
+
 # --- Agent Configuration ---
-def create_agent(config: dict):
+def create_agent(config: Dict[str, Any]) -> CodeAgent:
     """
     Creates an agent based on the provided configuration.
     """
@@ -99,7 +177,6 @@ def create_agent(config: dict):
         raise ValueError(f"Unknown agent: {agent_name}")
 
     instructions = config.get("instructions", Config.INSTRUCTIONS)
-    print(tools)
     return agent_class(model=model, tools=tools, stream_outputs=True, instructions=instructions)
 
 
@@ -194,7 +271,7 @@ def _plan_snapshot():
         return {"objective": "", "tasks": []}
 
 
-async def stream_agent_responses(agent, message: str, reset: bool = False):
+async def stream_agent_responses(agent, message: str, reset: bool = False, chat_id: str = None):
     """Runs the agent with the given message and yields JSON-formatted SSE events.
     Uses a background thread + asyncio.Queue so the event loop is not blocked and
     deltas flush to the client sooner. Adds a plan file watcher to emit timely updates."""
@@ -274,6 +351,17 @@ async def stream_agent_responses(agent, message: str, reset: bool = False):
     watcher_task.cancel()
     with contextlib.suppress(Exception):
         await watcher_task
+    
+    # Save agent state after streaming completes (if we have a chat_id)
+    if chat_id:
+        try:
+            agent_state = serialize_agent(agent)
+            if agent_state:
+                db = get_database()
+                # Update the chat with the new agent state
+                db.update_chat(chat_id, agent_state=agent_state)
+        except Exception as e:
+            print(f"Error saving agent state for chat {chat_id}: {e}")
 
 
 # --- API Endpoint ---
@@ -287,6 +375,7 @@ async def chat(request):
         message = data.get("message", "").strip()
         reset = data.get("reset", False)
         config = data.get("config", {})
+        chat_id = data.get("chat_id")  # New: get chat_id for context
 
         if not message:
             return StreamingResponse(
@@ -313,8 +402,25 @@ async def chat(request):
                         yield f'data: {{\"type\": \"error\", \"data\": \"Error creating agent: {e!s}\"}}\n\n'
                         return
 
+                # If we have a chat_id and not resetting, try to restore agent state
+                if chat_id and not reset:
+                    try:
+                        db = get_database()
+                        chat = db.get_chat(chat_id)
+                        
+                        if chat:
+                            agent_state = chat.get('agent_state')
+                            
+                            if agent_state:
+                                restored_agent = deserialize_agent(agent_state, config)
+                                if restored_agent:
+                                    agent_instance = restored_agent
+                    except Exception as e:
+                        print(f"Error loading agent state: {e}")
+                        # Continue without state restoration rather than failing
+
                 # Stream agent responses
-                async for chunk in stream_agent_responses(agent_instance, message, reset=reset):
+                async for chunk in stream_agent_responses(agent_instance, message, reset=reset, chat_id=chat_id):
                     yield chunk
         
         return StreamingResponse(
@@ -406,8 +512,14 @@ async def get_chat(request):
         if not chat:
             return JSONResponse({"error": "Chat not found"}, status_code=404)
         
-        return JSONResponse(chat)
+        # Remove agent_state from response as it's binary data not needed by frontend
+        response_chat = {k: v for k, v in chat.items() if k != 'agent_state'}
+        
+        return JSONResponse(response_chat)
     except Exception as e:
+        print(f"Error in get_chat: {e}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -422,10 +534,17 @@ async def create_chat(request):
         db = get_database()
         chat_id = db.create_chat(title, config, messages)
         
-        # Return the created chat
+        # Return the created chat (excluding binary agent_state)
         chat = db.get_chat(chat_id)
-        return JSONResponse(chat, status_code=201)
+        if chat:
+            response_chat = {k: v for k, v in chat.items() if k != 'agent_state'}
+            return JSONResponse(response_chat, status_code=201)
+        else:
+            return JSONResponse({"error": "Failed to create chat"}, status_code=500)
     except Exception as e:
+        print(f"Error in create_chat: {e}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -446,10 +565,17 @@ async def update_chat(request):
         if not success:
             return JSONResponse({"error": "Chat not found"}, status_code=404)
         
-        # Return updated chat
+        # Return updated chat (excluding binary agent_state)
         chat = db.get_chat(chat_id)
-        return JSONResponse(chat)
+        if chat:
+            response_chat = {k: v for k, v in chat.items() if k != 'agent_state'}
+            return JSONResponse(response_chat)
+        else:
+            return JSONResponse({"error": "Failed to retrieve updated chat"}, status_code=500)
     except Exception as e:
+        print(f"Error in update_chat: {e}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
 
 

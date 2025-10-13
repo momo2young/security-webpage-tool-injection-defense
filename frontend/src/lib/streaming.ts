@@ -49,11 +49,16 @@ function getStepFootnote(step: any, stepName: string): string {
   return `${foot}\n\n`; // no leading blank lines so it is the first non-empty line
 }
 
-export async function streamChat(prompt: string, config: ChatConfig, callbacks: StreamCallbacks, codeTag = '<code>', reset = false) {
+export async function streamChat(prompt: string, config: ChatConfig, callbacks: StreamCallbacks, codeTag = '<code>', reset = false, chatId?: string | null) {
   const { onDelta, onAction, onNewAssistantMessage } = callbacks;
+  const payload: any = { message: prompt, config, reset };
+  if (chatId) {
+    payload.chat_id = chatId;
+  }
+  
   const res = await fetch('/api/chat', {
     method: 'POST',
-    body: JSON.stringify({ message: prompt, config, reset }),
+    body: JSON.stringify(payload),
     headers: { 'Content-Type': 'application/json' }
   });
   if (!res.body) return;
@@ -200,13 +205,8 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
     emitDiff();
   }
   
-  console.log('Streaming completed, calling onStreamComplete callback');
-  
   // Trigger final save when streaming completes
   if (callbacks.onStreamComplete) {
-    console.log('onStreamComplete callback exists, calling it');
     callbacks.onStreamComplete();
-  } else {
-    console.log('onStreamComplete callback not provided');
   }
 }

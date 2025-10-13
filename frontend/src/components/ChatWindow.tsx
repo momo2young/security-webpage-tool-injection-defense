@@ -151,7 +151,7 @@ const MarkdownRenderer = (props: { content: string }) => {
 };
 
 export const ChatWindow: React.FC = () => {
-  const { messages, addMessage, updateAssistantStreaming, config, backendConfig, newAssistantMessage, shouldResetNext, consumeResetFlag, forceSaveNow, setIsStreaming } = useChatStore();
+  const { messages, addMessage, updateAssistantStreaming, config, backendConfig, newAssistantMessage, shouldResetNext, consumeResetFlag, forceSaveNow, setIsStreaming, currentChatId } = useChatStore();
   const { setPlan } = usePlan();
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -228,22 +228,17 @@ export const ChatWindow: React.FC = () => {
         onNewAssistantMessage: () => { newAssistantMessage(); },
         onPlanUpdate: (p: any) => { setPlan(p); },
         onStreamComplete: () => { 
-          console.log('Stream completed via onStreamComplete callback');
           setIsStreaming(false);
-          // Add a longer delay to ensure all message updates have processed
+          // Add a delay to ensure all message updates have processed
           setTimeout(async () => {
-            console.log('Triggering forceSaveNow after stream completion');
             try {
               await forceSaveNow();
-              console.log('forceSaveNow completed from onStreamComplete');
             } catch (error) {
               console.error('Error in forceSaveNow from onStreamComplete:', error);
             }
           }, 200);
         }
-      }, safeBackendConfig?.codeTag || '<code>', resetFlag);
-      
-      console.log('streamChat promise resolved, triggering final save');
+      }, safeBackendConfig?.codeTag || '<code>', resetFlag, currentChatId);
       
     } catch (error) {
       console.error('Error during streaming:', error);
@@ -251,12 +246,9 @@ export const ChatWindow: React.FC = () => {
       setLoading(false); 
       setIsStreaming(false);
       // Ensure we save even if onStreamComplete wasn't called
-      console.log('streamChat finally block, triggering final save as backup');
       setTimeout(async () => {
-        console.log('Finally block forceSaveNow execution');
         try {
           await forceSaveNow();
-          console.log('forceSaveNow completed from finally block');
         } catch (error) {
           console.error('Error in forceSaveNow from finally block:', error);
         }
