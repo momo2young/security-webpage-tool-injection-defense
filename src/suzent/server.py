@@ -49,6 +49,29 @@ def serialize_agent(agent) -> Optional[bytes]:
     """
     try:
         # Extract only the serializable parts we need
+        tool_attr = getattr(agent, '_tool_instances', None)
+        if tool_attr is None:
+            raw_tools = getattr(agent, 'tools', None)
+            if isinstance(raw_tools, dict):
+                tool_iterable = raw_tools.values()
+            elif isinstance(raw_tools, (list, tuple)):
+                tool_iterable = raw_tools
+            elif raw_tools is None:
+                tool_iterable = []
+            else:
+                tool_iterable = [raw_tools]
+        else:
+            tool_iterable = tool_attr
+
+        tool_names = []
+        for tool in tool_iterable:
+            try:
+                name = tool.__class__.__name__
+            except AttributeError:
+                continue
+            if name not in tool_names:
+                tool_names.append(name)
+
         serializable_state = {
             'memory': agent.memory,
             'model_id': getattr(agent.model, 'model_id', None) if hasattr(agent, 'model') else None,
@@ -56,7 +79,7 @@ def serialize_agent(agent) -> Optional[bytes]:
             'step_number': getattr(agent, 'step_number', 1),
             'max_steps': getattr(agent, 'max_steps', 10),
             # Store tool names/types instead of tool instances
-            'tool_names': [tool.__class__.__name__ for tool in getattr(agent, 'tools', [])],
+            'tool_names': tool_names,
             # Store managed agent info if any
             'managed_agents': getattr(agent, 'managed_agents', []),
         }
