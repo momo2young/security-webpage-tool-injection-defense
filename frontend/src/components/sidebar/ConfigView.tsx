@@ -109,7 +109,7 @@ export const ConfigView: React.FC = () => {
         <label className="block font-medium tracking-wide text-neutral-700">Tools</label>
         <div className="flex flex-wrap gap-2">
           {backendConfig.tools.map((tool: string) => {
-            const active = config.tools.includes(tool);
+            const active = (config.tools || []).includes(tool);
             return (
               <button
                 key={tool}

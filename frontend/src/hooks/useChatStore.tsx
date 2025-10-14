@@ -65,11 +65,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const data: ConfigOptions = await res.json();
           setBackendConfig(data);
           
-          setConfig({
+          const newConfig = {
             model: data.models[0] || '',
             agent: data.agents[0] || '',
-            tools: []
-          });
+            tools: data.defaultTools || []
+          };
+          setConfig(newConfig);
         } else {
           console.error('Failed to fetch config:', res.status, res.statusText);
         }
@@ -261,6 +262,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       saveCurrentChat(true); // Skip refresh during streaming
     }, delay);
   }, [saveCurrentChat]);
+
+  // Auto-save when config changes (debounced)
+  useEffect(() => {
+    // Only save if we have a current chat and the config has meaningful values
+    if (currentChatId && config.model && config.agent) {
+      debouncedSave(1500); // Slightly longer delay for config changes
+    }
+  }, [config, currentChatId, debouncedSave]);
 
   // Force save function that captures current state at call time
   const forceSaveNow = useCallback(async () => {

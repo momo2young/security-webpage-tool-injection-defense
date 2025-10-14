@@ -20,6 +20,18 @@ const HeaderTitle: React.FC = () => {
 const AppInner: React.FC = () => {
   const [sidebarTab, setSidebarTab] = useState<'chats' | 'plan' | 'config'>('chats');
   const { plan, refresh } = usePlan();
+  const { currentChatId } = useChatStore();
+  
+  const handlePlanRefresh = React.useCallback(() => {
+    refresh(currentChatId);
+  }, [refresh, currentChatId]);
+
+  // Load plan when chat changes
+  React.useEffect(() => {
+    console.log('Loading plan for chat:', currentChatId);
+    refresh(currentChatId);
+  }, [currentChatId, refresh]);
+
   return (
     <div className="h-full w-full bg-neutral-50 text-neutral-800 font-sans">
       <div className="flex h-full">
@@ -27,7 +39,7 @@ const AppInner: React.FC = () => {
           activeTab={sidebarTab}
           onTabChange={setSidebarTab}
           chatsContent={<ChatList />}
-          planContent={<PlanView plan={plan} onRefresh={refresh} />}
+          planContent={<PlanView plan={plan} onRefresh={handlePlanRefresh} />}
           configContent={<ConfigView />}
         />
         <div className="flex-1 flex flex-col">

@@ -8,6 +8,30 @@ import rehypeSanitize from 'rehype-sanitize';
 import rehypePrism from 'rehype-prism-plus';
 import { usePlan } from '../hooks/usePlan';
 
+// Helper to normalize Python code indentation
+function normalizePythonCode(code: string): string {
+  const lines = code.split('\n');
+  if (lines.length === 0) return code;
+  
+  // Find minimum indentation (ignoring empty lines)
+  let minIndent = Infinity;
+  for (const line of lines) {
+    if (line.trim().length > 0) {
+      const leadingSpaces = line.match(/^[ ]*/)?.[0].length || 0;
+      minIndent = Math.min(minIndent, leadingSpaces);
+    }
+  }
+  
+  // Remove the minimum indentation from all lines
+  if (minIndent > 0 && minIndent !== Infinity) {
+    return lines.map(line => 
+      line.trim().length > 0 ? line.slice(minIndent) : line
+    ).join('\n');
+  }
+  
+  return code;
+}
+
 // Helper to split assistant content into markdown + code blocks, tolerant of an open (unclosed) fence while streaming
 function splitAssistantContent(content: string): { type: 'markdown' | 'code'; content: string; lang?: string }[] {
   const blocks: { type: 'markdown' | 'code'; content: string; lang?: string }[] = [];
@@ -39,6 +63,10 @@ function splitAssistantContent(content: string): { type: 'markdown' | 'code'; co
         currentMarkdown = '';
       }
       let codeBody = content.slice(langLineEnd + 1);
+      // Normalize Python code indentation
+      if (lang === 'python') {
+        codeBody = normalizePythonCode(codeBody);
+      }
       // If codeBody contains <details> or a line starting with **Step:, split them out as markdown
       const detailsIdx = codeBody.indexOf('<details>');
       const stepIdx = codeBody.search(/\n\*\*Step:/);
@@ -60,6 +88,10 @@ function splitAssistantContent(content: string): { type: 'markdown' | 'code'; co
         currentMarkdown = '';
       }
       let codeBody = content.slice(langLineEnd + 1, closingFence);
+      // Normalize Python code indentation
+      if (lang === 'python') {
+        codeBody = normalizePythonCode(codeBody);
+      }
       // If codeBody contains <details> or a line starting with **Step:, split them out as markdown
       const detailsIdx = codeBody.indexOf('<details>');
       const stepIdx = codeBody.search(/\n\*\*Step:/);
@@ -152,7 +184,7 @@ const MarkdownRenderer = (props: { content: string }) => {
 
 export const ChatWindow: React.FC = () => {
   const { messages, addMessage, updateAssistantStreaming, config, backendConfig, newAssistantMessage, shouldResetNext, consumeResetFlag, forceSaveNow, setIsStreaming, currentChatId } = useChatStore();
-  const { setPlan } = usePlan();
+  const { setPlan, refresh: refreshPlan } = usePlan();
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);
@@ -161,6 +193,8 @@ export const ChatWindow: React.FC = () => {
   const safeMessages = messages || [];
   const safeConfig = config || { model: '', agent: '', tools: [] };
   const safeBackendConfig = backendConfig || null;
+  
+
 
   // Track whether automatic scrolling is allowed. If the user manually scrolls away
   // from the bottom, disable auto-scroll until they scroll back to the bottom.
@@ -226,7 +260,10 @@ export const ChatWindow: React.FC = () => {
         onDelta: (partial: string) => { updateAssistantStreaming(partial); },
         onAction: () => { /* compatibility */ },
         onNewAssistantMessage: () => { newAssistantMessage(); },
-        onPlanUpdate: (p: any) => { setPlan(p); },
+        onPlanUpdate: (p: any) => { 
+          // Refresh plan from database instead of using the streamed data
+          refreshPlan(currentChatId); 
+        },
         onStreamComplete: () => { 
           setIsStreaming(false);
           // Add a delay to ensure all message updates have processed

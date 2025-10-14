@@ -31,7 +31,7 @@ from starlette.responses import StreamingResponse, JSONResponse
 from starlette.routing import Route
 from mcp import StdioServerParameters
 from suzent.config import Config
-from suzent.plan import read_plan_from_file
+from suzent.plan import read_plan_from_database
 from suzent.database import get_database, generate_chat_title
 
 load_dotenv()
@@ -124,7 +124,8 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
     """
     model_id = config.get("model", "gemini/gemini-2.5-pro")
     agent_name = config.get("agent", "CodeAgent")
-    tool_names = config.get("tools", []) # Default to empty list, tools will be loaded dynamically
+    # Use DEFAULT_TOOLS if tools not specified in config
+    tool_names = config.get("tools", Config.DEFAULT_TOOLS)
 
     model = LiteLLMModel(model_id=model_id)
 
@@ -177,7 +178,10 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
         raise ValueError(f"Unknown agent: {agent_name}")
 
     instructions = config.get("instructions", Config.INSTRUCTIONS)
-    return agent_class(model=model, tools=tools, stream_outputs=True, instructions=instructions)
+    agent = agent_class(model=model, tools=tools, stream_outputs=True, instructions=instructions)
+    # Store tool instances on the agent for later context injection
+    agent._tool_instances = tools
+    return agent
 
 
 # --- JSON Serialization ---
@@ -250,9 +254,11 @@ def step_to_json_event(chunk):
     return {"type": event_type, "data": data}
 
 
-def _plan_snapshot():
+def _plan_snapshot(chat_id: str = None):
     try:
-        plan = read_plan_from_file()
+        if not chat_id:
+            return {"objective": "", "tasks": []}
+        plan = read_plan_from_database(chat_id)
         if not plan:
             return {"objective": "", "tasks": []}
         return {
@@ -302,7 +308,7 @@ async def stream_agent_responses(agent, message: str, reset: bool = False, chat_
             while not stop_event.is_set():
                 await asyncio.sleep(interval)
                 try:
-                    snapshot = _plan_snapshot()
+                    snapshot = _plan_snapshot(chat_id)
                     if snapshot != last_snapshot:
                         last_snapshot = snapshot
                         await queue.put(_PlanTick(snapshot))
@@ -340,7 +346,7 @@ async def stream_agent_responses(agent, message: str, reset: bool = False, chat_
                 yield f"data: {json.dumps(json_event)}\n\n"
                 et = json_event.get("type")
                 if et in ("planning", "action"):
-                    plan_event = {"type": "plan_refresh", "data": _plan_snapshot()}
+                    plan_event = {"type": "plan_refresh", "data": _plan_snapshot(chat_id)}
                     yield f"data: {json.dumps(plan_event)}\n\n"
         except Exception as e:
             error_event = {"type": "error", "data": f"Serialization error: {e!s} | Raw: {chunk!s}"}
@@ -419,6 +425,12 @@ async def chat(request):
                         print(f"Error loading agent state: {e}")
                         # Continue without state restoration rather than failing
 
+                # Inject chat_id into tools if available
+                if chat_id and agent_instance and hasattr(agent_instance, '_tool_instances'):
+                    for tool_instance in agent_instance._tool_instances:
+                        if hasattr(tool_instance, 'set_chat_context'):
+                            tool_instance.set_chat_context(chat_id)
+
                 # Stream agent responses
                 async for chunk in stream_agent_responses(agent_instance, message, reset=reset, chat_id=chat_id):
                     yield chunk
@@ -462,7 +474,12 @@ async def get_config(request):
 async def get_plan(request):
     """Return current plan (objective + tasks) as JSON."""
     try:
-        plan = read_plan_from_file()
+        # Get chat_id from query parameters
+        chat_id = request.query_params.get("chat_id")
+        if not chat_id:
+            return JSONResponse({"error": "chat_id parameter is required"}, status_code=400)
+        
+        plan = read_plan_from_database(chat_id)
         if not plan:
             return JSONResponse({"objective": "", "tasks": []})
         tasks = []
@@ -474,8 +491,6 @@ async def get_plan(request):
                 "note": getattr(t, 'note', None)
             })
         return JSONResponse({"objective": plan.objective, "tasks": tasks})
-    except FileNotFoundError:
-        return JSONResponse({"objective": "", "tasks": []})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 

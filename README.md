@@ -57,4 +57,5 @@ The backend provides these chat management endpoints:
 - `GET /chats/{id}` - Get a specific chat
 - `PUT /chats/{id}` - Update a chat
 - `DELETE /chats/{id}` - Delete a chat
+- `GET /plan?chat_id={id}` - Get the plan for a specific chat
 

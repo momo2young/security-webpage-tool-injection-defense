@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+# Keep for backward compatibility and migration
 TODO_FILE = Path("TODO.md")
 
 STATUS_MAP = {
@@ -32,6 +33,7 @@ class Plan:
     """Represents the overall plan."""
     objective: str
     tasks: list[Task] = field(default_factory=list)
+    chat_id: Optional[str] = None
 
     def to_markdown(self, hide_completed: bool = False, newly_completed_step: Optional[int] = None) -> str:
         """Converts the plan to a markdown string."""
@@ -60,8 +62,81 @@ class Plan:
         return None
 
 
+def read_plan_from_database(chat_id: str) -> Optional[Plan]:
+    """Reads the plan from the database for a specific chat."""
+    from suzent.database import get_database
+    
+    db = get_database()
+    plan_data = db.get_plan(chat_id)
+    
+    if not plan_data:
+        return None
+    
+    tasks = []
+    for task_data in plan_data['tasks']:
+        tasks.append(Task(
+            number=task_data['number'],
+            description=task_data['description'],
+            status=task_data['status'],
+            note=task_data['note']
+        ))
+    
+    return Plan(
+        objective=plan_data['objective'],
+        tasks=tasks,
+        chat_id=chat_id
+    )
+
+
+def write_plan_to_database(plan: Plan):
+    """Writes the plan to the database."""
+    from suzent.database import get_database
+    
+    if not plan.chat_id:
+        raise ValueError("Plan must have a chat_id to be saved to database")
+    
+    db = get_database()
+    tasks_data = []
+    for task in plan.tasks:
+        tasks_data.append({
+            'number': task.number,
+            'description': task.description,
+            'status': task.status,
+            'note': task.note
+        })
+    
+    db.update_plan(plan.chat_id, plan.objective, tasks_data)
+
+
+def auto_mark_in_progress(chat_id: str):
+    """If no task is in progress, mark the first pending as in_progress."""
+    plan = read_plan_from_database(chat_id)
+    if not plan:
+        return
+    if plan.first_in_progress():
+        return
+    pending = plan.first_pending()
+    if pending:
+        from suzent.database import get_database
+        db = get_database()
+        db.update_task_status(chat_id, pending.number, "in_progress")
+
+
+def auto_complete_current(chat_id: str):
+    """Mark the current in_progress task as completed."""
+    plan = read_plan_from_database(chat_id)
+    if not plan:
+        return
+    cur = plan.first_in_progress()
+    if cur:
+        from suzent.database import get_database
+        db = get_database()
+        db.update_task_status(chat_id, cur.number, "completed")
+
+
+# Legacy functions for backward compatibility and migration
 def read_plan_from_file() -> Optional[Plan]:
-    """Reads the plan from the TODO.md file."""
+    """Reads the plan from the TODO.md file (legacy function)."""
     if not TODO_FILE.exists():
         return None
 
@@ -82,32 +157,23 @@ def read_plan_from_file() -> Optional[Plan]:
 
 
 def write_plan_to_file(plan: Plan):
-    """Writes the plan to the TODO.md file."""
+    """Writes the plan to the TODO.md file (legacy function)."""
     with open(TODO_FILE, "w") as f:
         f.write(f"# Plan for: {plan.objective}\n\n")
         for task in plan.tasks:
             f.write(str(task))
 
 
-def auto_mark_in_progress():
-    """If no task is in progress, mark the first pending as in_progress."""
+def migrate_plan_to_database(chat_id: str) -> bool:
+    """Migrate an existing TODO.md plan to the database for a specific chat."""
     plan = read_plan_from_file()
     if not plan:
-        return
-    if plan.first_in_progress():
-        return
-    pending = plan.first_pending()
-    if pending:
-        pending.status = "in_progress"
-        write_plan_to_file(plan)
-
-
-def auto_complete_current():
-    """Mark the current in_progress task as completed."""
-    plan = read_plan_from_file()
-    if not plan:
-        return
-    cur = plan.first_in_progress()
-    if cur:
-        cur.status = "completed"
-        write_plan_to_file(plan)
+        return False
+    
+    plan.chat_id = chat_id
+    try:
+        write_plan_to_database(plan)
+        return True
+    except Exception as e:
+        print(f"Error migrating plan to database: {e}")
+        return False
