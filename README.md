@@ -13,6 +13,17 @@ An AI agent chat application with persistent conversation management.
 
 ## Quick Start
 
+Create or modify `.env`
+
+```bash
+OPENAI_API_KEY=sk-xxx
+DEEPSEEK_API_KEY=sk-xxx
+QWEN_API_KEY=xxx
+GEMINI_API_KEY=xxx
+ANTHROPIC_API_KEY=sk-xxx
+```
+
+
 1. **Activate virtual environment:**
 ```bash
 .venv/Scripts/activate
@@ -20,7 +31,7 @@ An AI agent chat application with persistent conversation management.
 
 2. **Install dependencies:**
 ```bash
-pip install -e .
+uv sync
 ```
 
 3. **Start the backend server:**
