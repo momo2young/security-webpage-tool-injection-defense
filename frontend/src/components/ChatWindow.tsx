@@ -300,12 +300,10 @@ export const ChatWindow: React.FC = () => {
           },
           onStreamComplete: () => {
             setIsStreaming(false, chatIdForSend);
-            console.log('[ChatWindow] Stream complete, saving chat:', chatIdForSend);
             // Add a delay to ensure all message updates have processed
             setTimeout(async () => {
               try {
                 await forceSaveNow(chatIdForSend);
-                console.log('[ChatWindow] Save complete after stream');
               } catch (error) {
                 console.error('Error in forceSaveNow from onStreamComplete:', error);
               }

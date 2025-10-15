@@ -70,7 +70,14 @@ export const ChatList: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
+      {/* Subtle refresh overlay */}
+      {showRefreshIndicator && (
+        <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
+          <div className="h-0.5 bg-gradient-to-r from-transparent via-brand-500 to-transparent animate-pulse"></div>
+        </div>
+      )}
+      
       {/* New Chat Button */}
       <div className="p-4 border-b border-neutral-200 flex items-center justify-between gap-3">
         <button
@@ -82,13 +89,6 @@ export const ChatList: React.FC = () => {
           </svg>
           New Chat
         </button>
-        {showRefreshIndicator && (
-          <div className="flex items-center text-[11px] text-neutral-400 gap-2 whitespace-nowrap transition-opacity duration-150">
-            <span className="w-3 h-3 rounded-full border-2 border-neutral-300 border-t-brand-500 animate-spin" aria-hidden="true"></span>
-            Updating…
-            <span className="sr-only">Refreshing chat list</span>
-          </div>
-        )}
       </div>
 
       {/* Chat List */}
@@ -103,7 +103,7 @@ export const ChatList: React.FC = () => {
               <div
                 key={chat.id}
                 onClick={() => loadChat(chat.id)}
-                className={`group relative p-3 rounded-lg cursor-pointer transition-all ${
+                className={`group relative p-3 rounded-lg cursor-pointer transition-all duration-150 ${
                   currentChatId === chat.id
                     ? 'bg-brand-50 border border-brand-200'
                     : 'bg-neutral-50 hover:bg-neutral-100 border border-transparent'
@@ -111,7 +111,7 @@ export const ChatList: React.FC = () => {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className={`font-medium text-sm truncate ${
+                    <h3 className={`font-medium text-sm truncate transition-colors ${
                       currentChatId === chat.id ? 'text-brand-900' : 'text-neutral-900'
                     }`}>
                       {chat.title}
@@ -137,7 +137,7 @@ export const ChatList: React.FC = () => {
                   <button
                     onClick={(e) => handleDeleteChat(chat.id, e)}
                     disabled={deletingChatId === chat.id}
-                    className="opacity-0 group-hover:opacity-100 ml-2 p-1 rounded text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                    className="opacity-0 group-hover:opacity-100 ml-2 p-1 rounded text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
                     title="Delete chat"
                   >
                     {deletingChatId === chat.id ? (

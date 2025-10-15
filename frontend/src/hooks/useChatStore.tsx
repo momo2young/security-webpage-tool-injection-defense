@@ -126,15 +126,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const next = typeof updater === 'function' ? (updater as (prev: Message[]) => Message[])(previous) : updater;
       if (next === previous) return prev;
 
-      console.log('[setMessagesForChat]', {
-        chatId,
-        key,
-        previousCount: previous.length,
-        nextCount: next.length,
-        allKeys: Object.keys(prev)
-      });
-
-      if (chatId) {
+      // Only update sidebar summary if we're not actively streaming for this chat
+      // This prevents constant re-renders during streaming
+      if (chatId && chatId !== activeStreamingChatId) {
         setChats(current => {
           const index = current.findIndex(c => c.id === chatId);
           if (index === -1) return current;
@@ -152,7 +146,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { ...prev, [key]: next };
     });
-  }, [setChats]);
+  }, [activeStreamingChatId]);
 
   const messages = useMemo(() => getMessagesForChat(currentChatId), [getMessagesForChat, currentChatId]);
 
@@ -250,15 +244,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const chatMessages = messagesByChatRef.current[key] ?? [];
     const chatConfig = configByChatRef.current[key] ?? config;
 
-    console.log('[saveChatById] Saving chat:', {
-      chatId,
-      key,
-      messageCount: chatMessages.length,
-      skipRefresh,
-      allKeys: Object.keys(messagesByChatRef.current),
-      messagesInKey: messagesByChatRef.current[key]?.length
-    });
-
     if (!chatId) {
       if (chatMessages.length === 0) return;
       const chatTitle = chatMessages[0].role === 'user' ? generateChatTitle(chatMessages[0].content) : 'New Chat';
@@ -308,13 +293,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const payload: any = { config: chatConfig, messages: chatMessages };
       if (updateTitle) payload.title = updateTitle;
-
-      console.log('[saveChatById] Updating existing chat:', {
-        chatId,
-        messageCount: chatMessages.length,
-        updateTitle,
-        existingTitle: baselineTitle
-      });
 
       const res = await fetch(`/api/chats/${chatId}`, {
         method: 'PUT',
@@ -443,8 +421,29 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setStreamingState = useCallback((streaming: boolean, chatId?: string | null) => {
     setIsStreamingState(streaming);
     setActiveStreamingChatId(prev => {
+      const targetChatId = chatId ?? currentChatId;
       if (streaming) {
-        return chatId ?? currentChatId;
+        return targetChatId;
+      }
+      // When streaming stops, update the sidebar summary for this chat
+      if (!streaming && targetChatId) {
+        const key = keyForChat(targetChatId);
+        const chatMessages = messagesByChatRef.current[key] ?? [];
+        if (chatMessages.length > 0) {
+          setChats(current => {
+            const index = current.findIndex(c => c.id === targetChatId);
+            if (index === -1) return current;
+            const updated = [...current];
+            const summary = updated[index];
+            updated[index] = {
+              ...summary,
+              messageCount: chatMessages.length,
+              lastMessage: chatMessages[chatMessages.length - 1].content.slice(0, 100),
+              updatedAt: new Date().toISOString()
+            };
+            return updated;
+          });
+        }
       }
       if (chatId && prev && prev !== chatId) {
         return prev;
@@ -478,12 +477,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const firstUserMessage = chatMessages.find(msg => msg.role === 'user');
       const chatTitle = firstUserMessage ? generateChatTitle(firstUserMessage.content) : 'New Chat';
 
-      console.log('[createNewChat] Creating chat with:', {
-        title: chatTitle,
-        messageCount: chatMessages.length,
-        firstMessage: firstUserMessage?.content
-      });
-
       try {
         const res = await fetch('/api/chats', {
           method: 'POST',
@@ -503,26 +496,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const newChat: Chat = await res.json();
         const newKey = keyForChat(newChat.id);
 
-        console.log('[createNewChat] Chat created:', {
-          id: newChat.id,
-          title: newChat.title,
-          serverMessageCount: newChat.messages?.length,
-          localMessageCount: chatMessages.length
-        });
-
         setCurrentChatId(newChat.id);
         setCurrentChatTitle(newChat.title);
         setMessagesByChat(prev => {
-          console.log('[createNewChat] Moving messages:', {
-            from: UNSAVED_CHAT_KEY,
-            to: newKey,
-            messageCount: chatMessages.length,
-            prevKeys: Object.keys(prev)
-          });
           const next = { ...prev }; 
           delete next[UNSAVED_CHAT_KEY];
           next[newKey] = chatMessages;
-          console.log('[createNewChat] After move, keys:', Object.keys(next));
           return next;
         });
         setConfigState(effectiveConfig);
@@ -558,8 +537,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error creating chat:', error);
         return null;
       } finally {
-        // Don't await - let it refresh in background
-        refreshChatList();
+        // Refresh will happen after save completes, no need to refresh here
       }
     })();
 
@@ -571,7 +549,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadChat = useCallback(async (chatId: string) => {
     const key = keyForChat(chatId);
-    console.log('[loadChat] Loading chat:', chatId);
     setCurrentChatId(chatId);
     setShouldResetNext(false);
 
@@ -595,18 +572,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setMessagesByChat(prev => {
           const existing = prev[key] ?? [];
           const serverMessages = chat.messages ?? [];
-          console.log('[loadChat] Merging messages:', {
-            chatId,
-            existingCount: existing.length,
-            serverCount: serverMessages.length,
-            prevKeys: Object.keys(prev)
-          });
           if (existing.length >= serverMessages.length) {
             return prev;
           }
-          const next = { ...prev, [key]: serverMessages };
-          console.log('[loadChat] After merge, keys:', Object.keys(next));
-          return next;
+          return { ...prev, [key]: serverMessages };
         });
         setShouldResetNext(false);
       } else {
