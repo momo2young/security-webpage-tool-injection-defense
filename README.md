@@ -103,17 +103,3 @@ The backend provides these chat management endpoints:
 
 For complete API documentation, see [API Reference](./docs/api-reference.md) (coming soon).
 
-## 📖 Additional Documentation
-
-- **[Complete Documentation](./docs/README.md)** - Full documentation index
-- **[Tools Documentation](./src/suzent/tools/README.md)** - Tools directory README
-- **[Frontend Documentation](./frontend/README.md)** - Frontend-specific documentation
-
-## 🤝 Contributing
-
-Contributions are welcome! Please see the [Development Guide](./docs/development.md) for information on extending Suzent.
-
-## 📄 License
-
-See the [LICENSE](./LICENSE) file for details.
-
