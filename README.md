@@ -42,6 +42,7 @@ ANTHROPIC_API_KEY=sk-xxx
 2. **Install dependencies:**
 ```bash
 uv sync
+playwright install
 ```
 
 3. **Start the backend server:**

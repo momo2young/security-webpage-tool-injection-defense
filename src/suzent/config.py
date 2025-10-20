@@ -23,7 +23,7 @@ class Config:
         "openai/gpt-4.1",
         "deepseek/deepseek-chat"
     ]
-    AGENT_OPTIONS = ["CodeAgent"]
+    AGENT_OPTIONS = ["CodeAgent", "ToolcallingAgent"]
     
     # --- Tool Configuration ---
     @staticmethod

@@ -13,7 +13,7 @@ import importlib
 import pickle
 from typing import Optional, Dict, Any
 
-from smolagents import CodeAgent, LiteLLMModel, MCPClient
+from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel, MCPClient
 from smolagents.tools import Tool
 
 from suzent.config import Config
@@ -90,6 +90,7 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
 
     agent_map = {
         "CodeAgent": CodeAgent,
+        "ToolcallingAgent": ToolCallingAgent
     }
 
     agent_class = agent_map.get(agent_name)
