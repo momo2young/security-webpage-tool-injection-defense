@@ -62,11 +62,4 @@ class Config:
         "HF Space MCP": "https://evalstate-hf-mcp-server.hf.space/mcp",
     }
 
-    INSTRUCTIONS = \
-"""
-# Language Requirement
-You should respond in the language of the user's query.
-
-# Task Management
-Make plans for complex tasks.
-"""
+    INSTRUCTIONS = "" # Special insturctions

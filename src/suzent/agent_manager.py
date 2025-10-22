@@ -18,6 +18,7 @@ from smolagents.tools import Tool
 
 from suzent.config import Config
 from suzent.logger import get_logger
+from suzent.prompts import format_instructions
 
 logger = get_logger(__name__)
 
@@ -100,7 +101,8 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
     if not agent_class:
         raise ValueError(f"Unknown agent: {agent_name}")
 
-    instructions = config.get("instructions", Config.INSTRUCTIONS)
+    base_instructions = config.get("instructions", Config.INSTRUCTIONS)
+    instructions = format_instructions(base_instructions)
     agent = agent_class(model=model, tools=tools, stream_outputs=True, instructions=instructions)
     # Store tool instances on the agent for later context injection
     agent._tool_instances = tools
