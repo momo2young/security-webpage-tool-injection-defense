@@ -14,6 +14,7 @@ from typing import Optional
 from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse
 
+from suzent.logger import get_logger
 from suzent.agent_manager import (
     get_or_create_agent,
     inject_chat_context,
@@ -22,6 +23,8 @@ from suzent.agent_manager import (
 )
 from suzent.database import get_database
 from suzent.streaming import stream_agent_responses, stop_stream
+
+logger = get_logger(__name__)
 
 
 async def chat(request: Request) -> StreamingResponse:
@@ -74,7 +77,7 @@ async def chat(request: Request) -> StreamingResponse:
                                 if restored_agent:
                                     agent_instance = restored_agent
                     except Exception as e:
-                        print(f"Error loading agent state: {e}")
+                        logger.warning(f"Error loading agent state: {e}")
                         # Continue without state restoration rather than failing
 
                 # Inject chat_id into tools if available
@@ -95,7 +98,7 @@ async def chat(request: Request) -> StreamingResponse:
                             db = get_database()
                             db.update_chat(chat_id, agent_state=agent_state)
                     except Exception as e:
-                        print(f"Error saving agent state for chat {chat_id}: {e}")
+                        logger.error(f"Error saving agent state for chat {chat_id}: {e}")
 
             except Exception as e:
                 traceback.print_exc()
@@ -208,7 +211,7 @@ async def get_chat(request: Request) -> JSONResponse:
         
         return JSONResponse(response_chat)
     except Exception as e:
-        print(f"Error in get_chat: {e}")
+        logger.error(f"Error in get_chat: {e}")
         traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -242,7 +245,7 @@ async def create_chat(request: Request) -> JSONResponse:
         else:
             return JSONResponse({"error": "Failed to create chat"}, status_code=500)
     except Exception as e:
-        print(f"Error in create_chat: {e}")
+        logger.error(f"Error in create_chat: {e}")
         traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -285,7 +288,7 @@ async def update_chat(request: Request) -> JSONResponse:
         else:
             return JSONResponse({"error": "Failed to retrieve updated chat"}, status_code=500)
     except Exception as e:
-        print(f"Error in update_chat: {e}")
+        logger.error(f"Error in update_chat: {e}")
         traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
 

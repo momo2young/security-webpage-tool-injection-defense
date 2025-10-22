@@ -12,12 +12,14 @@ This server provides a REST API with the following endpoints:
 The application uses modular routing with separated concerns for maintainability.
 """
 
+import os
 from dotenv import load_dotenv
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Route
 
+from suzent.logger import setup_logging, get_logger
 from suzent.routes.chat_routes import (
     chat,
     stop_chat,
@@ -32,6 +34,13 @@ from suzent.routes.config_routes import get_config
 
 # Load environment variables
 load_dotenv()
+
+# Setup logging
+log_level = os.getenv("LOG_LEVEL", "INFO")
+log_file = os.getenv("LOG_FILE")  # Optional: set LOG_FILE=/path/to/suzent.log
+setup_logging(level=log_level, log_file=log_file)
+
+logger = get_logger(__name__)
 
 
 
@@ -67,4 +76,5 @@ app = Starlette(
 if __name__ == "__main__":
     import uvicorn
 
+    logger.info("Starting Suzent server on http://0.0.0.0:8000")
     uvicorn.run(app, host="0.0.0.0", port=8000)

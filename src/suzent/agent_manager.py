@@ -17,6 +17,9 @@ from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel, MCPClient
 from smolagents.tools import Tool
 
 from suzent.config import Config
+from suzent.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # --- Agent State ---
@@ -66,7 +69,7 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
         try:
             module_file_name = tool_module_map.get(tool_name)
             if not module_file_name:
-                print(f"Warning: No module mapping found for tool {tool_name}. Skipping.")
+                logger.warning(f"No module mapping found for tool {tool_name}")
                 continue
 
             tool_module = importlib.import_module(f"suzent.tools.{module_file_name}")
@@ -76,9 +79,9 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
             if issubclass(tool_class, Tool):
                 tools.append(tool_class())
             else:
-                print(f"Warning: {tool_name} is not a valid Tool class. Skipping.")
+                logger.warning(f"{tool_name} is not a valid Tool class")
         except (ImportError, AttributeError) as e:
-            print(f"Warning: Could not load tool {tool_name}: {e}")
+            logger.error(f"Could not load tool {tool_name}: {e}")
 
     mcp_urls = config.get("mcp_urls", [])
     if mcp_urls:
@@ -155,7 +158,7 @@ def serialize_agent(agent: CodeAgent) -> Optional[bytes]:
         # Serialize to bytes
         return pickle.dumps(serializable_state)
     except Exception as e:
-        print(f"Error serializing agent: {e}")
+        logger.error(f"Error serializing agent: {e}")
         return None
 
 
@@ -211,7 +214,7 @@ def deserialize_agent(agent_data: bytes, config: Dict[str, Any]) -> Optional[Cod
         return agent
         
     except Exception as e:
-        print(f"Error deserializing agent: {e}")
+        logger.error(f"Error deserializing agent: {e}")
         return None
 
 

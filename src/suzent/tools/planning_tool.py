@@ -8,6 +8,7 @@ from typing import Optional
 
 from smolagents.tools import Tool
 
+from suzent.logger import get_logger
 from suzent.plan import (
     STATUS_MAP,
     Plan,
@@ -17,6 +18,8 @@ from suzent.plan import (
     write_plan_to_database,
 )
 from suzent.database import get_database
+
+logger = get_logger(__name__)
 
 
 class PlanningTool(Tool):
@@ -41,10 +44,10 @@ class PlanningTool(Tool):
                 db = get_database()
                 migrated = db.reassign_plan_chat("planning_session_temp", chat_id)
                 if migrated:
-                    print(f"PlanningTool: migrated {migrated} temporary plan(s) to chat {chat_id}")
+                    logger.info(f"Migrated {migrated} temporary plan(s) to chat {chat_id}")
                 self._migrated_temp_plan = True
             except Exception as exc:
-                print(f"PlanningTool: failed migrating temporary plan to {chat_id}: {exc}")
+                logger.error(f"Failed migrating temporary plan to {chat_id}: {exc}")
 
     inputs = {
         "action": {
@@ -115,14 +118,14 @@ class PlanningTool(Tool):
         # Prioritize context chat_id over agent-provided chat_id
         context_chat_id = getattr(self, '_current_chat_id', None)
         if context_chat_id:
-            print(f"PlanningTool: Using context chat_id: {context_chat_id} (overriding agent-provided: {chat_id})")
+            logger.debug(f"Using context chat_id: {context_chat_id} (overriding agent-provided: {chat_id})")
             chat_id = context_chat_id
         elif not chat_id:
             return (
                 "Error: PlanningTool requires a chat_id. Ensure the agent is invoked with an active chat context."
             )
         else:
-            print(f"PlanningTool: Using agent-provided chat_id: {chat_id}")
+            logger.debug(f"Using agent-provided chat_id: {chat_id}")
         
         # Prepare arguments for the respective methods
         args = {
@@ -177,7 +180,7 @@ class PlanningTool(Tool):
         if target_plan is None:
             target_plan = read_plan_from_database(chat_id)
             if target_plan and plan_id is None:
-                print("PlanningTool: plan_id not provided; updating most recent plan.")
+                logger.debug("plan_id not provided; updating most recent plan")
         if target_plan is None:
             return "No plan found to update. Please create a plan first."
 
@@ -205,7 +208,7 @@ class PlanningTool(Tool):
         if not plan:
             plan = read_plan_from_database(chat_id)
             if plan and plan_id is None:
-                print("PlanningTool: plan_id not provided; using most recent plan for status refresh.")
+                logger.debug("plan_id not provided; using most recent plan for status refresh")
         if not plan:
             return f"Updated step {step_number} to {status}, but could not retrieve plan status."
 

@@ -14,6 +14,10 @@ import httpx
 from smolagents.tools import Tool
 from smolagents import WebSearchTool as SmolWebSearchTool
 
+from suzent.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class WebSearchTool(Tool):
     """
@@ -60,7 +64,7 @@ class WebSearchTool(Tool):
         self.use_searxng = bool(self.searxng_base_url)
         
         if self.use_searxng:
-            print(f"WebSearch: Using SearXNG at {self.searxng_base_url}")
+            logger.info(f"Using SearXNG at {self.searxng_base_url}")
             # Add headers to avoid 403 errors from SearXNG
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -74,7 +78,7 @@ class WebSearchTool(Tool):
                 follow_redirects=True
             )
         else:
-            print("WebSearch: Using default smolagents WebSearchTool")
+            logger.info("Using default smolagents WebSearchTool")
             self.fallback_tool = SmolWebSearchTool()
             self.client = None
 
@@ -145,7 +149,7 @@ class WebSearchTool(Tool):
             
             # If JSON format is forbidden (403), try without format parameter
             if response.status_code == 403:
-                print("Warning: SearXNG JSON format restricted, falling back to smolagents WebSearchTool")
+                logger.warning("SearXNG JSON format restricted, falling back to smolagents WebSearchTool")
                 # Fall back to the default tool
                 if hasattr(self, 'fallback_tool'):
                     return self.fallback_tool.forward(query=query)

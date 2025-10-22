@@ -31,6 +31,10 @@ ANTHROPIC_API_KEY=sk-xxx
 
 # Optional: Use SearXNG for privacy-focused web search
 # SEARXNG_BASE_URL=http://localhost:8080
+
+# Optional: Configure logging
+# LOG_LEVEL=INFO  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+# LOG_FILE=suzent.log  # Uncomment to enable file logging
 ```
 
 
