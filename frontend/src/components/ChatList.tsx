@@ -14,6 +14,7 @@ export const ChatList: React.FC = () => {
   } = useChatStore();
   
   const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
 
   useEffect(() => {
@@ -31,16 +32,25 @@ export const ChatList: React.FC = () => {
   const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent chat selection when deleting
     
-    if (window.confirm('Are you sure you want to delete this chat?')) {
-      setDeletingChatId(chatId);
-      try {
-        await deleteChat(chatId);
-      } catch (error) {
-        console.error('Error deleting chat:', error);
-      } finally {
-        setDeletingChatId(null);
-      }
+    setDeletingChatId(chatId);
+    try {
+      await deleteChat(chatId);
+      setConfirmDeleteId(null);
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+    } finally {
+      setDeletingChatId(null);
     }
+  };
+
+  const handleDeleteClick = (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConfirmDeleteId(chatId);
+  };
+
+  const handleCancelDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConfirmDeleteId(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -109,6 +119,26 @@ export const ChatList: React.FC = () => {
                     : 'bg-neutral-50 hover:bg-neutral-100 border border-transparent'
                 }`}
               >
+                {/* Inline delete confirmation overlay */}
+                {confirmDeleteId === chat.id && (
+                  <div className="absolute inset-0 bg-red-50 border-2 border-red-300 rounded-lg flex items-center justify-center gap-2 z-10">
+                    <span className="text-sm font-medium text-red-900">Delete this chat?</span>
+                    <button
+                      onClick={(e) => handleDeleteChat(chat.id, e)}
+                      disabled={deletingChatId === chat.id}
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50"
+                    >
+                      {deletingChatId === chat.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                    <button
+                      onClick={handleCancelDelete}
+                      className="px-3 py-1.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 text-sm font-medium rounded transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <h3 className={`font-medium text-sm truncate transition-colors ${
@@ -135,7 +165,7 @@ export const ChatList: React.FC = () => {
 
                   {/* Delete Button */}
                   <button
-                    onClick={(e) => handleDeleteChat(chat.id, e)}
+                    onClick={(e) => handleDeleteClick(chat.id, e)}
                     disabled={deletingChatId === chat.id}
                     className="opacity-0 group-hover:opacity-100 ml-2 p-1 rounded text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
                     title="Delete chat"
