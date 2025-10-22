@@ -21,7 +21,8 @@ class Config:
         "gemini/gemini-2.5-flash",
         "gemini/gemini-2.5-pro",
         "openai/gpt-4.1",
-        "deepseek/deepseek-chat"
+        "deepseek/deepseek-chat",
+        "litellm_proxy/claude-sonnet-4-5"
     ]
     AGENT_OPTIONS = ["CodeAgent", "ToolcallingAgent"]
     
