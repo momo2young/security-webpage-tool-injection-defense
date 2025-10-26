@@ -41,6 +41,7 @@ const defaultConfig: ChatConfig = {
 };
 
 const UNSAVED_CHAT_KEY = '__unsaved__';
+const LAST_CONFIG_KEY = 'suzent_last_config';
 const keyForChat = (chatId: string | null) => chatId ?? UNSAVED_CHAT_KEY;
 
 const configsEqual = (a?: ChatConfig | null, b?: ChatConfig | null): boolean => {
@@ -99,6 +100,25 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [messagesByChat]);
 
   const computeDefaultConfig = useCallback((): ChatConfig => {
+    // Try to load last used config from localStorage
+    try {
+      const saved = localStorage.getItem(LAST_CONFIG_KEY);
+      if (saved) {
+        const parsed: ChatConfig = JSON.parse(saved);
+        // Validate that the saved config is compatible with current backend options
+        if (backendConfig) {
+          const isModelValid = backendConfig.models.includes(parsed.model);
+          const isAgentValid = backendConfig.agents.includes(parsed.agent);
+          if (isModelValid && isAgentValid) {
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load last config from localStorage:', e);
+    }
+
+    // Fallback to backend defaults
     if (backendConfig) {
       return {
         model: backendConfig.models[0] || '',
@@ -360,6 +380,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const previousConfig = configByChat[key];
     setConfigState(resolved);
     setConfigByChat(prevConfigs => ({ ...prevConfigs, [key]: resolved }));
+
+    // Save to localStorage to remember for next new chat
+    try {
+      localStorage.setItem(LAST_CONFIG_KEY, JSON.stringify(resolved));
+    } catch (e) {
+      console.warn('Failed to save config to localStorage:', e);
+    }
+
     if (currentChatId && !configsEqual(previousConfig, resolved)) {
       scheduleSave(currentChatId, 1500);
     }
@@ -574,6 +602,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cachedConfig = configByChat[key];
     if (cachedConfig) {
       setConfigState(cachedConfig);
+      // Save to localStorage to remember for next new chat
+      try {
+        localStorage.setItem(LAST_CONFIG_KEY, JSON.stringify(cachedConfig));
+      } catch (e) {
+        console.warn('Failed to save config to localStorage:', e);
+      }
     }
 
     try {
@@ -583,6 +617,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentChatTitle(chat.title);
         setConfigByChat(prev => ({ ...prev, [key]: chat.config }));
         setConfigState(chat.config);
+        // Save to localStorage to remember for next new chat
+        try {
+          localStorage.setItem(LAST_CONFIG_KEY, JSON.stringify(chat.config));
+        } catch (e) {
+          console.warn('Failed to save config to localStorage:', e);
+        }
         setMessagesByChat(prev => {
           const existing = prev[key] ?? [];
           const serverMessages = chat.messages ?? [];
