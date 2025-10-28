@@ -13,6 +13,7 @@ import importlib
 import pickle
 import os
 from typing import Optional, Dict, Any
+from mcp import StdioServerParameters
 
 from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel, MCPClient
 from smolagents.tools import Tool
@@ -55,7 +56,7 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
     agent_name = config.get("agent", "CodeAgent")
     # Use DEFAULT_TOOLS if tools not specified in config
     tool_names = config.get("tools", Config.DEFAULT_TOOLS)
-
+    additional_authorized_imports = config.get("additional_authorized_imports", [])
     model = LiteLLMModel(model_id=model_id)
 
     tools = []
@@ -89,13 +90,40 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
         except (ImportError, AttributeError) as e:
             logger.error(f"Could not load tool {tool_name}: {e}")
 
-    mcp_urls = config.get("mcp_urls", [])
-    if mcp_urls:
-        mcp_server_parameters = [
-            {"url": url, "transport": "streamable-http"} for url in mcp_urls
-        ]
+
+    # --- Filter MCP servers by enabled state if provided ---
+    # Accepts: config['mcp_enabled'] = {name: bool, ...}, config['mcp_urls'], config['mcp_stdio_params']
+    mcp_enabled = config.get("mcp_enabled")
+    mcp_urls = config.get("mcp_urls", Config.MCP_URLS)
+    mcp_stdio_params = config.get("mcp_stdio_params", Config.MCP_STDIO_PARAMS)
+
+    mcp_server_parameters = []
+    if mcp_enabled is not None:
+        # Only include enabled servers
+        if mcp_urls:
+            for name, url in (mcp_urls.items() if isinstance(mcp_urls, dict) else enumerate(mcp_urls)):
+                if mcp_enabled.get(name, True):
+                    mcp_server_parameters.append({"url": url, "transport": "streamable-http"})
+        if mcp_stdio_params:
+            for name, params in mcp_stdio_params.items():
+                if mcp_enabled.get(name, True):
+                    mcp_server_parameters.append(StdioServerParameters(**params))
+    else:
+        # Legacy: include all
+        if mcp_urls:
+            mcp_server_parameters.extend(
+                [{"url": url, "transport": "streamable-http"} for url in (mcp_urls.values() if isinstance(mcp_urls, dict) else mcp_urls)]
+            )
+        if mcp_stdio_params:
+            mcp_server_parameters.extend(
+                [StdioServerParameters(**params) for server, params in mcp_stdio_params.items()]
+            )
+
+    if mcp_server_parameters:
         mcp_client = MCPClient(server_parameters=mcp_server_parameters)
         tools.extend(mcp_client.get_tools())
+
+
 
     agent_map = {
         "CodeAgent": CodeAgent,

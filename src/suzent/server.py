@@ -30,7 +30,11 @@ from suzent.routes.chat_routes import (
     delete_chat,
 )
 from suzent.routes.plan_routes import get_plans, get_plan
+
 from suzent.routes.config_routes import get_config
+from suzent.routes.mcp_routes import (
+    list_mcp_servers, add_mcp_server, remove_mcp_server, set_mcp_server_enabled
+)
 
 # Load environment variables
 load_dotenv()
@@ -61,6 +65,11 @@ app = Starlette(
         Route("/plan", get_plan, methods=["GET"]),
         # Configuration endpoint
         Route("/config", get_config, methods=["GET"]),
+        # MCP server management endpoints
+        Route("/mcp_servers", list_mcp_servers, methods=["GET"]),
+        Route("/mcp_servers", add_mcp_server, methods=["POST"]),
+        Route("/mcp_servers/remove", remove_mcp_server, methods=["POST"]),
+        Route("/mcp_servers/enabled", set_mcp_server_enabled, methods=["POST"]),
     ],
     middleware=[
         Middleware(

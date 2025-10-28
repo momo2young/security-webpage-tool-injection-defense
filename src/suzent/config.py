@@ -62,4 +62,16 @@ class Config:
         "HF Space MCP": "https://evalstate-hf-mcp-server.hf.space/mcp",
     }
 
+    MCP_STDIO_PARAMS = {
+        "mcp-obsidian": {
+                "command": "uvx",
+                "args": [
+                    "mcp-obsidian"
+                ],
+                "env": {
+                    "OBSIDIAN_API_KEY": os.getenv("OBSIDIAN_API_KEY", "")
+                }
+            }
+    }
+
     INSTRUCTIONS = "" # Special insturctions
