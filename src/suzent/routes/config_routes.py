@@ -8,7 +8,7 @@ frontend-consumable application settings.
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from suzent.config import Config
+from suzent.config import CONFIG
 
 
 async def get_config(request: Request) -> JSONResponse:
@@ -25,11 +25,11 @@ async def get_config(request: Request) -> JSONResponse:
         - codeTag: Code tag identifier
     """
     data = {
-        "title": Config.TITLE,
-        "models": Config.MODEL_OPTIONS,
-        "agents": Config.AGENT_OPTIONS,
-        "tools": Config.TOOL_OPTIONS,
-        "defaultTools": Config.DEFAULT_TOOLS,
-        "codeTag": Config.CODE_TAG,
+        "title": CONFIG.title,
+        "models": CONFIG.model_options,
+        "agents": CONFIG.agent_options,
+        "tools": CONFIG.tool_options,
+        "defaultTools": CONFIG.default_tools,
+        "codeTag": CONFIG.code_tag,
     }
     return JSONResponse(data)

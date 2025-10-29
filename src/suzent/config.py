@@ -1,77 +1,148 @@
 import os
 import importlib
+import json
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-# Graceful import of smolagents Tool base class
-try:
-    from smolagents import Tool as _SmolTool  # type: ignore
-except ImportError:  # Fallback so config import does not fail in environments without smolagents installed yet
-    class _SmolTool:  # type: ignore
-        pass
+from .logger import get_logger  # project logger required
 
-class Config:
-    # Application Configuration
-    TITLE = "SUZ AGENT"
-    SERVER_URL = "http://localhost:8000/chat"
-    CODE_TAG = "<code>"
+from smolagents import Tool as _SmolTool  # type: ignore
 
-    # Model and Agent Options
-    MODEL_OPTIONS = [
-        "anthropic/claude-sonnet-4-20250514",
-        "gemini/gemini-2.5-flash",
-        "gemini/gemini-2.5-pro",
-        "openai/gpt-4.1",
-        "deepseek/deepseek-chat",
-        "litellm_proxy/claude-sonnet-4-5"
-    ]
-    AGENT_OPTIONS = ["CodeAgent", "ToolcallingAgent"]
-    
-    # --- Tool Configuration ---
-    @staticmethod
-    def get_tool_options():
-        tools_dir = Path(__file__).parent / "tools"
-        tool_options = []
-        if not tools_dir.exists():
-            return tool_options
-        for f in os.listdir(tools_dir):
-            if f.endswith(".py") and not f.startswith("__"):
-                module_name = f"suzent.tools.{f[:-3]}"
-                try:
-                    module = importlib.import_module(module_name)
-                except Exception:
-                    continue
-                for attribute_name in dir(module):
-                    attribute = getattr(module, attribute_name)
-                    if (
-                        isinstance(attribute, type)
-                        and issubclass(attribute, _SmolTool)
-                        and attribute is not _SmolTool
-                        and getattr(attribute, "__module__", "").startswith("suzent.tools")
-                    ):
-                        tool_options.append(attribute.__name__)
+from pydantic import BaseModel, ValidationError
+
+# Project root (two levels above this file: src/suzent -> src -> project root)
+PROJECT_DIR = Path(__file__).resolve().parents[2]
+
+def _normalize_keys(d: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize incoming keys to lowercase snake style the model expects.
+
+    Accepts SCREAMING_SNAKE_CASE (TITLE) or snake_case (title).
+    """
+    out: Dict[str, Any] = {}
+    for k, v in d.items():
+        if not isinstance(k, str):
+            continue
+        nk = k.strip().lower().replace("-", "_").replace(" ", "_")
+        out[nk] = v
+    return out
+
+
+def get_tool_options() -> List[str]:
+    """Discover Tool subclasses in the suzent.tools package and return their class names."""
+    tools_dir = PROJECT_DIR / "src" / "suzent" / "tools"
+    tool_options: List[str] = []
+    if not tools_dir.exists():
         return tool_options
+    for f in os.listdir(tools_dir):
+        if f.endswith(".py") and not f.startswith("__"):
+            module_name = f"suzent.tools.{f[:-3]}"
+            try:
+                module = importlib.import_module(module_name)
+            except Exception:
+                continue
+            for attribute_name in dir(module):
+                attribute = getattr(module, attribute_name)
+                if (
+                    isinstance(attribute, type)
+                    and issubclass(attribute, _SmolTool)
+                    and attribute is not _SmolTool
+                    and getattr(attribute, "__module__", "").startswith("suzent.tools")
+                ):
+                    tool_options.append(attribute.__name__)
+    return tool_options
 
-    DEFAULT_TOOLS = ["WebSearchTool", "PlanningTool"]
 
-    # Deduplicate while preserving order (discovered first, then defaults appended if absent)
-    _DISCOVERED = get_tool_options.__func__()  # call static without binding
-    TOOL_OPTIONS = list(dict.fromkeys(_DISCOVERED + DEFAULT_TOOLS))
+class ConfigModel(BaseModel):
+    title: str = "SUZ AGENT"
+    server_url: str = "http://localhost:8000/chat"
+    code_tag: str = "<code>"
 
-    # DEFAULT_MCP_URLS = "https://evalstate-hf-mcp-server.hf.space/mcp"
-    MCP_URLS = {
-        "HF Space MCP": "https://evalstate-hf-mcp-server.hf.space/mcp",
-    }
+    # Keep model options empty by default; prefer specifying models in YAML
+    model_options: List[str] = []
+    agent_options: List[str] = ["CodeAgent", "ToolcallingAgent"]
 
-    MCP_STDIO_PARAMS = {
-        "mcp-obsidian": {
-                "command": "uvx",
-                "args": [
-                    "mcp-obsidian"
-                ],
-                "env": {
-                    "OBSIDIAN_API_KEY": os.getenv("OBSIDIAN_API_KEY", "")
-                }
-            }
-    }
+    # Default tools available; discovery will merge with these if tool_options not set
+    default_tools: List[str] = ["WebSearchTool", "PlanningTool"]
+    tool_options: Optional[List[str]] = None
 
-    INSTRUCTIONS = "" # Special insturctions
+    # No MCP endpoints by default; provide via YAML when needed
+    mcp_urls: Dict[str, str] = {}
+
+    # MCP stdio params default empty; user can configure stdio-backed MCPs in YAML
+    mcp_stdio_params: Dict[str, Any] = {}
+
+    instructions: str = ""
+
+    @classmethod
+    def load_from_files(cls) -> "ConfigModel":
+        logger = get_logger(__name__)
+        # Use the configured project root so config files are located at <project>/config
+        cfg_dir = PROJECT_DIR / "config"
+
+        # Load example and default files separately and merge them so that
+        # keys from `default.yaml` override the values from
+        # `default.example.yaml` on a per-key basis.
+        example_path = cfg_dir / "default.example.yaml"
+        default_path = cfg_dir / "default.yaml"
+
+        example_data: Dict[str, Any] = {}
+        default_data: Dict[str, Any] = {}
+        loaded_files: List[Path] = []
+
+        def _read_file(p: Path) -> Dict[str, Any]:
+            try:
+                try:
+                    import yaml  # type: ignore
+
+                    with p.open("r", encoding="utf-8") as fh:
+                        return yaml.safe_load(fh) or {}
+                except Exception:
+                    with p.open("r", encoding="utf-8") as fh:
+                        return json.load(fh)
+            except Exception as exc:
+                logger.debug("Failed to parse config file %s: %s", p, exc)
+                return {}
+
+        if example_path.exists():
+            raw_example = _read_file(example_path)
+            if isinstance(raw_example, dict):
+                example_data = _normalize_keys(raw_example)
+                loaded_files.append(example_path)
+
+        if default_path.exists():
+            raw_default = _read_file(default_path)
+            if isinstance(raw_default, dict):
+                default_data = _normalize_keys(raw_default)
+                loaded_files.append(default_path)
+
+        # Merge with default_data taking precedence over example_data
+        data = {**example_data, **default_data}
+        loaded_path = loaded_files[-1] if loaded_files else None
+
+        try:
+            if data:
+                cfg = cls.model_validate(data)
+            else:
+                cfg = cls()
+        except ValidationError as ve:
+            logger.error("Config validation error: %s", ve)
+            raise
+
+        # If tool_options missing or falsy, discover tools from disk and combine with defaults
+        if not cfg.tool_options:
+            try:
+                discovered = get_tool_options()
+            except Exception:
+                discovered = []
+            combined = list(dict.fromkeys(discovered + cfg.default_tools))
+            cfg.tool_options = combined
+
+        if loaded_path is not None:
+            logger.info("Loaded configuration overrides from %s", loaded_path)
+
+        return cfg
+
+
+# Load configuration at import time and expose typed CONFIG instance
+CONFIG = ConfigModel.load_from_files()
+# Export CONFIG (typed) and helper get_tool_options

@@ -1,0 +1,33 @@
+# Example configuration for Suzent
+# Place user overrides here. The application will load
+# config/default.example.yaml first (if present), falling back to
+# config/default.yaml if the example file is absent.
+
+MODEL_OPTIONS:
+  - "anthropic/claude-sonnet-4-20250514"
+  - "gemini/gemini-2.5-flash"
+  - "gemini/gemini-2.5-pro"
+  - "openai/gpt-4.1"
+  - "deepseek/deepseek-chat"
+  - "litellm_proxy/claude-sonnet-4-5"
+
+# Tools to enable by default (these names must match Tool class names)
+DEFAULT_TOOLS:
+  - "WebSearchTool"
+  - "PlanningTool"
+  - "WebpageTool"
+  - "FileTool"
+
+MCP_URLS:
+  "HF Space MCP": "https://evalstate-hf-mcp-server.hf.space/mcp"
+
+MCP_STDIO_PARAMS:
+  mcp-obsidian:
+    command: "uvx"
+    args:
+      - "mcp-obsidian"
+    env:
+      OBSIDIAN_API_KEY: ""
+
+INSTRUCTIONS: |
+  You are Suzent.

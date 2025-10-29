@@ -54,3 +54,6 @@ TODO.md
 # Misc
 .DS_Store
 Thumbs.db
+
+# Config
+config/default.yaml

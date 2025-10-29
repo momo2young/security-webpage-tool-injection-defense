@@ -18,7 +18,7 @@ from mcp import StdioServerParameters
 from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel, MCPClient
 from smolagents.tools import Tool
 
-from suzent.config import Config
+from suzent.config import CONFIG
 from suzent.logger import get_logger
 from suzent.prompts import format_instructions
 
@@ -54,8 +54,8 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
     """
     model_id = config.get("model", "gemini/gemini-2.5-pro")
     agent_name = config.get("agent", "CodeAgent")
-    # Use DEFAULT_TOOLS if tools not specified in config
-    tool_names = config.get("tools", Config.DEFAULT_TOOLS)
+    # Use default_tools if tools not specified in config
+    tool_names = config.get("tools", CONFIG.default_tools)
     additional_authorized_imports = config.get("additional_authorized_imports", [])
     model = LiteLLMModel(model_id=model_id)
 
@@ -94,8 +94,8 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
     # --- Filter MCP servers by enabled state if provided ---
     # Accepts: config['mcp_enabled'] = {name: bool, ...}, config['mcp_urls'], config['mcp_stdio_params']
     mcp_enabled = config.get("mcp_enabled")
-    mcp_urls = config.get("mcp_urls", Config.MCP_URLS)
-    mcp_stdio_params = config.get("mcp_stdio_params", Config.MCP_STDIO_PARAMS)
+    mcp_urls = config.get("mcp_urls", CONFIG.mcp_urls)
+    mcp_stdio_params = config.get("mcp_stdio_params", CONFIG.mcp_stdio_params)
 
     mcp_server_parameters = []
     if mcp_enabled is not None:
@@ -134,7 +134,7 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
     if not agent_class:
         raise ValueError(f"Unknown agent: {agent_name}")
 
-    base_instructions = config.get("instructions", Config.INSTRUCTIONS)
+    base_instructions = config.get("instructions", CONFIG.instructions)
     instructions = format_instructions(base_instructions)
     agent = agent_class(
         model=model,

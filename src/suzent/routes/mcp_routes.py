@@ -4,13 +4,13 @@ MCP server management API routes.
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from suzent.config import Config
+from suzent.config import CONFIG
 
 # In-memory store for MCP servers (replace with persistent storage as needed)
 MCP_SERVERS = {
-    "urls": dict(Config.MCP_URLS),
-    "stdio": dict(Config.MCP_STDIO_PARAMS),
-    "enabled": {k: True for k in Config.MCP_URLS.keys()}
+    "urls": dict(CONFIG.mcp_urls),
+    "stdio": dict(CONFIG.mcp_stdio_params),
+    "enabled": {k: True for k in CONFIG.mcp_urls.keys()}
 }
 
 async def list_mcp_servers(request: Request) -> JSONResponse:
