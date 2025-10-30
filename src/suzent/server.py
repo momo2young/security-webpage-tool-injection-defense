@@ -13,6 +13,7 @@ The application uses modular routing with separated concerns for maintainability
 """
 
 import os
+import sys
 from dotenv import load_dotenv
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
@@ -38,6 +39,16 @@ from suzent.routes.mcp_routes import (
 
 # Load environment variables
 load_dotenv()
+
+# Ensure stdout/stderr use UTF-8 when possible to avoid encoding errors on Windows consoles
+try:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    # Best-effort only; if reconfigure is unavailable, fall back to environment-level solutions
+    pass
 
 # Setup logging
 log_level = os.getenv("LOG_LEVEL", "INFO")
