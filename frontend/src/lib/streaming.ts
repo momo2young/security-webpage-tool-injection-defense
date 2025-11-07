@@ -12,6 +12,7 @@ export interface StreamCallbacks {
   onStreamComplete?: () => void; // new callback for when streaming finishes
   onStreamStopped?: (payload?: any) => void;
   onStepComplete?: (stepInfo: string) => void; // callback when action step completes
+  onImagesProcessed?: (images: any[]) => void; // callback when images are processed
 }
 
 // Detect if agent is using code tags (CodeAgent) or structured tool calls (ToolCallingAgent)
@@ -54,17 +55,40 @@ function getStepFootnote(step: any, stepName: string): string {
   return foot;
 }
 
-export async function streamChat(prompt: string, config: ChatConfig, callbacks: StreamCallbacks, codeTag = '<code>', reset = false, chatId?: string | null) {
-  const { onDelta, onAction, onNewAssistantMessage, onStreamStopped, onStreamComplete, onPlanUpdate, onStepComplete } = callbacks;
-  const payload: any = { message: prompt, config, reset };
-  if (chatId) {
-    payload.chat_id = chatId;
+export async function streamChat(prompt: string, config: ChatConfig, callbacks: StreamCallbacks, codeTag = '<code>', reset = false, chatId?: string | null, imageFiles?: File[]) {
+  const { onDelta, onAction, onNewAssistantMessage, onStreamStopped, onStreamComplete, onPlanUpdate, onStepComplete, onImagesProcessed } = callbacks;
+
+  let body: BodyInit;
+  let headers: HeadersInit;
+
+  if (imageFiles && imageFiles.length > 0) {
+    // Use FormData for multipart upload when images are present
+    const formData = new FormData();
+    formData.append('message', prompt);
+    formData.append('config', JSON.stringify(config));
+    formData.append('reset', String(reset));
+    if (chatId) {
+      formData.append('chat_id', chatId);
+    }
+    imageFiles.forEach((file) => {
+      formData.append('files', file);
+    });
+    body = formData;
+    headers = {}; // Let browser set Content-Type with boundary
+  } else {
+    // Use JSON for backward compatibility when no images
+    const payload: any = { message: prompt, config, reset };
+    if (chatId) {
+      payload.chat_id = chatId;
+    }
+    body = JSON.stringify(payload);
+    headers = { 'Content-Type': 'application/json' };
   }
-  
+
   const res = await fetch('/api/chat', {
     method: 'POST',
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' }
+    body,
+    headers
   });
   if (!res.body) return;
 
@@ -291,6 +315,13 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
       } else if (type === 'plan_refresh') {
         if (data && onPlanUpdate) onPlanUpdate(data);
         if (onAction) onAction();
+      } else if (type === 'images_processed') {
+        // Backend has processed uploaded images, attach them to user message
+        console.log('[Images] Received images_processed event:', data);
+        if (data && onImagesProcessed) {
+          console.log('[Images] Calling onImagesProcessed callback with', data.length, 'images');
+          onImagesProcessed(data);
+        }
       } else if (type === 'stopped') {
         terminatedEarly = true;
         if (onStreamStopped) onStreamStopped(data);

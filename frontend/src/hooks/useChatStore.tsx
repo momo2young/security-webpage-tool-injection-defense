@@ -6,6 +6,7 @@ interface ChatContextValue {
   config: ChatConfig;
   setConfig: (c: ChatConfig | ((prev: ChatConfig) => ChatConfig)) => void;
   addMessage: (m: Message, chatId?: string | null) => void;
+  updateLastUserMessageImages: (images: any[], chatId?: string | null) => void;
   updateAssistantStreaming: (delta: string, chatId?: string | null) => void;
   backendConfig: ConfigOptions | null;
   newAssistantMessage: (chatId?: string | null) => void;
@@ -400,6 +401,38 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     scheduleSave(chatId, 800);
   }, [currentChatId, scheduleSave, setMessagesForChat]);
 
+  const updateLastUserMessageImages = useCallback((images: any[], chatId: string | null = currentChatId) => {
+    console.log('[Images] updateLastUserMessageImages called with', images.length, 'images for chat', chatId);
+    setMessagesForChat(chatId, prev => {
+      console.log('[Images] Current messages count:', prev.length);
+      if (!prev.length) {
+        console.log('[Images] No messages to update');
+        return prev;
+      }
+
+      // Find the last user message (search backward)
+      let userMessageIndex = -1;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].role === 'user') {
+          userMessageIndex = i;
+          break;
+        }
+      }
+
+      if (userMessageIndex === -1) {
+        console.log('[Images] No user message found');
+        return prev;
+      }
+
+      console.log('[Images] Found user message at index', userMessageIndex);
+      const updated = [...prev];
+      updated[userMessageIndex] = { ...updated[userMessageIndex], images };
+      console.log('[Images] Updated user message with images:', updated[userMessageIndex]);
+      return updated;
+    });
+    scheduleSave(chatId, 800);
+  }, [currentChatId, scheduleSave, setMessagesForChat]);
+
   const updateAssistantStreaming = useCallback((delta: string, chatId: string | null = currentChatId) => {
     const norm = String(delta)
       .replace(/\r\n/g, '\n')
@@ -681,6 +714,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       config,
       setConfig: optimizedSetConfig,
       addMessage,
+      updateLastUserMessageImages,
       updateAssistantStreaming,
       backendConfig,
       newAssistantMessage,

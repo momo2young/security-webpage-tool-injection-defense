@@ -1,7 +1,17 @@
-export interface Message { 
-  role: 'user' | 'assistant'; 
+export interface ImageAttachment {
+  id: string;
+  data: string; // base64 encoded
+  mime_type: string;
+  filename: string;
+  width?: number;
+  height?: number;
+}
+
+export interface Message {
+  role: 'user' | 'assistant';
   content: string;
   stepInfo?: string; // Step metadata like "Step: 1 | Input tokens: 100 | Output tokens: 50"
+  images?: ImageAttachment[]; // Optional image attachments
 }
 export interface ChatConfig { model: string; agent: string; tools: string[]; mcp_urls?: string[] }
 

@@ -181,24 +181,26 @@ class _StopSignal:
 
 
 async def stream_agent_responses(
-    agent, 
-    message: str, 
-    reset: bool = False, 
-    chat_id: Optional[str] = None
+    agent,
+    message: str,
+    reset: bool = False,
+    chat_id: Optional[str] = None,
+    images: Optional[list] = None
 ) -> AsyncGenerator[str, None]:
     """
     Runs the agent with the given message and yields JSON-formatted SSE events.
-    
+
     Uses a background thread + asyncio.Queue so the event loop is not blocked and
     deltas flush to the client sooner. Adds cooperative cancellation so the client
     can request streaming to stop explicitly.
-    
+
     Args:
         agent: The agent instance to run.
         message: User message to process.
         reset: Whether to reset agent memory before processing.
         chat_id: Optional chat identifier for plan tracking.
-    
+        images: Optional list of PIL Image objects for multimodal input.
+
     Yields:
         Server-sent event strings in the format "data: {json}\n\n"
     """
@@ -224,7 +226,7 @@ async def stream_agent_responses(
             loop.call_soon_threadsafe(queue.put_nowait, _StopSignal(reason))
 
         try:
-            gen = agent.run(message, stream=True, reset=reset)
+            gen = agent.run(message, stream=True, reset=reset, images=images)
             for chunk in gen:
                 if control.thread_event.is_set():
                     notify_stop()

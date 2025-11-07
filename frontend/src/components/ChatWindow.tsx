@@ -215,6 +215,7 @@ export const ChatWindow: React.FC = () => {
   const {
     messages,
     addMessage,
+    updateLastUserMessageImages,
     updateAssistantStreaming,
     config,
     backendConfig,
@@ -232,6 +233,8 @@ export const ChatWindow: React.FC = () => {
   } = useChatStore();
   const { refresh: refreshPlan, applySnapshot: applyPlanSnapshot } = usePlan();
   const [input, setInput] = useState('');
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const stopInFlightRef = useRef(false);
   const streamingForCurrentChat = isStreaming && activeStreamingChatId === currentChatId;
@@ -293,14 +296,31 @@ export const ChatWindow: React.FC = () => {
 
   const configReady = safeBackendConfig && safeConfig.model && safeConfig.agent;
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    setSelectedImages(prev => [...prev, ...imageFiles]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''; // Reset input to allow re-selecting same file
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const send = async () => {
     const prompt = input.trim();
     if (!prompt || isStreaming || !configReady) return;
-    
+
     const resetFlag = shouldResetNext;
     if (resetFlag) consumeResetFlag();
     setInput('');
-    
+
+    // Capture images and clear selection
+    const imagesToSend = [...selectedImages];
+    setSelectedImages([]);
+
     // Create the chat first if needed
     let chatIdForSend = currentChatId;
     if (!chatIdForSend) {
@@ -310,8 +330,8 @@ export const ChatWindow: React.FC = () => {
         return;
       }
     }
-    
-    // Now add user message to the real chat
+
+    // Add user message (images will be added when backend processes them)
     addMessage({ role: 'user', content: prompt }, chatIdForSend);
 
     setIsStreaming(true, chatIdForSend);
@@ -325,6 +345,12 @@ export const ChatWindow: React.FC = () => {
           onAction: () => { /* compatibility */ },
           onNewAssistantMessage: () => { newAssistantMessage(chatIdForSend); },
           onStepComplete: (stepInfo: string) => { setStepInfo(stepInfo, chatIdForSend); },
+          onImagesProcessed: (processedImages: any[]) => {
+            // Update the last user message with processed images from backend
+            console.log('[Images] onImagesProcessed callback invoked with', processedImages.length, 'images');
+            console.log('[Images] Updating chat', chatIdForSend);
+            updateLastUserMessageImages(processedImages, chatIdForSend);
+          },
           onPlanUpdate: (snapshot: any) => {
             applyPlanSnapshot(snapshot);
             refreshPlan(chatIdForSend);
@@ -349,6 +375,7 @@ export const ChatWindow: React.FC = () => {
         safeBackendConfig?.codeTag || '<code>',
         resetFlag,
         chatIdForSend,
+        imagesToSend.length > 0 ? imagesToSend : undefined
       );
     } catch (error) {
       console.error('Error during streaming:', error);
@@ -416,7 +443,22 @@ export const ChatWindow: React.FC = () => {
               <div className={`flex ${alignClass} w-full`}>
                 <div className={`group w-full max-w-3xl break-words overflow-visible ${isUser ? 'bg-gradient-to-tr from-brand-600 to-brand-500 text-white' : 'bg-white/90 border border-neutral-200 text-neutral-800'} rounded-xl shadow-sm px-5 py-3 space-y-3 text-sm leading-relaxed relative`}>
                   {isUser ? (
-                    <div className="prose prose-sm prose-invert max-w-none text-white break-words">{m.content}</div>
+                    <div className="space-y-2">
+                      {m.images && m.images.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {m.images.map((img, imgIdx) => (
+                            <img
+                              key={imgIdx}
+                              src={`data:${img.mime_type};base64,${img.data}`}
+                              alt={img.filename}
+                              className="max-w-xs max-h-48 rounded border-2 border-white/30 shadow-lg object-contain"
+                              title={img.filename}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      <div className="prose prose-sm prose-invert max-w-none text-white break-words">{m.content}</div>
+                    </div>
                   ) : (
                     blocks.map((b, bi) => b.type === 'markdown' ? (
                       <MarkdownRenderer key={bi} content={b.content} />
@@ -450,26 +492,74 @@ export const ChatWindow: React.FC = () => {
         )}
         <div ref={bottomRef} />
       </div>
-      <form onSubmit={(e) => { e.preventDefault(); send(); }} className="border-t border-neutral-200 p-4 flex gap-3 bg-white/95">
-        <div className="flex-1 relative">
-          <textarea
-            className="flex-1 w-full resize-none rounded-xl bg-neutral-50 border border-neutral-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500/40 focus:outline-none px-4 py-3 text-sm placeholder-neutral-400 shadow-inner"
-            rows={3}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (!isStreaming && configReady && input.trim()) {
-                  send();
+      <form onSubmit={(e) => { e.preventDefault(); send(); }} className="border-t border-neutral-200 p-4 flex flex-col gap-3 bg-white/95">
+        {/* Image preview section */}
+        {selectedImages.length > 0 && (
+          <div className="flex flex-wrap gap-2 p-2 bg-neutral-50 rounded-lg border border-neutral-200">
+            {selectedImages.map((file, idx) => (
+              <div key={idx} className="relative group">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={file.name}
+                  className="w-20 h-20 object-cover rounded border border-neutral-300"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeImage(idx)}
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full text-xs flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove image"
+                >
+                  ×
+                </button>
+                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] px-1 py-0.5 truncate rounded-b">
+                  {file.name}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
+            <textarea
+              className="flex-1 w-full resize-none rounded-xl bg-neutral-50 border border-neutral-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500/40 focus:outline-none px-4 py-3 text-sm placeholder-neutral-400 shadow-inner"
+              rows={3}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (!isStreaming && configReady && input.trim()) {
+                    send();
+                  }
                 }
-              }
-            }}
-            placeholder={configReady ? 'Ask me anything...' : 'Waiting for config...'}
-            disabled={!configReady}
-          />
-          <div className="absolute bottom-2 right-3 text-[10px] text-neutral-400 select-none">Enter to send • Shift+Enter newline</div>
-        </div>
+              }}
+              placeholder={configReady ? 'Ask me anything...' : 'Waiting for config...'}
+              disabled={!configReady}
+            />
+            <div className="absolute bottom-2 left-3 flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-neutral-400 hover:text-brand-600 transition-colors"
+                title="Attach images"
+                disabled={!configReady || isStreaming}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </button>
+            </div>
+            <div className="absolute bottom-2 right-3 text-[10px] text-neutral-400 select-none">Enter to send • Shift+Enter newline</div>
+          </div>
         <div className="flex flex-col justify-end gap-2">
           {streamingForCurrentChat && (
             <button
@@ -488,6 +578,7 @@ export const ChatWindow: React.FC = () => {
           >
             {streamingForCurrentChat ? 'Sending…' : 'Send'}
           </button>
+        </div>
         </div>
       </form>
     </div>

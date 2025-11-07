@@ -9,8 +9,11 @@ This module handles all chat endpoints including:
 
 import json
 import traceback
-from typing import Optional
+import uuid
+import io
+from typing import Optional, List, Dict, Any
 
+from PIL import Image
 from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse
 
@@ -23,6 +26,7 @@ from suzent.agent_manager import (
 )
 from suzent.database import get_database
 from suzent.streaming import stream_agent_responses, stop_stream
+from suzent.image_utils import compress_image_with_bytes
 
 logger = get_logger(__name__)
 
@@ -30,22 +34,86 @@ logger = get_logger(__name__)
 async def chat(request: Request) -> StreamingResponse:
     """
     Handles chat requests, streams agent responses, and manages the SSE stream.
-    
-    Accepts POST requests with JSON body containing:
-    - message: The user's message
-    - reset: Optional boolean to reset agent memory
-    - config: Optional agent configuration
-    - chat_id: Optional chat identifier for context
-    
+
+    Accepts POST requests with either:
+    1. JSON body containing:
+       - message: The user's message
+       - reset: Optional boolean to reset agent memory
+       - config: Optional agent configuration
+       - chat_id: Optional chat identifier for context
+
+    2. Multipart form-data containing:
+       - message: The user's message (text field)
+       - reset: Optional boolean as string (form field)
+       - config: Optional agent configuration as JSON string (form field)
+       - chat_id: Optional chat identifier (form field)
+       - files: Optional image files (file uploads)
+
     Returns:
         StreamingResponse with server-sent events.
     """
     try:
-        data = await request.json()
-        message = data.get("message", "").strip()
-        reset = data.get("reset", False)
-        config = data.get("config", {})
-        chat_id = data.get("chat_id")
+        # Check content type to determine how to parse the request
+        content_type = request.headers.get("content-type", "")
+        images_data: List[Dict[str, Any]] = []
+        pil_images = []
+
+        if "multipart/form-data" in content_type:
+            # Handle multipart form data
+            form = await request.form()
+            message = form.get("message", "").strip()
+            reset = form.get("reset", "false").lower() == "true"
+            config_str = form.get("config", "{}")
+            chat_id = form.get("chat_id")
+
+            # Parse config from JSON string
+            try:
+                config = json.loads(config_str)
+            except json.JSONDecodeError:
+                config = {}
+
+            # Process uploaded images (compress and prepare for agent)
+            files = form.getlist("files")
+            for file in files:
+                try:
+                    # Load image from upload
+                    content = await file.read()
+                    image = Image.open(io.BytesIO(content))
+
+                    # Compress image - returns both PIL Image and compressed bytes
+                    # Use 0.25 MB limit because smolagents re-encodes PIL Images dramatically
+                    # Observed: 0.4 MB JPEG → 5.7 MB after re-encoding (14x expansion!)
+                    # Target 0.25 MB JPEG → ~3.5 MB after smolagents re-encoding → safe under 5 MB
+                    compressed_image, compressed_bytes = compress_image_with_bytes(image, max_size_mb=0.25)
+
+                    # Verify final size
+                    size_mb = len(compressed_bytes) / (1024 * 1024)
+                    logger.info(f"Compressed {file.filename}: {compressed_image.width}x{compressed_image.height}, {size_mb:.2f} MB")
+
+                    # Add to agent input (PIL Image)
+                    pil_images.append(compressed_image)
+
+                    # Store metadata with pre-compressed bytes (no re-encoding!)
+                    import base64
+                    images_data.append({
+                        'id': str(uuid.uuid4()),
+                        'data': base64.b64encode(compressed_bytes).decode('utf-8'),
+                        'mime_type': 'image/jpeg',
+                        'filename': file.filename or 'image.jpg',
+                        'width': compressed_image.width,
+                        'height': compressed_image.height
+                    })
+
+                except Exception as e:
+                    logger.error(f"Failed to process image {getattr(file, 'filename', 'unknown')}: {e}")
+                    continue
+        else:
+            # Handle JSON (backward compatibility)
+            data = await request.json()
+            message = data.get("message", "").strip()
+            reset = data.get("reset", False)
+            config = data.get("config", {})
+            chat_id = data.get("chat_id")
 
         if not message:
             return StreamingResponse(
@@ -60,6 +128,11 @@ async def chat(request: Request) -> StreamingResponse:
 
         async def response_generator():
             try:
+                # Send image metadata to frontend if images were uploaded
+                if images_data:
+                    import json
+                    yield f'data: {json.dumps({"type": "images_processed", "data": images_data})}\n\n'
+
                 # Get or create agent with specified configuration
                 agent_instance = await get_or_create_agent(config, reset=reset)
 
@@ -84,9 +157,9 @@ async def chat(request: Request) -> StreamingResponse:
                 if chat_id:
                     inject_chat_context(agent_instance, chat_id)
 
-                # Stream agent responses
+                # Stream agent responses (pass PIL images to agent)
                 async for chunk in stream_agent_responses(
-                    agent_instance, message, reset=reset, chat_id=chat_id
+                    agent_instance, message, reset=reset, chat_id=chat_id, images=pil_images if pil_images else None
                 ):
                     yield chunk
 
