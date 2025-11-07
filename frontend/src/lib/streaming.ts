@@ -316,10 +316,8 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
         if (data && onPlanUpdate) onPlanUpdate(data);
         if (onAction) onAction();
       } else if (type === 'images_processed') {
-        // Backend has processed uploaded images, attach them to user message
-        console.log('[Images] Received images_processed event:', data);
+        // Backend has processed uploaded images, replace previews with compressed versions
         if (data && onImagesProcessed) {
-          console.log('[Images] Calling onImagesProcessed callback with', data.length, 'images');
           onImagesProcessed(data);
         }
       } else if (type === 'stopped') {

@@ -331,8 +331,30 @@ export const ChatWindow: React.FC = () => {
       }
     }
 
-    // Add user message (images will be added when backend processes them)
-    addMessage({ role: 'user', content: prompt }, chatIdForSend);
+    // Convert File objects to data URLs for immediate display
+    const imagePreviewPromises = imagesToSend.map(file => {
+      return new Promise<{ id: string; data: string; mime_type: string; filename: string }>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target?.result as string;
+          // Extract base64 part from data URL (remove "data:image/jpeg;base64," prefix)
+          const base64Data = dataUrl.split(',')[1];
+          resolve({
+            id: crypto.randomUUID(),
+            data: base64Data,
+            mime_type: file.type,
+            filename: file.name
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    // Wait for all images to be converted to data URLs
+    const imagePreviews = imagesToSend.length > 0 ? await Promise.all(imagePreviewPromises) : undefined;
+
+    // Add user message with client-side image previews
+    addMessage({ role: 'user', content: prompt, images: imagePreviews }, chatIdForSend);
 
     setIsStreaming(true, chatIdForSend);
     stopInFlightRef.current = false;
@@ -346,9 +368,8 @@ export const ChatWindow: React.FC = () => {
           onNewAssistantMessage: () => { newAssistantMessage(chatIdForSend); },
           onStepComplete: (stepInfo: string) => { setStepInfo(stepInfo, chatIdForSend); },
           onImagesProcessed: (processedImages: any[]) => {
-            // Update the last user message with processed images from backend
-            console.log('[Images] onImagesProcessed callback invoked with', processedImages.length, 'images');
-            console.log('[Images] Updating chat', chatIdForSend);
+            // Replace client-side previews with backend-compressed versions
+            // This ensures the stored versions match what the agent received
             updateLastUserMessageImages(processedImages, chatIdForSend);
           },
           onPlanUpdate: (snapshot: any) => {
