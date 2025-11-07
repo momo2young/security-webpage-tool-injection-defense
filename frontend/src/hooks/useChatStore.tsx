@@ -74,6 +74,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [shouldResetNext, setShouldResetNext] = useState(false);
   const [isStreaming, setIsStreamingState] = useState(false);
   const [activeStreamingChatId, setActiveStreamingChatId] = useState<string | null>(null);
+  const activeStreamingChatIdRef = useRef<string | null>(null); // Ref for synchronous access
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [currentChatTitle, setCurrentChatTitle] = useState<string>('New Chat');
   const [chats, setChats] = useState<ChatSummary[]>([]);
@@ -149,7 +150,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Only update sidebar summary if we're not actively streaming for this chat
       // This prevents constant re-renders during streaming
-      if (chatId && chatId !== activeStreamingChatId) {
+      // Use ref for synchronous access to avoid timing issues with state updates
+      if (chatId && chatId !== activeStreamingChatIdRef.current) {
         setChats(current => {
           const index = current.findIndex(c => c.id === chatId);
           if (index === -1) return current;
@@ -167,7 +169,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { ...prev, [key]: next };
     });
-  }, [activeStreamingChatId]);
+  }, []); // No dependencies needed since we use ref
 
   const messages = useMemo(() => getMessagesForChat(currentChatId), [getMessagesForChat, currentChatId]);
 
@@ -462,8 +464,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setStreamingState = useCallback((streaming: boolean, chatId?: string | null) => {
     setIsStreamingState(streaming);
+    const targetChatId = chatId ?? currentChatId;
+
+    // Update ref synchronously for immediate access
+    if (streaming) {
+      activeStreamingChatIdRef.current = targetChatId;
+    } else {
+      activeStreamingChatIdRef.current = null;
+    }
+
     setActiveStreamingChatId(prev => {
-      const targetChatId = chatId ?? currentChatId;
       if (streaming) {
         return targetChatId;
       }
