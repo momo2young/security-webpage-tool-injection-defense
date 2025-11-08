@@ -119,7 +119,7 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(()=>setCopied(false),1500); }}
-      className="absolute top-2 right-2 text-[9px] px-2 py-1 bg-brutal-green border-2 border-brutal-black shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all duration-100 text-brutal-black font-bold uppercase"
+      className="absolute top-2 right-2 text-[11px] px-2 py-1 bg-brutal-green border-2 border-brutal-black shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all duration-100 text-brutal-black font-bold uppercase"
       title="Copy code"
       type="button"
     >{copied ? 'Copied!' : 'Copy'}</button>
@@ -190,17 +190,17 @@ const MarkdownRenderer = (props: { content: string }) => {
           h1(p: any) { return <h1 className="text-xl font-brutal font-bold mb-2 break-words uppercase">{p.children}</h1>; },
           h2(p: any) { return <h2 className="text-lg font-brutal font-bold mb-2 break-words uppercase">{p.children}</h2>; },
           h3(p: any) { return <h3 className="text-base font-bold mb-1 break-words uppercase">{p.children}</h3>; },
-          p(pArg: any) { 
+          p(pArg: any) {
             // Style step metadata lines differently
             const text = String(pArg.children?.[0] || '');
             if (text.startsWith('Step: ') && text.includes('tokens')) {
               return (
-                <p className="text-[10px] text-neutral-400 border-t border-neutral-200 pt-2 mt-3 font-mono break-words whitespace-pre-wrap m-0">
+                <p className="text-[11px] text-brutal-black border-t-2 border-brutal-black pt-2 mt-3 font-mono font-bold break-words whitespace-pre-wrap m-0 opacity-40">
                   {pArg.children}
                 </p>
               );
             }
-            return <p className="leading-relaxed break-words whitespace-pre-wrap m-0">{pArg.children}</p>; 
+            return <p className="leading-relaxed break-words whitespace-pre-wrap m-0">{pArg.children}</p>;
           },
           blockquote(p: any) { return <blockquote className="border-l-4 border-brand-600/30 pl-3 italic text-neutral-600 break-words">{p.children}</blockquote>; }
         }}
@@ -509,7 +509,7 @@ export const ChatWindow: React.FC = () => {
             <div key={idx} className="w-full flex flex-col">
               {showAgentBadge && (
                 <div className={`flex ${alignClass} w-full mb-1`}> 
-                  <div className="text-[9px] font-medium tracking-wide text-neutral-400 px-1 flex items-center gap-2">
+                  <div className="text-[11px] font-medium tracking-wide text-neutral-400 px-1 flex items-center gap-2">
                     <span className="bg-brand-500/10 text-brand-600 px-2 py-0.5 rounded">{safeConfig.agent}</span>
                     <span>•</span>
                     <span>{safeConfig.model.replace(/^[^/]+\//, '')}</span>
@@ -530,7 +530,7 @@ export const ChatWindow: React.FC = () => {
                               className="max-w-sm max-h-64 border-4 border-brutal-black shadow-brutal-lg object-contain"
                               title={img.filename}
                             />
-                            <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-[10px] px-2 py-1 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                            <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-xs px-2 py-1 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-100">
                               {img.filename}
                             </div>
                           </div>
@@ -567,7 +567,7 @@ export const ChatWindow: React.FC = () => {
               </div>
               {!isUser && m.stepInfo && (
                 <div className={`flex ${alignClass} w-full mt-1`}>
-                  <div className="text-[10px] text-neutral-400 px-1">
+                  <div className="text-[11px] text-brutal-black font-mono font-bold px-1 opacity-40">
                     {m.stepInfo}
                   </div>
                 </div>
@@ -600,7 +600,7 @@ export const ChatWindow: React.FC = () => {
                 >
                   ×
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-[9px] px-1 py-0.5 truncate font-bold">
+                <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-[11px] px-1 py-0.5 truncate font-bold">
                   {file.name}
                 </div>
               </div>
@@ -623,7 +623,7 @@ export const ChatWindow: React.FC = () => {
                   }
                 }
               }}
-              placeholder={configReady ? '> Enter command...' : '> System loading...'}
+              placeholder={configReady ? 'TYPE COMMAND' : 'SYSTEM LOADING...'}
               disabled={!configReady}
             />
             <div className="absolute bottom-2 left-3 flex items-center gap-2">
@@ -647,7 +647,7 @@ export const ChatWindow: React.FC = () => {
                 </svg>
               </button>
             </div>
-            <div className="absolute bottom-2 right-3 text-[10px] text-neutral-400 select-none">Enter to send • Shift+Enter newline</div>
+            <div className="absolute bottom-2 right-3 text-[11px] text-brutal-black font-mono font-bold select-none uppercase opacity-40">↵ SEND • ⇧↵ LINE</div>
           </div>
         <div className="flex flex-col justify-end gap-2">
           {streamingForCurrentChat && (

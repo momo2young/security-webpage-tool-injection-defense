@@ -155,10 +155,10 @@ export const ChatList: React.FC = () => {
                     )}
 
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-[10px] font-mono font-bold text-brutal-black">
+                      <span className="text-xs font-mono font-bold text-brutal-black">
                         {chat.messageCount} MSG{chat.messageCount !== 1 ? 'S' : ''}
                       </span>
-                      <span className="text-[10px] font-mono font-bold text-brutal-black">
+                      <span className="text-xs font-mono font-bold text-brutal-black">
                         {formatDate(chat.updatedAt)}
                       </span>
                     </div>

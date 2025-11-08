@@ -49,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, chatsC
             <button
               key={tab}
               onClick={() => onTabChange(tab as any)}
-              className={`flex-1 py-3 text-sm font-bold uppercase relative transition-all duration-100 active:animate-brutal-shake ${active ? 'bg-brutal-black text-brutal-white' : 'bg-neutral-100 text-brutal-black hover:bg-neutral-200 border-r-3 border-brutal-black last:border-r-0'}`}
+              className={`flex-1 py-3 text-sm font-bold uppercase relative active:animate-brutal-shake ${active ? 'bg-brutal-black text-brutal-white' : 'bg-neutral-100 text-brutal-black hover:bg-neutral-200 border-r-3 border-brutal-black last:border-r-0'}`}
             >
               {getTabLabel(tab)}
             </button>

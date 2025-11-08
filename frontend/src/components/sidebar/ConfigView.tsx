@@ -138,14 +138,14 @@ export const ConfigView: React.FC = () => {
     <div className="space-y-6 text-xs">
       <div className="flex items-center justify-between">
         <div className="text-sm font-brutal tracking-wide text-brutal-black uppercase">Session</div>
-        <button type="button" onClick={resetChat} className="text-[10px] px-2 py-1 bg-brutal-blue border-2 border-brutal-black shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all duration-100 text-white font-bold uppercase">New Chat</button>
+        <button type="button" onClick={resetChat} className="text-xs px-2 py-1 bg-brutal-blue border-2 border-brutal-black shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-transform duration-75 text-white font-bold uppercase">New Chat</button>
       </div>
       <div className="space-y-1">
         <label className="block font-bold tracking-wide text-brutal-black uppercase">Model</label>
         <select
           value={config.model}
           onChange={e => update({ model: e.target.value })}
-          className="w-full bg-brutal-white border-3 border-brutal-black px-3 py-2 font-mono font-bold focus:border-brutal-blue focus:shadow-brutal-sm focus:outline-none transition-all duration-100"
+          className="w-full bg-brutal-white border-3 border-brutal-black px-3 py-2 font-mono font-bold focus:border-brutal-blue focus:shadow-brutal-sm focus:outline-none"
         >
           {backendConfig.models.map((m: string) => <option key={m} value={m}>{m}</option>)}
         </select>
@@ -155,11 +155,11 @@ export const ConfigView: React.FC = () => {
         <select
           value={config.agent}
           onChange={e => update({ agent: e.target.value })}
-          className="w-full bg-brutal-white border-3 border-brutal-black px-3 py-2 font-mono font-bold focus:border-brutal-blue focus:shadow-brutal-sm focus:outline-none transition-all duration-100"
+          className="w-full bg-brutal-white border-3 border-brutal-black px-3 py-2 font-mono font-bold focus:border-brutal-blue focus:shadow-brutal-sm focus:outline-none"
         >
           {backendConfig.agents.map((a: string) => <option key={a} value={a}>{a}</option>)}
         </select>
-        <div className="text-[10px] text-brutal-black mt-1 leading-relaxed font-bold">
+        <div className="text-xs text-brutal-black mt-1 leading-relaxed font-mono font-bold">
           {config.agent === 'CodeAgent' && (
             <span>📝 Writes and executes Python code</span>
           )}
@@ -178,7 +178,7 @@ export const ConfigView: React.FC = () => {
                 key={tool}
                 type="button"
                 onClick={() => toggleTool(tool)}
-                className={`px-2.5 py-1 border-2 text-[10px] font-bold uppercase transition-all duration-100 ${
+                className={`px-2.5 py-1 border-2 text-xs font-bold uppercase ${
                   active
                     ? 'bg-brutal-green text-brutal-black border-brutal-black shadow-brutal-sm'
                     : 'border-brutal-black text-brutal-black hover:shadow-brutal-sm bg-brutal-white'
@@ -194,7 +194,7 @@ export const ConfigView: React.FC = () => {
         <label className="block font-bold tracking-wide text-brutal-black uppercase">MCP Servers</label>
         <div className="space-y-2">
           <div className="flex gap-2 flex-wrap items-start">
-            <select value={addType} onChange={e => setAddType(e.target.value as 'url' | 'stdio')} className="w-20 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-bold text-[10px] focus:outline-none focus:border-brutal-blue">
+            <select value={addType} onChange={e => setAddType(e.target.value as 'url' | 'stdio')} className="w-20 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-bold text-xs focus:outline-none focus:border-brutal-blue">
               <option value="url">URL</option>
               <option value="stdio">Stdio</option>
             </select>
@@ -202,38 +202,38 @@ export const ConfigView: React.FC = () => {
               value={srvName}
               onChange={e => setSrvName(e.target.value)}
               placeholder="Name"
-              className="w-28 shrink-0 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono text-[10px] focus:outline-none focus:border-brutal-blue"
+              className="w-28 shrink-0 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:border-brutal-blue"
             />
             {addType === 'url' ? (
               <input
                 value={srvUrl}
                 onChange={e => setSrvUrl(e.target.value)}
                 placeholder="https://host/path"
-                className="flex-1 min-w-[140px] bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono text-[10px] focus:outline-none focus:border-brutal-blue"
+                className="flex-1 min-w-[140px] bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:border-brutal-blue"
               />
             ) : (
               <>
                 <input
                   value={stdioCmd}
                   onChange={e => setStdioCmd(e.target.value)}
-                  placeholder="Command"
-                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono text-[10px] focus:outline-none focus:border-brutal-blue"
+                  placeholder="command"
+                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:border-brutal-blue"
                 />
                 <input
                   value={stdioArgs}
                   onChange={e => setStdioArgs(e.target.value)}
-                  placeholder="Args"
-                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono text-[10px] focus:outline-none focus:border-brutal-blue"
+                  placeholder="args"
+                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:border-brutal-blue"
                 />
                 <input
                   value={stdioEnv}
                   onChange={e => setStdioEnv(e.target.value)}
-                  placeholder="Env"
-                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono text-[10px] focus:outline-none focus:border-brutal-blue"
+                  placeholder="env"
+                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:border-brutal-blue"
                 />
               </>
             )}
-            <button type="button" onClick={addServer} className="shrink-0 px-3 py-1 bg-brutal-green border-2 border-brutal-black text-brutal-black text-[10px] font-bold uppercase hover:shadow-brutal-sm transition-all duration-100 disabled:opacity-50" disabled={addType === 'url' ? !srvUrl : !stdioCmd}>Add</button>
+            <button type="button" onClick={addServer} className="shrink-0 px-3 py-1 bg-brutal-green border-2 border-brutal-black text-brutal-black text-xs font-bold uppercase hover:shadow-brutal-sm disabled:opacity-50" disabled={addType === 'url' ? !srvUrl : !stdioCmd}>Add</button>
           </div>
           {servers.length === 0 && (
             <div className="text-[11px] text-brutal-black font-bold uppercase">
@@ -249,13 +249,13 @@ export const ConfigView: React.FC = () => {
                 <input aria-label="Enable server" type="checkbox" checked={s.enabled} onChange={() => toggleServer(s.name)} disabled={loading} className="w-4 h-4 border-2 border-brutal-black" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="truncate font-bold text-brutal-black text-[10px]" title={s.name}>{s.name}</div>
-                    <span className={`text-[9px] px-1.5 py-0.5 border-2 font-bold uppercase ${s.enabled ? 'border-brutal-black bg-brutal-green text-brutal-black' : 'border-brutal-black bg-neutral-200 text-brutal-black'}`}>{s.enabled ? 'ON' : 'OFF'}</span>
+                    <div className="truncate font-bold text-brutal-black text-xs" title={s.name}>{s.name}</div>
+                    <span className={`text-[10px] px-1.5 py-0.5 border-2 font-bold uppercase ${s.enabled ? 'border-brutal-black bg-brutal-green text-brutal-black' : 'border-brutal-black bg-neutral-200 text-brutal-black'}`}>{s.enabled ? 'ON' : 'OFF'}</span>
                   </div>
                   {s.type === 'url' ? (
-                    <div className="truncate text-brutal-black text-[10px] font-mono" title={s.url}>{s.url}</div>
+                    <div className="truncate text-brutal-black text-[11px] font-mono font-bold opacity-50" title={s.url}>{s.url}</div>
                   ) : (
-                    <div className="text-brutal-black text-[10px] break-all truncate max-w-full whitespace-pre-line font-mono">
+                    <div className="text-brutal-black text-[11px] break-all truncate max-w-full whitespace-pre-line font-mono font-bold opacity-50">
                       <span className="break-all truncate max-w-full" title={s.command}>{s.command}</span>
                       {s.args && s.args.length > 0 && (
                         <span> <span className="break-all truncate max-w-full" title={s.args.join(', ')}>[{s.args.join(', ')}]</span></span>
@@ -271,7 +271,7 @@ export const ConfigView: React.FC = () => {
             ))}
           </ul>
           {config.mcp_urls && config.mcp_urls.length > 0 && (
-            <div className="text-[10px] text-brutal-black font-mono font-bold">ENABLED: {config.mcp_urls.length} URL(S)</div>
+            <div className="text-xs text-brutal-black font-mono font-bold">ENABLED: {config.mcp_urls.length} URL(S)</div>
           )}
         </div>
       </div>

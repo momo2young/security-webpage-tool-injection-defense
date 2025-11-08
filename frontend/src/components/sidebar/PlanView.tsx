@@ -114,7 +114,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
               <select
                 value={selectedPlanKey ?? ''}
                 onChange={handleSelectChange}
-                className="relative z-20 w-full text-[10px] border-3 border-brutal-black px-2 py-1.5 bg-brutal-white text-brutal-black font-bold uppercase hover:bg-neutral-100 focus:outline-none focus:border-brutal-blue focus:shadow-brutal-sm transition-all duration-100"
+                className="relative z-20 w-full text-xs border-3 border-brutal-black px-2 py-1.5 bg-brutal-white text-brutal-black font-bold uppercase hover:bg-neutral-100 focus:outline-none focus:border-brutal-blue focus:shadow-brutal-sm"
               >
                 {combinedPlans.map(item => (
                   <option key={item.key} value={item.key}>{item.label}</option>
@@ -124,7 +124,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
           )}
           <button
             onClick={onRefresh}
-            className="shrink-0 px-2.5 py-1.5 text-[10px] bg-brutal-green border-2 border-brutal-black shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all duration-100 font-bold uppercase text-brutal-black"
+            className="shrink-0 px-2.5 py-1.5 text-xs bg-brutal-green border-2 border-brutal-black shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-transform duration-75 font-bold uppercase text-brutal-black"
           >
             Refresh
           </button>
@@ -133,7 +133,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
 
       {plan ? (
         <>
-          <div className={`text-[10px] text-brutal-black font-mono font-bold space-y-0.5 ${isNewPlan ? 'animate-brutal-slide' : ''}`}>
+          <div className={`text-xs text-brutal-black font-mono font-bold space-y-0.5 ${isNewPlan ? 'animate-brutal-slide' : ''}`}>
             <div>{isSnapshot ? 'LIVE SNAPSHOT' : plan.id != null ? `PLAN #${plan.id}` : 'PLAN'}</div>
             {!isSnapshot && plan.versionKey && <div>· VERSION {plan.versionKey}</div>}
             {createdAtLabel && <div>· CREATED {createdAtLabel}</div>}
@@ -164,12 +164,12 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
               return (
                 <li
                   key={task.id ?? `${getPlanKey(plan)}-${task.number}`}
-                  className={`${bgColor} border-3 border-brutal-black p-2.5 transition-all hover:shadow-brutal-sm ${isNewPlan ? 'animate-brutal-drop' : ''}`}
+                  className={`${bgColor} border-3 border-brutal-black p-2.5 hover:shadow-brutal-sm ${isNewPlan ? 'animate-brutal-drop' : ''}`}
                   style={{ animationDelay }}
                 >
                   <div className="flex justify-between items-start gap-2">
                     <span className="font-bold text-brutal-black flex-1">{task.number}. {task.description}</span>
-                    <span className={`shrink-0 text-xs font-mono font-bold text-brutal-black transition-all ${task.status === 'in_progress' ? 'animate-brutal-blink' : ''}`}>
+                    <span className={`shrink-0 text-xs font-mono font-bold text-brutal-black ${task.status === 'in_progress' ? 'animate-brutal-blink' : ''}`}>
                       {task.status.toUpperCase()}
                     </span>
                   </div>
@@ -196,20 +196,20 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
               return (
                 <li
                   key={item.key}
-                  className="flex items-center justify-between gap-3 border-3 border-brutal-black bg-brutal-white px-2.5 py-2 transition-all hover:shadow-brutal-sm"
+                  className="flex items-center justify-between gap-3 border-3 border-brutal-black bg-brutal-white px-2.5 py-2 hover:shadow-brutal-sm"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-brutal-black truncate text-[11px]">{label}</div>
-                    <div className="text-[10px] text-brutal-black mt-0.5">
+                    <div className="text-xs text-brutal-black mt-0.5">
                       {objectiveLines.length ? objectiveLines.map((line, idx) => (
                         <span key={idx} className="block truncate">{line}</span>
                       )) : <span className="block truncate">No objective text</span>}
                     </div>
                   </div>
-                  <div className="text-[10px] text-brutal-black font-mono font-bold whitespace-nowrap mr-2">{otherCompleted}/{otherPlan.tasks.length}</div>
+                  <div className="text-xs text-brutal-black font-mono font-bold whitespace-nowrap mr-2">{otherCompleted}/{otherPlan.tasks.length}</div>
                   <button
                     onClick={() => onSelectPlan(item.key)}
-                    className="text-[9px] bg-brutal-yellow border-2 border-brutal-black hover:shadow-brutal-sm px-2 py-1 transition-all duration-100 font-bold uppercase text-brutal-black"
+                    className="text-[11px] bg-brutal-yellow border-2 border-brutal-black hover:shadow-brutal-sm px-2 py-1 font-bold uppercase text-brutal-black"
                   >
                     View
                   </button>
