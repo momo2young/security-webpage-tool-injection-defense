@@ -137,7 +137,7 @@ class ChatDatabase:
                 return result
             return None
     
-    def update_chat(self, chat_id: str, title: str = None, config: Dict[str, Any] = None, 
+    def update_chat(self, chat_id: str, title: str = None, config: Dict[str, Any] = None,
                    messages: List[Dict[str, Any]] = None, agent_state: bytes = None) -> bool:
         """Update an existing chat."""
         with sqlite3.connect(self.db_path) as conn:
@@ -145,36 +145,38 @@ class ChatDatabase:
             cursor = conn.execute("SELECT id FROM chats WHERE id = ?", (chat_id,))
             if not cursor.fetchone():
                 return False
-            
+
             # Build update query dynamically
             updates = []
             params = []
-            
+
             if title is not None:
                 updates.append("title = ?")
                 params.append(title)
-            
+
             if config is not None:
                 updates.append("config = ?")
                 params.append(json.dumps(config))
-            
+
             if messages is not None:
                 updates.append("messages = ?")
                 params.append(json.dumps(messages))
-            
+
             if agent_state is not None:
                 updates.append("agent_state = ?")
                 params.append(agent_state)
-            
-            updates.append("updated_at = ?")
-            params.append(datetime.now().isoformat())
-            params.append(chat_id)
-            
-            conn.execute(f"""
-                UPDATE chats SET {', '.join(updates)} WHERE id = ?
-            """, params)
-            conn.commit()
-            
+
+            # Only update timestamp if something actually changed
+            if updates:
+                updates.append("updated_at = ?")
+                params.append(datetime.now().isoformat())
+                params.append(chat_id)
+
+                conn.execute(f"""
+                    UPDATE chats SET {', '.join(updates)} WHERE id = ?
+                """, params)
+                conn.commit()
+
             return True
     
     def delete_chat(self, chat_id: str) -> bool:
