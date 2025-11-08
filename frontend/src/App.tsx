@@ -11,8 +11,8 @@ import { ChatProvider, useChatStore } from './hooks/useChatStore.js';
 const HeaderTitle: React.FC = () => {
   const { backendConfig } = useChatStore();
   return (
-    <h1 className="font-semibold text-lg text-brand-900 tracking-tight">
-      {backendConfig?.title || 'Suzent'}
+    <h1 className="font-brutal text-2xl text-brutal-black tracking-tight uppercase">
+      {backendConfig?.title || 'SUZENT'}
     </h1>
   );
 };
@@ -71,7 +71,7 @@ const AppInner: React.FC = () => {
   }, [snapshotPlan]);
 
   return (
-    <div className="h-full w-full bg-white text-brand-900 font-sans">
+    <div className="h-full w-full bg-neutral-50 text-brutal-black font-sans">
       <div className="flex h-full">
         <Sidebar
           activeTab={sidebarTab}
@@ -91,7 +91,7 @@ const AppInner: React.FC = () => {
           configContent={<ConfigView />}
         />
         <div className="flex-1 flex flex-col">
-          <header className="border-b border-brand-200 px-6 py-3.5 flex items-center justify-between bg-white">
+          <header className="border-b-4 border-brutal-black px-6 py-4 flex items-center justify-between bg-brutal-yellow">
             <HeaderTitle />
           </header>
           <ChatWindow />

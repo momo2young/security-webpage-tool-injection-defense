@@ -91,7 +91,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
 
   if (!plan) {
     if (!combinedPlans.length) {
-      return <div className="text-xs text-neutral-500">No plan loaded.</div>;
+      return <div className="text-xs text-brutal-black font-bold uppercase">No plan loaded.</div>;
     }
   }
 
@@ -107,14 +107,14 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
   return (
     <div className="space-y-4 relative z-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold text-sm tracking-tight text-brand-900">Plan Overview</h2>
+        <h2 className="font-brutal text-sm tracking-tight text-brutal-black uppercase">Plan Overview</h2>
         <div className="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
           {combinedPlans.length > 1 && (
             <div className="relative w-full min-w-[8rem] sm:w-40">
               <select
                 value={selectedPlanKey ?? ''}
                 onChange={handleSelectChange}
-                className="relative z-20 w-full text-[11px] border border-brand-200 rounded-md px-2 py-1.5 bg-white text-brand-700 hover:border-brand-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="relative z-20 w-full text-[10px] border-3 border-brutal-black px-2 py-1.5 bg-brutal-white text-brutal-black font-bold uppercase hover:bg-neutral-100 focus:outline-none focus:border-brutal-blue focus:shadow-brutal-sm transition-all duration-100"
               >
                 {combinedPlans.map(item => (
                   <option key={item.key} value={item.key}>{item.label}</option>
@@ -124,7 +124,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
           )}
           <button
             onClick={onRefresh}
-            className="shrink-0 px-2.5 py-1.5 text-[11px] text-brand-600 hover:text-brand-900 hover:bg-brand-100 rounded-md transition-all font-medium"
+            className="shrink-0 px-2.5 py-1.5 text-[10px] bg-brutal-green border-2 border-brutal-black shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all duration-100 font-bold uppercase text-brutal-black"
           >
             Refresh
           </button>
@@ -133,53 +133,59 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
 
       {plan ? (
         <>
-          <div className={`text-xs text-brand-500 space-y-0.5 ${isNewPlan ? 'animate-fadeIn' : ''}`}>
-            <div>{isSnapshot ? 'Live Snapshot' : plan.id != null ? `Plan #${plan.id}` : 'Plan'}</div>
-            {!isSnapshot && plan.versionKey && <div>· Version {plan.versionKey}</div>}
-            {createdAtLabel && <div>· Created {createdAtLabel}</div>}
-            {updatedAtLabel && <div>· Updated {updatedAtLabel}</div>}
+          <div className={`text-[10px] text-brutal-black font-mono font-bold space-y-0.5 ${isNewPlan ? 'animate-brutal-slide' : ''}`}>
+            <div>{isSnapshot ? 'LIVE SNAPSHOT' : plan.id != null ? `PLAN #${plan.id}` : 'PLAN'}</div>
+            {!isSnapshot && plan.versionKey && <div>· VERSION {plan.versionKey}</div>}
+            {createdAtLabel && <div>· CREATED {createdAtLabel}</div>}
+            {updatedAtLabel && <div>· UPDATED {updatedAtLabel}</div>}
           </div>
-          <div className={`text-sm font-semibold leading-snug text-brand-900 ${isNewPlan ? 'animate-slideIn' : 'transition-all'}`}>
+          <div className={`text-sm font-bold leading-snug text-brutal-black ${isNewPlan ? 'animate-brutal-drop' : ''}`}>
             {plan.objective}
           </div>
-          <div className="w-full h-1.5 rounded-full bg-brand-200 overflow-hidden relative">
+          <div className="w-full h-2 bg-neutral-200 border-2 border-brutal-black overflow-hidden relative">
             <div
-              className="h-1.5 bg-brand-900 transition-all duration-700 ease-out will-change-[width]"
+              className="h-full bg-brutal-blue transition-all duration-300 linear will-change-[width]"
               style={{ width: `${progress * 100}%` }}
             />
           </div>
-          <div className={`text-[11px] text-brand-500 ${isNewPlan ? 'animate-fadeIn' : 'transition-all'}`}>
+          <div className={`text-[11px] text-brutal-black font-bold uppercase ${isNewPlan ? 'animate-brutal-slide' : ''}`}>
             {completed}/{totalTasks} tasks completed
           </div>
           <ul className="space-y-2 text-[11px]">
             {plan.tasks.map((task, index) => {
-              const statusIcons: Record<string, string> = { pending: '⚪', in_progress: '🔵', completed: '🟢', failed: '🔴' };
+              const statusColors: Record<string, string> = {
+                pending: 'bg-neutral-200',
+                in_progress: 'bg-brutal-blue',
+                completed: 'bg-brutal-green',
+                failed: 'bg-brutal-red'
+              };
               const animationDelay = isNewPlan ? `${index * 50}ms` : '0ms';
+              const bgColor = statusColors[task.status] || 'bg-neutral-200';
               return (
-                <li 
-                  key={task.id ?? `${getPlanKey(plan)}-${task.number}`} 
-                  className={`bg-white rounded-lg border border-brand-200 p-2.5 transition-all hover:border-brand-300 hover:shadow-sm ${isNewPlan ? 'animate-slideIn' : ''}`}
+                <li
+                  key={task.id ?? `${getPlanKey(plan)}-${task.number}`}
+                  className={`${bgColor} border-3 border-brutal-black p-2.5 transition-all hover:shadow-brutal-sm ${isNewPlan ? 'animate-brutal-drop' : ''}`}
                   style={{ animationDelay }}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <span className="font-medium text-brand-800 flex-1">{task.number}. {task.description}</span>
-                    <span className={`shrink-0 text-xs transition-all ${task.status === 'in_progress' ? 'animate-pulse' : ''}`}>
-                      {statusIcons[task.status] || '❓'}
+                    <span className="font-bold text-brutal-black flex-1">{task.number}. {task.description}</span>
+                    <span className={`shrink-0 text-xs font-mono font-bold text-brutal-black transition-all ${task.status === 'in_progress' ? 'animate-brutal-blink' : ''}`}>
+                      {task.status.toUpperCase()}
                     </span>
                   </div>
-                  {task.note && <div className="mt-1 italic text-brand-500 text-[10px]">{task.note}</div>}
+                  {task.note && <div className="mt-1 text-brutal-black text-[10px] font-bold">{task.note}</div>}
                 </li>
               );
             })}
           </ul>
         </>
       ) : (
-        <div className="text-xs text-brand-500">Select a version to view details.</div>
+        <div className="text-xs text-brutal-black font-bold uppercase">Select a version to view details.</div>
       )}
 
       {otherPlans.length > 0 && (
-        <div className="border-t border-brand-200 pt-3 mt-2">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-500 mb-2">Other Versions</div>
+        <div className="border-t-3 border-brutal-black pt-3 mt-2">
+          <div className="text-[11px] font-brutal uppercase tracking-wide text-brutal-black mb-2">Other Versions</div>
           <ul className="space-y-1.5 text-[11px]">
             {otherPlans.map((item, idx) => {
               const label = item.label;
@@ -188,22 +194,22 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
               const summarySource = otherPlan.title ?? otherPlan.objective;
               const objectiveLines = summarySource.split(/\r?\n/).filter(Boolean);
               return (
-                <li 
-                  key={item.key} 
-                  className="flex items-center justify-between gap-3 rounded-lg border border-brand-200 bg-white px-2.5 py-2 transition-all hover:border-brand-300 hover:shadow-sm"
+                <li
+                  key={item.key}
+                  className="flex items-center justify-between gap-3 border-3 border-brutal-black bg-brutal-white px-2.5 py-2 transition-all hover:shadow-brutal-sm"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-brand-700 truncate text-[11px]">{label}</div>
-                    <div className="text-[10px] text-brand-500 mt-0.5">
+                    <div className="font-bold text-brutal-black truncate text-[11px]">{label}</div>
+                    <div className="text-[10px] text-brutal-black mt-0.5">
                       {objectiveLines.length ? objectiveLines.map((line, idx) => (
                         <span key={idx} className="block truncate">{line}</span>
                       )) : <span className="block truncate">No objective text</span>}
                     </div>
                   </div>
-                  <div className="text-[10px] text-brand-500 whitespace-nowrap mr-2">{otherCompleted}/{otherPlan.tasks.length}</div>
+                  <div className="text-[10px] text-brutal-black font-mono font-bold whitespace-nowrap mr-2">{otherCompleted}/{otherPlan.tasks.length}</div>
                   <button
                     onClick={() => onSelectPlan(item.key)}
-                    className="text-[10px] text-brand-600 hover:text-brand-900 hover:bg-brand-100 px-2 py-1 rounded transition-all font-medium"
+                    className="text-[9px] bg-brutal-yellow border-2 border-brutal-black hover:shadow-brutal-sm px-2 py-1 transition-all duration-100 font-bold uppercase text-brutal-black"
                   >
                     View
                   </button>

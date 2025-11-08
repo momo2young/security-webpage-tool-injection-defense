@@ -49,7 +49,7 @@ export const ConfigView: React.FC = () => {
   }, [servers, setConfig]);
 
   if (!backendConfig) {
-    return <div className="text-xs text-neutral-500">Loading config...</div>;
+    return <div className="text-xs text-brutal-black font-bold uppercase animate-brutal-blink">Loading config...</div>;
   }
 
   const update = useCallback((patch: Partial<typeof config>) => {
@@ -137,39 +137,39 @@ export const ConfigView: React.FC = () => {
   return (
     <div className="space-y-6 text-xs">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold tracking-wide text-neutral-700">Session</div>
-        <button type="button" onClick={resetChat} className="text-[11px] px-2 py-1 rounded bg-neutral-200 hover:bg-neutral-300 text-neutral-700">New Chat</button>
+        <div className="text-sm font-brutal tracking-wide text-brutal-black uppercase">Session</div>
+        <button type="button" onClick={resetChat} className="text-[10px] px-2 py-1 bg-brutal-blue border-2 border-brutal-black shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all duration-100 text-white font-bold uppercase">New Chat</button>
       </div>
       <div className="space-y-1">
-        <label className="block font-medium tracking-wide text-neutral-700">Model</label>
+        <label className="block font-bold tracking-wide text-brutal-black uppercase">Model</label>
         <select
           value={config.model}
           onChange={e => update({ model: e.target.value })}
-          className="w-full bg-white/70 border border-neutral-300 rounded-lg px-3 py-2 focus:border-brand-500 focus:outline-none"
+          className="w-full bg-brutal-white border-3 border-brutal-black px-3 py-2 font-mono font-bold focus:border-brutal-blue focus:shadow-brutal-sm focus:outline-none transition-all duration-100"
         >
           {backendConfig.models.map((m: string) => <option key={m} value={m}>{m}</option>)}
         </select>
       </div>
       <div className="space-y-1">
-        <label className="block font-medium tracking-wide text-neutral-700">Agent</label>
+        <label className="block font-bold tracking-wide text-brutal-black uppercase">Agent</label>
         <select
           value={config.agent}
           onChange={e => update({ agent: e.target.value })}
-          className="w-full bg-white/70 border border-neutral-300 rounded-lg px-3 py-2 focus:border-brand-500 focus:outline-none"
+          className="w-full bg-brutal-white border-3 border-brutal-black px-3 py-2 font-mono font-bold focus:border-brutal-blue focus:shadow-brutal-sm focus:outline-none transition-all duration-100"
         >
           {backendConfig.agents.map((a: string) => <option key={a} value={a}>{a}</option>)}
         </select>
-        <div className="text-[10px] text-neutral-500 mt-1 leading-relaxed">
+        <div className="text-[10px] text-brutal-black mt-1 leading-relaxed font-bold">
           {config.agent === 'CodeAgent' && (
-            <span>📝 Writes and executes Python code for problem-solving</span>
+            <span>📝 Writes and executes Python code</span>
           )}
           {config.agent === 'ToolcallingAgent' && (
-            <span>🔧 Direct tool calling without code execution</span>
+            <span>🔧 Direct tool calling without code</span>
           )}
         </div>
       </div>
       <div className="space-y-2">
-        <label className="block font-medium tracking-wide text-neutral-700">Tools</label>
+        <label className="block font-bold tracking-wide text-brutal-black uppercase">Tools</label>
         <div className="flex flex-wrap gap-2">
           {backendConfig.tools.map((tool: string) => {
             const active = (config.tools || []).includes(tool);
@@ -178,10 +178,10 @@ export const ConfigView: React.FC = () => {
                 key={tool}
                 type="button"
                 onClick={() => toggleTool(tool)}
-                className={`px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors ${
-                  active 
-                    ? 'bg-brand-600 text-white border-brand-500 shadow' 
-                    : 'border-neutral-300 text-neutral-700 hover:border-neutral-400 hover:text-neutral-900 bg-white/70'
+                className={`px-2.5 py-1 border-2 text-[10px] font-bold uppercase transition-all duration-100 ${
+                  active
+                    ? 'bg-brutal-green text-brutal-black border-brutal-black shadow-brutal-sm'
+                    : 'border-brutal-black text-brutal-black hover:shadow-brutal-sm bg-brutal-white'
                 }`}
               >
                 {tool}
@@ -191,10 +191,10 @@ export const ConfigView: React.FC = () => {
         </div>
       </div>
       <div className="space-y-2">
-        <label className="block font-medium tracking-wide text-neutral-700">MCP Servers</label>
+        <label className="block font-bold tracking-wide text-brutal-black uppercase">MCP Servers</label>
         <div className="space-y-2">
           <div className="flex gap-2 flex-wrap items-start">
-            <select value={addType} onChange={e => setAddType(e.target.value as 'url' | 'stdio')} className="w-20 bg-white/70 border border-neutral-300 rounded px-2 py-1">
+            <select value={addType} onChange={e => setAddType(e.target.value as 'url' | 'stdio')} className="w-20 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-bold text-[10px] focus:outline-none focus:border-brutal-blue">
               <option value="url">URL</option>
               <option value="stdio">Stdio</option>
             </select>
@@ -202,73 +202,73 @@ export const ConfigView: React.FC = () => {
               value={srvName}
               onChange={e => setSrvName(e.target.value)}
               placeholder="Name"
-              className="w-28 shrink-0 bg-white/70 border border-neutral-300 rounded px-2 py-1 focus:outline-none focus:border-brand-500"
+              className="w-28 shrink-0 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono text-[10px] focus:outline-none focus:border-brutal-blue"
             />
             {addType === 'url' ? (
               <input
                 value={srvUrl}
                 onChange={e => setSrvUrl(e.target.value)}
                 placeholder="https://host/path"
-                className="flex-1 min-w-[140px] bg-white/70 border border-neutral-300 rounded px-2 py-1 focus:outline-none focus:border-brand-500"
+                className="flex-1 min-w-[140px] bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono text-[10px] focus:outline-none focus:border-brutal-blue"
               />
             ) : (
               <>
                 <input
                   value={stdioCmd}
                   onChange={e => setStdioCmd(e.target.value)}
-                  placeholder="Command (e.g. mcp-obsidian)"
-                  className="w-36 bg-white/70 border border-neutral-300 rounded px-2 py-1 focus:outline-none focus:border-brand-500"
+                  placeholder="Command"
+                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono text-[10px] focus:outline-none focus:border-brutal-blue"
                 />
                 <input
                   value={stdioArgs}
                   onChange={e => setStdioArgs(e.target.value)}
-                  placeholder="Args (comma separated)"
-                  className="w-36 bg-white/70 border border-neutral-300 rounded px-2 py-1 focus:outline-none focus:border-brand-500"
+                  placeholder="Args"
+                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono text-[10px] focus:outline-none focus:border-brutal-blue"
                 />
                 <input
                   value={stdioEnv}
                   onChange={e => setStdioEnv(e.target.value)}
-                  placeholder="Env (KEY=VAL,...)"
-                  className="w-36 bg-white/70 border border-neutral-300 rounded px-2 py-1 focus:outline-none focus:border-brand-500"
+                  placeholder="Env"
+                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono text-[10px] focus:outline-none focus:border-brutal-blue"
                 />
               </>
             )}
-            <button type="button" onClick={addServer} className="shrink-0 px-3 py-1 rounded bg-brand-600 text-white text-[11px] hover:bg-brand-500 disabled:opacity-50" disabled={addType === 'url' ? !srvUrl : !stdioCmd}>Add</button>
+            <button type="button" onClick={addServer} className="shrink-0 px-3 py-1 bg-brutal-green border-2 border-brutal-black text-brutal-black text-[10px] font-bold uppercase hover:shadow-brutal-sm transition-all duration-100 disabled:opacity-50" disabled={addType === 'url' ? !srvUrl : !stdioCmd}>Add</button>
           </div>
           {servers.length === 0 && (
-            <div className="text-[11px] text-neutral-400 flex items-center gap-1">
+            <div className="text-[11px] text-brutal-black font-bold uppercase">
               <span>No MCP servers configured.</span>
             </div>
           )}
           <ul className="space-y-1 max-h-40 overflow-y-auto pr-1">
             {servers.map(s => (
-              <li key={s.name} className="flex items-center gap-2 bg-white/80 border border-neutral-200 rounded px-2 py-1 group">
-                <input aria-label="Enable server" type="checkbox" checked={s.enabled} onChange={() => toggleServer(s.name)} disabled={loading} />
+              <li key={s.name} className="flex items-center gap-2 bg-brutal-white border-3 border-brutal-black px-2 py-1 group">
+                <input aria-label="Enable server" type="checkbox" checked={s.enabled} onChange={() => toggleServer(s.name)} disabled={loading} className="w-4 h-4 border-2 border-brutal-black" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="truncate font-medium text-neutral-700" title={s.name}>{s.name}</div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded border ${s.enabled ? 'border-green-300 text-green-600 bg-green-50' : 'border-neutral-300 text-neutral-400 bg-neutral-50'}`}>{s.enabled ? 'Enabled' : 'Disabled'}</span>
+                    <div className="truncate font-bold text-brutal-black text-[10px]" title={s.name}>{s.name}</div>
+                    <span className={`text-[9px] px-1.5 py-0.5 border-2 font-bold uppercase ${s.enabled ? 'border-brutal-black bg-brutal-green text-brutal-black' : 'border-brutal-black bg-neutral-200 text-brutal-black'}`}>{s.enabled ? 'ON' : 'OFF'}</span>
                   </div>
                   {s.type === 'url' ? (
-                    <div className="truncate text-neutral-400 text-[11px]" title={s.url}>{s.url}</div>
+                    <div className="truncate text-brutal-black text-[10px] font-mono" title={s.url}>{s.url}</div>
                   ) : (
-                    <div className="text-neutral-400 text-[11px] break-all truncate max-w-full whitespace-pre-line">
-                      <span className="font-mono break-all truncate max-w-full" title={s.command}>{s.command}</span>
+                    <div className="text-brutal-black text-[10px] break-all truncate max-w-full whitespace-pre-line font-mono">
+                      <span className="break-all truncate max-w-full" title={s.command}>{s.command}</span>
                       {s.args && s.args.length > 0 && (
-                        <span> <span className="font-mono break-all truncate max-w-full" title={s.args.join(', ')}>[{s.args.join(', ')}]</span></span>
+                        <span> <span className="break-all truncate max-w-full" title={s.args.join(', ')}>[{s.args.join(', ')}]</span></span>
                       )}
                       {s.env && Object.keys(s.env).length > 0 && (
-                        <span> <span className="font-mono break-all truncate max-w-full" title={JSON.stringify(s.env)}>env:{JSON.stringify(s.env)}</span></span>
+                        <span> <span className="break-all truncate max-w-full" title={JSON.stringify(s.env)}>env:{JSON.stringify(s.env)}</span></span>
                       )}
                     </div>
                   )}
                 </div>
-                <button type="button" onClick={() => removeServer(s.name)} className="text-neutral-400 hover:text-red-500 text-xs" title="Remove" disabled={loading}>✕</button>
+                <button type="button" onClick={() => removeServer(s.name)} className="text-brutal-white bg-brutal-red border-2 border-brutal-black hover:shadow-brutal-sm text-xs font-bold px-1" title="Remove" disabled={loading}>×</button>
               </li>
             ))}
           </ul>
           {config.mcp_urls && config.mcp_urls.length > 0 && (
-            <div className="text-[10px] text-neutral-400">Enabled: {config.mcp_urls.length} URL(s)</div>
+            <div className="text-[10px] text-brutal-black font-mono font-bold">ENABLED: {config.mcp_urls.length} URL(S)</div>
           )}
         </div>
       </div>

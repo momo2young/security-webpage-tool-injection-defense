@@ -37,31 +37,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, chatsC
       case 'plan':
         return 'Plan';
       case 'config':
-        return 'Configuration';
+        return 'Settings';
       default:
         return tab;
     }
   };
 
   return (
-    <aside className="w-80 border-r border-brand-200 flex flex-col bg-brand-50">
-      <nav className="flex border-b border-brand-200">
+    <aside className="w-80 border-r-4 border-brutal-black flex flex-col bg-neutral-100">
+      <nav className="flex border-b-3 border-brutal-black">
         {['chats', 'plan', 'config'].map(tab => {
           const active = activeTab === tab;
           return (
             <button
               key={tab}
               onClick={() => onTabChange(tab as any)}
-              className={`flex-1 py-3 text-sm font-medium relative transition-all ${active ? 'text-brand-900' : 'text-brand-600 hover:text-brand-800'}`}
+              className={`flex-1 py-3 text-sm font-bold uppercase relative transition-all duration-100 active:animate-brutal-shake ${active ? 'bg-brutal-black text-brutal-white' : 'bg-neutral-100 text-brutal-black hover:bg-neutral-200 border-r-3 border-brutal-black last:border-r-0'}`}
             >
               {getTabLabel(tab)}
-              {active && <span className="absolute left-1/2 -translate-x-1/2 -bottom-px h-0.5 w-12 bg-brand-900 rounded-full" />}
             </button>
           );
         })}
       </nav>
       <div
-        className={`flex-1 overflow-y-auto ${activeTab === 'chats' ? '' : 'p-4 space-y-4'} scrollbar-thin scrollbar-thumb-brand-300 ${
+        className={`flex-1 overflow-y-auto ${activeTab === 'chats' ? '' : 'p-4 space-y-4'} scrollbar-thin scrollbar-thumb-brutal-black ${
           animateContent ? 'sidebar-content-animate' : ''
         }`}
       >

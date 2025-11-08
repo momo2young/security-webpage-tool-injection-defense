@@ -119,10 +119,10 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(()=>setCopied(false),1500); }}
-      className="absolute top-2 right-2 text-[10px] px-2 py-1 rounded bg-neutral-700/70 hover:bg-neutral-600 text-neutral-200"
+      className="absolute top-2 right-2 text-[9px] px-2 py-1 bg-brutal-green border-2 border-brutal-black shadow-brutal-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all duration-100 text-brutal-black font-bold uppercase"
       title="Copy code"
       type="button"
-    >{copied ? 'Copied' : 'Copy'}</button>
+    >{copied ? 'Copied!' : 'Copy'}</button>
   );
 };
 
@@ -172,24 +172,24 @@ const MarkdownRenderer = (props: { content: string }) => {
               // Validate and clean the language name
               const cleanLang = lang.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
               const safeClassName = cleanLang ? `language-${cleanLang}` : 'language-text';
-              
+
               return (
-                <pre className="max-w-3xl overflow-x-auto text-xs bg-neutral-900 text-neutral-100 border border-neutral-800 rounded-lg p-3 font-mono leading-relaxed break-words">
+                <pre className="max-w-3xl overflow-x-auto text-xs bg-brutal-code-bg text-brutal-code-text border-3 border-brutal-black p-3 font-mono leading-relaxed break-words">
                   <code className={safeClassName}>{String(children)}</code>
                 </pre>
               );
             }
-            return <code className="bg-neutral-100 px-1.5 py-0.5 rounded text-[11px] font-mono text-brand-600 break-words" {...rest}>{children}</code>;
+            return <code className="bg-brutal-yellow px-1.5 py-0.5 border-2 border-brutal-black text-[11px] font-mono text-brutal-black font-bold break-words" {...rest}>{children}</code>;
           },
-          a(aProps: any) { const { href, children } = aProps; return <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline break-words">{children}</a>; },
-          table(p: any) { return <div className="overflow-x-auto"><table className="text-xs border border-neutral-200">{p.children}</table></div>; },
-          th(p: any) { return <th className="border px-2 py-1 bg-neutral-50 font-semibold">{p.children}</th>; },
-          td(p: any) { return <td className="border px-2 py-1 align-top">{p.children}</td>; },
+          a(aProps: any) { const { href, children } = aProps; return <a href={href} target="_blank" rel="noopener noreferrer" className="text-brutal-blue hover:bg-brutal-yellow font-bold underline break-words transition-colors duration-100">{children}</a>; },
+          table(p: any) { return <div className="overflow-x-auto"><table className="text-xs border-3 border-brutal-black">{p.children}</table></div>; },
+          th(p: any) { return <th className="border-2 border-brutal-black px-2 py-1 bg-brutal-yellow font-bold">{p.children}</th>; },
+          td(p: any) { return <td className="border-2 border-brutal-black px-2 py-1 align-top">{p.children}</td>; },
           ul(p: any) { return <ul className="list-disc pl-5">{p.children}</ul>; },
           ol(p: any) { return <ol className="list-decimal pl-5">{p.children}</ol>; },
-          h1(p: any) { return <h1 className="text-xl font-semibold mb-1 break-words">{p.children}</h1>; },
-          h2(p: any) { return <h2 className="text-lg font-semibold mb-1 break-words">{p.children}</h2>; },
-          h3(p: any) { return <h3 className="text-base font-semibold mb-1 break-words">{p.children}</h3>; },
+          h1(p: any) { return <h1 className="text-xl font-brutal font-bold mb-2 break-words uppercase">{p.children}</h1>; },
+          h2(p: any) { return <h2 className="text-lg font-brutal font-bold mb-2 break-words uppercase">{p.children}</h2>; },
+          h3(p: any) { return <h3 className="text-base font-bold mb-1 break-words uppercase">{p.children}</h3>; },
           p(pArg: any) { 
             // Style step metadata lines differently
             const text = String(pArg.children?.[0] || '');
@@ -475,8 +475,8 @@ export const ChatWindow: React.FC = () => {
   };
 
   return (
-    <div 
-      className="flex flex-col flex-1 h-full overflow-hidden bg-white"
+    <div
+      className="flex flex-col flex-1 h-full overflow-hidden bg-neutral-50"
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -484,12 +484,12 @@ export const ChatWindow: React.FC = () => {
     >
       {/* Drag overlay */}
       {isDragging && (
-        <div className="absolute inset-0 z-50 bg-brand-500/10 backdrop-blur-sm border-4 border-dashed border-brand-500 flex items-center justify-center pointer-events-none">
-          <div className="bg-white/95 rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        <div className="absolute inset-0 z-50 bg-brutal-blue/20 border-4 border-dashed border-brutal-black flex items-center justify-center pointer-events-none">
+          <div className="bg-brutal-yellow border-4 border-brutal-black shadow-brutal-xl px-8 py-6 flex flex-col items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-brutal-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span className="text-lg font-semibold text-brand-600">Drop images here</span>
+            <span className="text-lg font-bold text-brutal-black uppercase">Drop Images Here</span>
           </div>
         </div>
       )}
@@ -523,14 +523,14 @@ export const ChatWindow: React.FC = () => {
                     {m.images && m.images.length > 0 && (
                       <div className="flex flex-wrap gap-3 justify-end">
                         {m.images.map((img, imgIdx) => (
-                          <div key={imgIdx} className="relative group">
+                          <div key={imgIdx} className="relative group animate-brutal-pop">
                             <img
                               src={`data:${img.mime_type};base64,${img.data}`}
                               alt={img.filename}
-                              className="max-w-sm max-h-64 rounded-xl shadow-lg object-contain border border-neutral-200"
+                              className="max-w-sm max-h-64 border-4 border-brutal-black shadow-brutal-lg object-contain"
                               title={img.filename}
                             />
-                            <div className="absolute bottom-2 left-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-[10px] px-2 py-1 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-100">
                               {img.filename}
                             </div>
                           </div>
@@ -539,28 +539,28 @@ export const ChatWindow: React.FC = () => {
                     )}
                     {m.content && (
                       <div className="flex justify-end">
-                        <div className="bg-gradient-to-tr from-brand-600 to-brand-500 text-white rounded-xl shadow-sm px-5 py-3 max-w-2xl">
-                          <div className="prose prose-sm prose-invert max-w-none text-white break-words">{m.content}</div>
+                        <div className="bg-brutal-yellow border-3 border-brutal-black shadow-brutal-lg px-5 py-3 max-w-2xl font-medium animate-brutal-slide">
+                          <div className="prose prose-sm max-w-none break-words text-brutal-black">{m.content}</div>
                         </div>
                       </div>
                     )}
                   </div>
                 ) : (
-                  // Assistant message: keep existing layout
-                  <div className={`group w-full max-w-3xl break-words overflow-visible bg-white/90 border border-neutral-200 text-neutral-800 rounded-xl shadow-sm px-5 py-3 space-y-3 text-sm leading-relaxed relative`}>
+                  // Assistant message: Neo-brutalist white bubble
+                  <div className={`group w-full max-w-3xl break-words overflow-visible bg-brutal-white border-3 border-brutal-black shadow-brutal-lg px-5 py-3 space-y-3 text-sm leading-relaxed relative animate-brutal-drop`}>
                     {blocks.map((b, bi) => b.type === 'markdown' ? (
                       <MarkdownRenderer key={bi} content={b.content} />
                     ) : (
                       <div key={bi} className="relative">
                         <CopyButton text={b.content} />
-                        <pre className="max-w-3xl overflow-x-auto text-xs bg-neutral-50 border border-neutral-200 rounded-lg p-3 font-mono leading-relaxed">
+                        <pre className="max-w-3xl overflow-x-auto text-xs bg-brutal-code-bg text-brutal-code-text border-3 border-brutal-black p-3 font-mono leading-relaxed">
                           <code className={`language-${((b as any).lang || 'text').replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase() || 'text'}`}>{b.content}</code>
                         </pre>
                       </div>
                     ))}
                     {/* end user/assistant content */}
                     {idx === safeMessages.length - 1 && streamingForCurrentChat && (
-                      <div className="flex gap-1 items-center text-[10px] text-neutral-400 animate-pulse">Thinking<span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce [animation-delay:-0.2s]"></span><span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce [animation-delay:-0.05s]"></span><span className="w-1 h-1 bg-neutral-300 rounded-full animate-bounce"></span></div>
+                      <div className="flex gap-1 items-center text-xs font-bold text-brutal-black animate-brutal-blink">THINKING...</div>
                     )}
                   </div>
                 )}
@@ -581,26 +581,26 @@ export const ChatWindow: React.FC = () => {
         </div>
         <div ref={bottomRef} className="h-2" />
       </div>
-      <form onSubmit={(e) => { e.preventDefault(); send(); }} className="border-t border-neutral-200 p-4 flex flex-col gap-3 bg-white/95">
+      <form onSubmit={(e) => { e.preventDefault(); send(); }} className="border-t-4 border-brutal-black p-4 flex flex-col gap-3 bg-neutral-100">
         {/* Image preview section */}
         {selectedImages.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-2 bg-neutral-50 rounded-lg border border-neutral-200">
+          <div className="flex flex-wrap gap-2 p-2 bg-brutal-white border-3 border-brutal-black">
             {selectedImages.map((file, idx) => (
               <div key={idx} className="relative group">
                 <img
                   src={URL.createObjectURL(file)}
                   alt={file.name}
-                  className="w-20 h-20 object-cover rounded border border-neutral-300"
+                  className="w-20 h-20 object-cover border-3 border-brutal-black"
                 />
                 <button
                   type="button"
                   onClick={() => removeImage(idx)}
-                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full text-xs flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-brutal-red border-2 border-brutal-black hover:shadow-brutal-sm text-white text-xs flex items-center justify-center font-bold opacity-0 group-hover:opacity-100 transition-opacity"
                   title="Remove image"
                 >
                   ×
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] px-1 py-0.5 truncate rounded-b">
+                <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-[9px] px-1 py-0.5 truncate font-bold">
                   {file.name}
                 </div>
               </div>
@@ -611,7 +611,7 @@ export const ChatWindow: React.FC = () => {
         <div className="flex gap-3">
           <div className="flex-1 relative">
             <textarea
-              className="flex-1 w-full resize-none rounded-xl bg-neutral-50 border border-neutral-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500/40 focus:outline-none px-4 py-3 text-sm placeholder-neutral-400 shadow-inner"
+              className="flex-1 w-full resize-none bg-brutal-white border-3 border-brutal-black focus:border-brutal-blue focus:shadow-brutal-blue focus:outline-none px-4 py-3 text-sm placeholder-neutral-500 font-mono font-medium"
               rows={3}
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -623,7 +623,7 @@ export const ChatWindow: React.FC = () => {
                   }
                 }
               }}
-              placeholder={configReady ? 'Ask me anything...' : 'Waiting for config...'}
+              placeholder={configReady ? '> Enter command...' : '> System loading...'}
               disabled={!configReady}
             />
             <div className="absolute bottom-2 left-3 flex items-center gap-2">
@@ -654,7 +654,7 @@ export const ChatWindow: React.FC = () => {
             <button
               type="button"
               onClick={stopStreaming}
-              className="h-10 self-end rounded-lg bg-red-500 hover:bg-red-500/90 active:bg-red-600 transition-colors px-4 text-xs font-medium disabled:opacity-60 disabled:cursor-not-allowed shadow text-white"
+              className="h-10 self-end bg-brutal-red border-3 border-brutal-black shadow-brutal hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all duration-100 px-4 text-xs font-bold disabled:opacity-60 disabled:cursor-not-allowed text-white uppercase"
               disabled={stopInFlightRef.current}
             >
               Stop
@@ -662,10 +662,10 @@ export const ChatWindow: React.FC = () => {
           )}
           <button
             type="submit"
-            className="h-12 self-end rounded-lg bg-brand-600 hover:bg-brand-500 active:bg-brand-500/90 transition-colors px-5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow text-white"
+            className="h-12 self-end bg-brutal-blue border-3 border-brutal-black shadow-brutal hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all duration-100 px-5 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white uppercase"
             disabled={isStreaming || !configReady}
           >
-            {streamingForCurrentChat ? 'Sending…' : 'Send'}
+            {streamingForCurrentChat ? 'Sending...' : 'Send'}
           </button>
         </div>
         </div>
