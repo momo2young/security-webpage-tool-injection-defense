@@ -89,10 +89,10 @@ export const ChatList: React.FC = () => {
       )}
       
       {/* New Chat Button */}
-      <div className="p-4 border-b border-neutral-200 flex items-center justify-between gap-3">
+      <div className="p-4 border-b border-brand-200 flex items-center justify-between gap-3">
         <button
           onClick={beginNewChat}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-brand-900 hover:bg-brand-800 text-white rounded-lg font-semibold transition-all shadow-sm hover:shadow"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -115,8 +115,8 @@ export const ChatList: React.FC = () => {
                 onClick={() => loadChat(chat.id)}
                 className={`group relative p-3 rounded-lg cursor-pointer transition-all duration-150 ${
                   currentChatId === chat.id
-                    ? 'bg-brand-50 border border-brand-200'
-                    : 'bg-neutral-50 hover:bg-neutral-100 border border-transparent'
+                    ? 'bg-brand-100 border-2 border-brand-700 shadow-sm'
+                    : 'bg-white hover:bg-brand-50 border border-brand-200 hover:border-brand-300'
                 }`}
               >
                 {/* Inline delete confirmation overlay */}
@@ -141,23 +141,29 @@ export const ChatList: React.FC = () => {
 
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className={`font-medium text-sm truncate transition-colors ${
-                      currentChatId === chat.id ? 'text-brand-900' : 'text-neutral-900'
+                    <h3 className={`font-semibold text-sm truncate transition-colors ${
+                      currentChatId === chat.id ? 'text-brand-900' : 'text-brand-900'
                     }`}>
                       {chat.title}
                     </h3>
                     
                     {chat.lastMessage && (
-                      <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
+                      <p className={`text-xs mt-1 line-clamp-2 ${
+                        currentChatId === chat.id ? 'text-brand-700' : 'text-brand-500'
+                      }`}>
                         {chat.lastMessage}
                       </p>
                     )}
                     
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-neutral-400">
+                      <span className={`text-xs ${
+                        currentChatId === chat.id ? 'text-brand-600' : 'text-brand-400'
+                      }`}>
                         {chat.messageCount} message{chat.messageCount !== 1 ? 's' : ''}
                       </span>
-                      <span className="text-xs text-neutral-400">
+                      <span className={`text-xs ${
+                        currentChatId === chat.id ? 'text-brand-600' : 'text-brand-400'
+                      }`}>
                         {formatDate(chat.updatedAt)}
                       </span>
                     </div>
@@ -167,7 +173,11 @@ export const ChatList: React.FC = () => {
                   <button
                     onClick={(e) => handleDeleteClick(chat.id, e)}
                     disabled={deletingChatId === chat.id}
-                    className="opacity-0 group-hover:opacity-100 ml-2 p-1 rounded text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
+                    className={`opacity-0 group-hover:opacity-100 ml-2 p-1 rounded transition-all duration-150 ${
+                      currentChatId === chat.id 
+                        ? 'text-brand-600 hover:text-red-600 hover:bg-red-50' 
+                        : 'text-brand-400 hover:text-red-600 hover:bg-red-50'
+                    }`}
                     title="Delete chat"
                   >
                     {deletingChatId === chat.id ? (

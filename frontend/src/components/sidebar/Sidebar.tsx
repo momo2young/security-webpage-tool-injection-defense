@@ -36,23 +36,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, chatsC
   };
 
   return (
-    <aside className="w-80 border-r border-neutral-200 flex flex-col bg-white/90 backdrop-blur">
-      <nav className="flex border-b border-neutral-200">
+    <aside className="w-80 border-r border-brand-200 flex flex-col bg-brand-50">
+      <nav className="flex border-b border-brand-200">
         {['chats', 'plan', 'config'].map(tab => {
           const active = activeTab === tab;
           return (
             <button
               key={tab}
               onClick={() => onTabChange(tab as any)}
-              className={`flex-1 py-2.5 text-sm font-medium relative transition-colors ${active ? 'text-brand-600' : 'text-neutral-500 hover:text-neutral-700'}`}
+              className={`flex-1 py-3 text-sm font-medium relative transition-all ${active ? 'text-brand-900' : 'text-brand-600 hover:text-brand-800'}`}
             >
               {getTabLabel(tab)}
-              {active && <span className="absolute left-1/2 -translate-x-1/2 -bottom-px h-0.5 w-8 bg-gradient-to-r from-brand-600 to-brand-400 rounded-full" />}
+              {active && <span className="absolute left-1/2 -translate-x-1/2 -bottom-px h-0.5 w-12 bg-brand-900 rounded-full" />}
             </button>
           );
         })}
       </nav>
-      <div className={`flex-1 overflow-y-auto ${activeTab === 'chats' ? '' : 'p-4 space-y-4'} scrollbar-thin scrollbar-thumb-neutral-300/70`}>
+      <div className={`flex-1 overflow-y-auto ${activeTab === 'chats' ? '' : 'p-4 space-y-4'} scrollbar-thin scrollbar-thumb-brand-300`}>
         {getTabContent()}
       </div>
     </aside>

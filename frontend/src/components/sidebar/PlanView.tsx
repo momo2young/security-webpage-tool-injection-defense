@@ -107,14 +107,14 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
   return (
     <div className="space-y-4 relative z-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-medium text-sm tracking-wide text-neutral-700">Plan Overview</h2>
+        <h2 className="font-semibold text-sm tracking-tight text-brand-900">Plan Overview</h2>
         <div className="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
           {combinedPlans.length > 1 && (
             <div className="relative w-full min-w-[8rem] sm:w-40">
               <select
                 value={selectedPlanKey ?? ''}
                 onChange={handleSelectChange}
-                className="relative z-20 w-full text-[11px] border border-neutral-200 rounded px-2 py-1 bg-white text-neutral-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-200 transition-all"
+                className="relative z-20 w-full text-[11px] border border-brand-200 rounded-md px-2 py-1.5 bg-white text-brand-700 hover:border-brand-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
               >
                 {combinedPlans.map(item => (
                   <option key={item.key} value={item.key}>{item.label}</option>
@@ -124,7 +124,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
           )}
           <button
             onClick={onRefresh}
-            className="shrink-0 px-2 py-1 text-[11px] text-brand-600 hover:text-brand-500 transition-all hover:scale-105 active:scale-95 mt-1 sm:mt-0"
+            className="shrink-0 px-2.5 py-1.5 text-[11px] text-brand-600 hover:text-brand-900 hover:bg-brand-100 rounded-md transition-all font-medium"
           >
             Refresh
           </button>
@@ -133,23 +133,22 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
 
       {plan ? (
         <>
-          <div className={`text-xs text-neutral-500 space-y-0.5 ${isNewPlan ? 'animate-fadeIn' : ''}`}>
+          <div className={`text-xs text-brand-500 space-y-0.5 ${isNewPlan ? 'animate-fadeIn' : ''}`}>
             <div>{isSnapshot ? 'Live Snapshot' : plan.id != null ? `Plan #${plan.id}` : 'Plan'}</div>
             {!isSnapshot && plan.versionKey && <div>· Version {plan.versionKey}</div>}
             {createdAtLabel && <div>· Created {createdAtLabel}</div>}
             {updatedAtLabel && <div>· Updated {updatedAtLabel}</div>}
           </div>
-          <div className={`text-sm font-semibold leading-snug text-neutral-900 ${isNewPlan ? 'animate-slideIn' : 'transition-all'}`}>
+          <div className={`text-sm font-semibold leading-snug text-brand-900 ${isNewPlan ? 'animate-slideIn' : 'transition-all'}`}>
             {plan.objective}
           </div>
-          <div className="w-full h-2 rounded bg-neutral-200 overflow-hidden relative shadow-sm">
+          <div className="w-full h-1.5 rounded-full bg-brand-200 overflow-hidden relative">
             <div
-              className="h-2 bg-gradient-to-r from-brand-600 to-brand-400 transition-all duration-700 ease-out will-change-[width]"
+              className="h-1.5 bg-brand-900 transition-all duration-700 ease-out will-change-[width]"
               style={{ width: `${progress * 100}%` }}
             />
-            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(120deg,rgba(255,255,255,0)_0%,rgba(255,255,255,.4)_50%,rgba(255,255,255,0)_100%)] bg-[length:200%_100%] animate-shimmer" />
           </div>
-          <div className={`text-[11px] text-neutral-500 ${isNewPlan ? 'animate-fadeIn' : 'transition-all'}`}>
+          <div className={`text-[11px] text-brand-500 ${isNewPlan ? 'animate-fadeIn' : 'transition-all'}`}>
             {completed}/{totalTasks} tasks completed
           </div>
           <ul className="space-y-2 text-[11px]">
@@ -159,28 +158,28 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
               return (
                 <li 
                   key={task.id ?? `${getPlanKey(plan)}-${task.number}`} 
-                  className={`bg-white/70 rounded border border-neutral-200 p-2.5 transition-all hover:shadow-md hover:border-neutral-300 ${isNewPlan ? 'animate-slideIn' : ''}`}
+                  className={`bg-white rounded-lg border border-brand-200 p-2.5 transition-all hover:border-brand-300 hover:shadow-sm ${isNewPlan ? 'animate-slideIn' : ''}`}
                   style={{ animationDelay }}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <span className="font-medium text-neutral-800 flex-1">{task.number}. {task.description}</span>
+                    <span className="font-medium text-brand-800 flex-1">{task.number}. {task.description}</span>
                     <span className={`shrink-0 text-xs transition-all ${task.status === 'in_progress' ? 'animate-pulse' : ''}`}>
                       {statusIcons[task.status] || '❓'}
                     </span>
                   </div>
-                  {task.note && <div className="mt-1 italic text-neutral-500 text-[10px]">{task.note}</div>}
+                  {task.note && <div className="mt-1 italic text-brand-500 text-[10px]">{task.note}</div>}
                 </li>
               );
             })}
           </ul>
         </>
       ) : (
-        <div className="text-xs text-neutral-500">Select a version to view details.</div>
+        <div className="text-xs text-brand-500">Select a version to view details.</div>
       )}
 
       {otherPlans.length > 0 && (
-        <div className="border-t border-neutral-200 pt-3">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-neutral-500 mb-2">Other Versions</div>
+        <div className="border-t border-brand-200 pt-3 mt-2">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-500 mb-2">Other Versions</div>
           <ul className="space-y-1.5 text-[11px]">
             {otherPlans.map((item, idx) => {
               const label = item.label;
@@ -191,20 +190,20 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
               return (
                 <li 
                   key={item.key} 
-                  className="flex items-center justify-between gap-3 rounded border border-neutral-200 bg-white/70 px-2.5 py-1.5 transition-all hover:shadow-md hover:border-brand-200 hover:bg-white"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-brand-200 bg-white px-2.5 py-2 transition-all hover:border-brand-300 hover:shadow-sm"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-neutral-700 truncate">{label}</div>
-                    <div className="text-[10px] text-neutral-500">
+                    <div className="font-medium text-brand-700 truncate text-[11px]">{label}</div>
+                    <div className="text-[10px] text-brand-500 mt-0.5">
                       {objectiveLines.length ? objectiveLines.map((line, idx) => (
                         <span key={idx} className="block truncate">{line}</span>
                       )) : <span className="block truncate">No objective text</span>}
                     </div>
                   </div>
-                  <div className="text-[10px] text-neutral-500 whitespace-nowrap mr-2">{otherCompleted}/{otherPlan.tasks.length} tasks</div>
+                  <div className="text-[10px] text-brand-500 whitespace-nowrap mr-2">{otherCompleted}/{otherPlan.tasks.length}</div>
                   <button
                     onClick={() => onSelectPlan(item.key)}
-                    className="text-[10px] text-brand-600 hover:text-brand-500 transition-all hover:scale-110 active:scale-95 font-medium"
+                    className="text-[10px] text-brand-600 hover:text-brand-900 hover:bg-brand-100 px-2 py-1 rounded transition-all font-medium"
                   >
                     View
                   </button>
