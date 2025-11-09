@@ -195,9 +195,9 @@ const MarkdownRenderer = (props: { content: string }) => {
             const text = String(pArg.children?.[0] || '');
             if (text.startsWith('Step: ') && text.includes('tokens')) {
               return (
-                <p className="text-[10px] text-brutal-black border-t-3 border-brutal-black pt-3 mt-4 font-mono font-bold break-words whitespace-pre-wrap m-0 bg-neutral-100 -mx-5 px-5 pb-2">
-                  <span className="inline-block mr-1">▸</span>
-                  {pArg.children}
+                <p className="flex items-center gap-3 text-xs sm:text-sm text-brutal-black border-4 border-brutal-black pt-4 pb-3 mt-6 font-mono font-black break-words whitespace-pre-wrap m-0 bg-brutal-yellow -mx-5 px-5 shadow-brutal-sm uppercase tracking-wider">
+                  <span aria-hidden="true" className="text-lg leading-none">▣</span>
+                  <span className="flex-1">{pArg.children}</span>
                 </p>
               );
             }
