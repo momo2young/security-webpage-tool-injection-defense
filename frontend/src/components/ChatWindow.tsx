@@ -502,6 +502,11 @@ export const ChatWindow: React.FC = () => {
           const blocks = isUser ? [{ type: 'markdown', content: m.content } as { type: 'markdown'; content: string; lang?: string }] : splitAssistantContent(m.content);
           
           const alignClass = isUser ? 'justify-end' : 'justify-start';
+          const isStreamingAgentMessage = !isUser && streamingForCurrentChat && idx === safeMessages.length - 1;
+          const eyeClass = isStreamingAgentMessage ? 'robot-eye robot-eye-blink' : 'robot-eye robot-eye-idle';
+          const rightEyeStyle = !isUser
+            ? (isStreamingAgentMessage ? undefined : { animationDelay: '1.8s' })
+            : undefined;
           
           return (
             <div key={idx} className="w-full flex flex-col">
@@ -539,10 +544,10 @@ export const ChatWindow: React.FC = () => {
                   <div className={`group w-full max-w-3xl break-words overflow-visible space-y-0 text-sm leading-relaxed relative`}>
                     {/* AI Assistant Label - Bold & Brutalist */}
                     <div className="inline-flex items-center gap-2 bg-brutal-black text-brutal-white px-3 py-1 font-bold text-xs tracking-wider border-3 border-brutal-black mb-0 animate-brutal-pop">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <svg className={`w-4 h-4 ${isStreamingAgentMessage ? 'robot-streaming' : ''}`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <rect x="2" y="2" width="20" height="20" rx="3" fill="#000000" stroke="currentColor" strokeWidth="3" />
-                        <rect x="5.5" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
-                        <rect x="13.5" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
+                        <rect className={eyeClass} x="5.5" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
+                        <rect className={eyeClass} style={rightEyeStyle} x="13.5" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
                       </svg>
                       <span>AGENT</span>
                     </div>

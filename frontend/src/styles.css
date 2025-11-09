@@ -71,6 +71,50 @@ code {
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(4px);} to { opacity:1; transform: translateY(0);} }
 .group { animation: fadeInUp 0.25s ease; }
 
+/* Robot eye blink animation for streaming indicator */
+.robot-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes robotEyeBlink {
+  0%, 80%, 100% { transform: scaleY(1); }
+  85% { transform: scaleY(0.2); }
+  90% { transform: scaleY(1); }
+}
+
+.robot-eye-blink {
+  animation: robotEyeBlink 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes robotEyeIdleBlink {
+  0%, 94%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.25); }
+  98% { transform: scaleY(1); }
+}
+
+.robot-eye-idle {
+  animation: robotEyeIdleBlink 6.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.robot-streaming {
+  transform-origin: center;
+  animation: robotStreamingMotion 1.4s cubic-bezier(0.65, -0.2, 0.2, 1.2) infinite;
+}
+
+@keyframes robotStreamingMotion {
+  0% { transform: translateY(0) scale(1) rotate(0deg); }
+  10% { transform: translateY(-3px) scale(1.05) rotate(0deg); }
+  20% { transform: translateY(1px) scale(0.98) rotate(0deg); }
+  30% { transform: translateY(-2.5px) scale(1.04) rotate(0deg); }
+  40% { transform: translateY(0) scale(1) rotate(0deg); }
+  55% { transform: translateY(-3px) scale(1.06) rotate(0deg); }
+  65% { transform: translateY(-3px) scale(1.06) rotate(360deg); }
+  75% { transform: translateY(0.5px) scale(0.99) rotate(360deg); }
+  85% { transform: translateY(-2px) scale(1.03) rotate(360deg); }
+  100% { transform: translateY(0) scale(1) rotate(360deg); }
+}
+
 /* Improved button responsiveness */
 .btn-responsive {
   transition: all 0.1s ease-out;
