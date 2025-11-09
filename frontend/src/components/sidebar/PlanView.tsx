@@ -29,13 +29,20 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
   const prevPlanKeyRef = React.useRef<string | null>(null);
 
   const combinedPlans = React.useMemo(() => {
-    const items: Array<{ label: string; plan: Plan; key: string; kind: 'snapshot' | 'current' | 'history' }> = [];
+    const items: Array<{ label: string; shortLabel: string; plan: Plan; key: string; kind: 'snapshot' | 'current' | 'history' }> = [];
     const seenKeys = new Set<string>();
+    
+    const truncateLabel = (label: string, maxLength: number = 30) => {
+      return label.length > maxLength ? label.substring(0, maxLength) + '...' : label;
+    };
+    
     if (snapshotPlan) {
       const key = snapshotPlan.versionKey;
       const timestamp = formatTimestamp(snapshotPlan.updatedAt || snapshotPlan.createdAt);
+      const fullLabel = `Live Snapshot • ${describePlan(snapshotPlan)}${timestamp ? ` • ${timestamp}` : ''}`;
       items.push({
-        label: `Live Snapshot • ${describePlan(snapshotPlan)}${timestamp ? ` • ${timestamp}` : ''}`,
+        label: fullLabel,
+        shortLabel: truncateLabel(fullLabel),
         key,
         plan: snapshotPlan,
         kind: 'snapshot',
@@ -46,8 +53,10 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
       const key = getPlanKey(currentPlan);
       if (!seenKeys.has(key)) {
       const timestamp = formatTimestamp(currentPlan.updatedAt || currentPlan.createdAt);
+      const fullLabel = `Current • ${describePlan(currentPlan)}${timestamp ? ` • ${timestamp}` : ''}`;
       items.push({
-        label: `Current • ${describePlan(currentPlan)}${timestamp ? ` • ${timestamp}` : ''}`,
+        label: fullLabel,
+        shortLabel: truncateLabel(fullLabel),
         key,
         plan: currentPlan,
         kind: 'current',
@@ -59,8 +68,10 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
       const key = getPlanKey(entry);
       if (!seenKeys.has(key)) {
         const timestamp = formatTimestamp(entry.updatedAt || entry.createdAt);
+        const fullLabel = `Plan ${entry.id ?? index + 1} • ${describePlan(entry)}${timestamp ? ` • ${timestamp}` : ''}`;
         items.push({
-          label: `Plan ${entry.id ?? index + 1} • ${describePlan(entry)}${timestamp ? ` • ${timestamp}` : ''}`,
+          label: fullLabel,
+          shortLabel: truncateLabel(fullLabel),
           key,
           plan: entry,
           kind: 'history',
@@ -109,14 +120,15 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
         <h2 className="font-brutal text-sm tracking-tight text-brutal-black uppercase">Plan Overview</h2>
         <div className="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
           {combinedPlans.length > 1 && (
-            <div className="relative w-full min-w-[8rem] sm:w-40">
+            <div className="relative w-full min-w-[8rem] sm:max-w-[16rem]">
               <select
                 value={selectedPlanKey ?? ''}
                 onChange={handleSelectChange}
-                className="relative z-20 w-full text-xs border-3 border-brutal-black px-2 py-1.5 bg-brutal-white text-brutal-black font-bold uppercase hover:bg-neutral-100 focus:outline-none"
+                className="relative z-20 w-full max-w-full text-xs border-3 border-brutal-black px-2 py-1.5 bg-brutal-white text-brutal-black font-bold uppercase hover:bg-neutral-100 focus:outline-none overflow-hidden text-ellipsis"
+                style={{ maxWidth: '100%' }}
               >
                 {combinedPlans.map(item => (
-                  <option key={item.key} value={item.key}>{item.label}</option>
+                  <option key={item.key} value={item.key} title={item.label}>{item.shortLabel}</option>
                 ))}
               </select>
             </div>
