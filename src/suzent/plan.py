@@ -41,12 +41,12 @@ class Plan:
 
     def to_markdown(self, hide_completed: bool = False, newly_completed_step: Optional[int] = None) -> str:
         """Converts the plan to a markdown string."""
-        # Status icons for visual clarity
+        # Neo-brutalist status indicators
         status_icons = {
-            "pending": "⏳",
-            "in_progress": "🔄",
-            "completed": "✓",
-            "failed": "✗"
+            "pending": "[ ]",
+            "in_progress": "[~]",
+            "completed": "[x]",
+            "failed": "[!]"
         }
         
         # Show progress summary if hiding completed tasks
@@ -54,11 +54,11 @@ class Plan:
             completed_count = sum(1 for t in self.tasks if t.status == "completed")
             remaining_count = len(self.tasks) - completed_count
             if completed_count > 0:
-                markdown = f"**{self.objective}** — {remaining_count} remaining ({completed_count} done)\n\n"
+                markdown = f"### {self.objective}\n*{remaining_count} remaining • {completed_count} done*\n\n"
             else:
-                markdown = f"**{self.objective}**\n\n"
+                markdown = f"### {self.objective}\n\n"
         else:
-            markdown = f"**{self.objective}**\n\n"
+            markdown = f"### {self.objective}\n\n"
         
         visible_tasks = []
         
@@ -66,19 +66,19 @@ class Plan:
             if hide_completed and task.status == "completed" and task.number != newly_completed_step:
                 continue
             
-            icon = status_icons.get(task.status, "•")
-            # Show step number in brackets to clarify it's the original step ID
-            task_item = f"**[{task.number}]** {icon} {task.description}"
+            icon = status_icons.get(task.status, "[ ]")
+            # Clean list format
+            task_item = f"{icon} **{task.number}.** {task.description}"
             
             if task.note:
-                task_item += f"\n      *{task.note}*"
+                task_item += f"\n    > *{task.note}*"
             
             visible_tasks.append(task_item)
         
         markdown += "\n".join(visible_tasks)
         
         return markdown
-
+        
     def first_pending(self) -> Optional['Task']:
         for t in self.tasks:
             if t.status == "pending":
