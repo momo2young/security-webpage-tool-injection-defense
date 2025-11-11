@@ -119,7 +119,7 @@ def get_memory_manager():
     return memory_manager
 
 
-def create_agent(config: Dict[str, Any]) -> CodeAgent:
+def create_agent(config: Dict[str, Any], memory_context: Optional[str] = None) -> CodeAgent:
     """
     Creates an agent based on the provided configuration.
     
@@ -240,27 +240,9 @@ def create_agent(config: Dict[str, Any]) -> CodeAgent:
     base_instructions = config.get("instructions", CONFIG.instructions)
     instructions = format_instructions(base_instructions)
 
-    # Inject memory context if memory system is enabled
-    if memory_manager:
-        chat_id = config.get("_chat_id")  # Optional chat ID for context
-        user_id = config.get("_user_id", "default")  # Optional user ID
-        try:
-            import asyncio
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Create task for later awaiting
-                memory_context = None
-            else:
-                memory_context = loop.run_until_complete(
-                    memory_manager.format_core_memory_for_context(
-                        chat_id=chat_id,
-                        user_id=user_id
-                    )
-                )
-                if memory_context:
-                    instructions = f"{instructions}\n\n{memory_context}"
-        except Exception as e:
-            logger.warning(f"Could not inject memory context: {e}")
+    # Inject memory context if provided (fetched in async context by get_or_create_agent)
+    if memory_context:
+        instructions = f"{instructions}\n\n{memory_context}"
 
     agent = agent_class(
         model=model,
@@ -389,22 +371,39 @@ def deserialize_agent(agent_data: bytes, config: Dict[str, Any]) -> Optional[Cod
 async def get_or_create_agent(config: Dict[str, Any], reset: bool = False) -> CodeAgent:
     """
     Get the current agent instance or create a new one if needed.
-    
+
     Args:
         config: Agent configuration dictionary.
         reset: If True, force creation of a new agent instance.
-    
+
     Returns:
         Agent instance ready for use.
     """
     global agent_instance, agent_config
-    
+
     async with agent_lock:
         # Re-create agent if config changes, reset requested, or not initialized
         if agent_instance is None or config != agent_config or reset:
-            agent_instance = create_agent(config)
+            # Fetch memory context if memory system is enabled (in async context)
+            memory_context = None
+            if memory_manager:
+                chat_id = config.get("_chat_id")
+                user_id = config.get("_user_id", "default-user")
+                try:
+                    memory_context = await memory_manager.format_core_memory_for_context(
+                        chat_id=chat_id,
+                        user_id=user_id
+                    )
+                    if memory_context:
+                        logger.debug(f"Fetched core memory context for user={user_id}")
+                except Exception as e:
+                    logger.error(f"Error fetching memory context: {e}")
+                    memory_context = None
+
+            # Pass memory context to create_agent
+            agent_instance = create_agent(config, memory_context=memory_context)
             agent_config = config
-        
+
         return agent_instance
 
 

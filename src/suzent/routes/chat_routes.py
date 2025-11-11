@@ -133,6 +133,10 @@ async def chat(request: Request) -> StreamingResponse:
                     import json
                     yield f'data: {json.dumps({"type": "images_processed", "data": images_data})}\n\n'
 
+                # Inject user_id and chat_id into config for memory system
+                config['_user_id'] = 'default-user'  # TODO: Multi-user support
+                config['_chat_id'] = chat_id
+
                 # Get or create agent with specified configuration
                 agent_instance = await get_or_create_agent(config, reset=reset)
 
@@ -180,7 +184,6 @@ async def chat(request: Request) -> StreamingResponse:
                         memory_mgr = get_memory_manager()
 
                         if memory_mgr:
-                            logger.info(f"Starting memory extraction for chat {chat_id}")
                             # Process the user's message for memory extraction
                             import asyncio
                             user_message = {"role": "user", "content": message}
@@ -193,15 +196,13 @@ async def chat(request: Request) -> StreamingResponse:
                                         chat_id=chat_id,
                                         user_id="default-user"  # TODO: Add multi-user support
                                     )
-                                    logger.info(f"Memory extraction completed for chat {chat_id}: {result}")
+                                    logger.debug(f"Memory extraction completed for chat {chat_id}: {result}")
                                 except Exception as e:
-                                    logger.error(f"Memory extraction failed: {e}", exc_info=True)
+                                    logger.error(f"Memory extraction failed: {e}")
 
                             asyncio.create_task(extract_memory())
-                        else:
-                            logger.warning("Memory manager not initialized, skipping extraction")
                     except Exception as e:
-                        logger.error(f"Memory extraction error: {e}", exc_info=True)
+                        logger.debug(f"Memory extraction skipped: {e}")
 
             except Exception as e:
                 traceback.print_exc()

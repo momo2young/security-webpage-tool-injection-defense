@@ -95,7 +95,11 @@ class MemoryManager:
         user_id: Optional[str] = None
     ) -> str:
         """Format core memory as text for prompt injection."""
-        blocks = await self.get_core_memory(chat_id=chat_id, user_id=user_id)
+        try:
+            blocks = await self.get_core_memory(chat_id=chat_id, user_id=user_id)
+        except Exception as e:
+            logger.error(f"Error getting core memory blocks: {e}")
+            return ""
 
         memory_section = f"""
 ## Your Memory System

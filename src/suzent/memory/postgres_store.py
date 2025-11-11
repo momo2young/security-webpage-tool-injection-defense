@@ -78,17 +78,25 @@ class PostgresMemoryStore:
         user_id: Optional[str] = None
     ) -> Dict[str, str]:
         """Get all core memory blocks as a dictionary."""
-        async with self.pool.acquire() as conn:
-            rows = await conn.fetch("""
-                SELECT DISTINCT ON (label) label, content
-                FROM memory_blocks
-                WHERE
-                    (chat_id IS NULL OR chat_id = $1)
-                    AND (user_id IS NULL OR user_id = $2)
-                ORDER BY label, created_at DESC
-            """, chat_id, user_id)
+        try:
+            if not self.pool:
+                logger.error("PostgreSQL pool is None - connection not established")
+                return {}
 
-            return {row['label']: row['content'] for row in rows}
+            async with self.pool.acquire() as conn:
+                rows = await conn.fetch("""
+                    SELECT DISTINCT ON (label) label, content
+                    FROM memory_blocks
+                    WHERE
+                        (chat_id IS NULL OR chat_id = $1)
+                        AND (user_id IS NULL OR user_id = $2)
+                    ORDER BY label, created_at DESC
+                """, chat_id, user_id)
+
+                return {row['label']: row['content'] for row in rows}
+        except Exception as e:
+            logger.error(f"Error fetching memory blocks: {e}")
+            return {}
 
     async def set_memory_block(
         self,
