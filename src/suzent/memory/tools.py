@@ -5,9 +5,11 @@ Memory tools exposed to agents.
 from smolagents import Tool
 from typing import Dict, Any
 from datetime import datetime
-from loguru import logger
 
+from suzent.logger import get_logger
 from .manager import MemoryManager
+
+logger = get_logger(__name__)
 
 
 class MemorySearchTool(Tool):

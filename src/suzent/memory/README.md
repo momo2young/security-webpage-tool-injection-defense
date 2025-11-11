@@ -1,255 +1,125 @@
-# Memory System# Memory System - Proof of Concept
+# Memory System - Proof of Concept
 
+Letta-style memory system for Suzent with dual-tier memory architecture.
 
+## Features Implemented
 
-Letta-style memory system for Suzent with dual-tier memory architecture.This is a proof-of-concept implementation of the Letta-style memory system for Suzent.
+**Core Memory Blocks** - Always-visible working memory
+- Persona, User, Facts, Context blocks
+- Update operations (replace, append, search_replace)
+- Automatically injected into agent context
 
-
-
-## Features## Features Implemented
-
-
-
-✅ **Core Memory Blocks** - Always-visible working memory (persona, user, facts, context)  ✅ **Core Memory Blocks** - Always-visible working memory
-
-✅ **Archival Memory** - Unlimited long-term storage with semantic search  - Persona, User, Facts, Context blocks
-
-✅ **Automatic Fact Extraction** - Heuristic-based extraction (POC)  - Update operations (replace, append, search_replace)
-
-✅ **Agent Tools** - `memory_search` and `memory_block_update`  
-
-✅ **PostgreSQL + pgvector** - Single database with ACID transactions  ✅ **Archival Memory** - Unlimited long-term storage
-
+**Archival Memory** - Unlimited long-term storage
 - Vector embeddings for semantic search
-
-## Quick Start- Hybrid search (semantic + full-text)
-
+- Hybrid search (semantic + full-text)
 - Importance scoring and access tracking
+
+**Automatic Fact Extraction** - Simplified heuristic-based (POC)
+- Pattern matching for preferences, personal info, goals
+- Automatic storage of important facts
+
+**Agent Tools** - Only 2 tools exposed
+- `memory_search` - Recall memories semantically
+- `memory_block_update` - Update core memory blocks
+
+**PostgreSQL + pgvector** - Single database solution
+- ACID transactions
+- Vector similarity search with HNSW index
+- Full-text search with tsvector
+
+## Architecture
+
+```
+┌─────────────────────────────────────────┐
+│           Agent Tools                    │
+│  • memory_search                         │
+│  • memory_block_update                   │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│         MemoryManager                    │
+│  • Core memory formatting                │
+│  • Archival search                       │
+│  • Automatic extraction                  │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│      PostgresMemoryStore                 │
+│  • Vector operations (pgvector)          │
+│  • Hybrid search                         │
+│  • Memory CRUD                           │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│      PostgreSQL + pgvector               │
+│  • memory_blocks table                   │
+│  • archival_memories table               │
+│  • Vector indexes (HNSW)                 │
+└──────────────────────────────────────────┘
+```
+
+## Quick Start
 
 ### 1. Setup Database
 
-✅ **Automatic Fact Extraction** - Simplified heuristic-based (POC)
+Using Docker (recommended):
 
-```bash- Pattern matching for preferences, personal info, goals
-
-# Using Docker (recommended)- Automatic storage of important facts
-
+```bash
 docker run -d \
-
-  --name suzent-postgres \✅ **Agent Tools** - Only 2 tools exposed
-
-  -e POSTGRES_USER=suzent \- `memory_search` - Recall memories semantically
-
-  -e POSTGRES_PASSWORD=password \- `memory_block_update` - Update core memory blocks
-
+  --name suzent-postgres \
+  -e POSTGRES_USER=suzent \
+  -e POSTGRES_PASSWORD=password \
   -e POSTGRES_DB=suzent \
-
-  -p 5430:5432 \✅ **PostgreSQL + pgvector** - Single database solution
-
-  pgvector/pgvector:pg18- ACID transactions
-
-- Vector similarity search with HNSW index
-
-# Run setup script- Full-text search with tsvector
-
-./scripts/setup_memory_db.sh  # or .ps1 on Windows
-
-```## Architecture
-
-
-
-### 2. Configure Environment```
-
-┌─────────────────────────────────────────┐
-
-```bash│           Agent Tools                    │
-
-# .env file│  • memory_search                         │
-
-POSTGRES_HOST=127.0.0.1│  • memory_block_update                   │
-
-POSTGRES_PORT=5430└─────────────────┬───────────────────────┘
-
-POSTGRES_DB=suzent                  │
-
-POSTGRES_USER=suzent┌─────────────────▼───────────────────────┐
-
-POSTGRES_PASSWORD=password│         MemoryManager                    │
-
-│  • Core memory formatting                │
-
-# Embedding model API key│  • Archival search                       │
-
-OPENAI_API_KEY=sk-xxx  # or other provider│  • Automatic extraction                  │
-
-```└─────────────────┬───────────────────────┘
-
-                  │
-
-### 3. Install Dependencies┌─────────────────▼───────────────────────┐
-
-│      PostgresMemoryStore                 │
-
-```bash│  • Vector operations (pgvector)          │
-
-uv sync --all-extras│  • Hybrid search                         │
-
-```│  • Memory CRUD                           │
-
-└─────────────────┬───────────────────────┘
-
-### 4. Run Demo                  │
-
-┌─────────────────▼───────────────────────┐
-
-```bash│      PostgreSQL + pgvector               │
-
-python -m suzent.memory.demo│  • memory_blocks table                   │
-
-```│  • archival_memories table               │
-
-│  • Vector indexes (HNSW)                 │
-
-## Architecture└──────────────────────────────────────────┘
-
+  -p 5430:5432 \
+  pgvector/pgvector:pg18
 ```
 
+Run setup script:
+
+```bash
+# Linux/macOS
+./scripts/setup_memory_db.sh
+
+# Windows
+.\scripts\setup_memory_db.ps1
 ```
 
-Agent Tools (memory_search, memory_block_update)## Setup
+### 2. Configure Environment
 
-              ↓
+Add to your `.env` file:
 
-      MemoryManager### 1. Install PostgreSQL with pgvector
+```bash
+# PostgreSQL Configuration
+POSTGRES_HOST=127.0.0.1
+POSTGRES_PORT=5430
+POSTGRES_DB=suzent
+POSTGRES_USER=suzent
+POSTGRES_PASSWORD=password
 
-              ↓
+# Embedding Model API Key
+OPENAI_API_KEY=sk-xxx  # or other provider
+```
 
-   PostgresMemoryStore```bash
+### 3. Install Dependencies
 
-              ↓# Ubuntu/Debian
+```bash
+uv sync
+```
 
-PostgreSQL + pgvectorsudo apt install postgresql postgresql-contrib
+### 4. Run Demo
 
-```sudo apt install postgresql-14-pgvector
+```bash
+python -m suzent.memory.demo
+```
 
+## Usage
 
-
-## Usage# macOS
-
-brew install postgresql pgvector
+### Basic Operations
 
 ```python
+from suzent.memory import MemoryManager, PostgresMemoryStore
 
-from suzent.memory import MemoryManager, PostgresMemoryStore# Or use Docker
-
-docker run -d \
-
-# Initialize  --name suzent-postgres \
-
-store = PostgresMemoryStore(connection_string)  -e POSTGRES_USER=suzent \
-
-await store.connect()  -e POSTGRES_PASSWORD=password \
-
-manager = MemoryManager(store=store)  -e POSTGRES_DB=suzent \
-
-  -p 5432:5432 \
-
-# Get core memory  ankane/pgvector
-
-blocks = await manager.get_core_memory(user_id="user-123")```
-
-
-
-# Search archival memory### 2. Initialize Database Schema
-
-results = await manager.search_memories(
-
-    query="What are user's preferences?",```bash
-
-    user_id="user-123",# Connect to PostgreSQL
-
-    limit=5psql -U suzent -d suzent
-
-)
-
-# Run the schema file
-
-# Update core memory\i src/suzent/memory/schema.sql
-
-await manager.update_memory_block(```
-
-    label="facts",
-
-    content="User prefers dark mode",Or from command line:
-
-    user_id="user-123"
-
-)```bash
-
-```psql -U suzent -d suzent -f src/suzent/memory/schema.sql
-
-```
-
-## File Structure
-
-### 3. Install Python Dependencies
-
-```
-
-memory/```bash
-
-├── __init__.py           # Module exportsuv sync --extra memory
-
-├── postgres_store.py     # PostgreSQL + pgvector operations```
-
-├── manager.py            # Memory orchestration
-
-├── embeddings.py         # Embedding generation (LiteLLM)### 4. Set Environment Variables
-
-├── tools.py              # Agent tools
-
-├── schema.sql            # Database schema```bash
-
-├── demo.py               # Demo scriptexport 
-
-└── README.md             # This fileexport OPENAI_API_KEY="your-key-here"  # For embeddings
-
-``````
-
-
-
-## Documentation## Usage
-
-
-
-- **[Quick Start Guide](../../../docs/MEMORY_QUICKSTART.md)** - Step-by-step setup### Run the Demo
-
-- **[Design Document](../../../docs/MEMORY_SYSTEM_DESIGN.md)** - Full architecture
-
-- **[Letta (MemGPT)](https://github.com/letta-ai/letta)** - Inspiration```bash
-
-# From project root
-
-## Limitations (POC)python -m suzent.memory.demo
-
-```
-
-This is a proof-of-concept with simplified implementations:
-
-### Integrate with Agent
-
-- **Fact extraction**: Simple heuristics (needs LLM-based extraction)
-
-- **Conflict detection**: Not implemented```python
-
-- **Memory consolidation**: Not implementedfrom suzent.memory import MemoryManager, PostgresMemoryStore
-
-- **Relationship graphs**: Not implementedfrom suzent.memory import MemorySearchTool, MemoryBlockUpdateTool
-
-
-
-See the design document for production requirements.# 1. Initialize
-
+# 1. Initialize
 store = PostgresMemoryStore(connection_string)
 await store.connect()
 
@@ -258,11 +128,34 @@ manager = MemoryManager(
     embedding_model="text-embedding-3-small"
 )
 
-# 2. Create tools for agent
+# 2. Get core memory
+blocks = await manager.get_core_memory(user_id="user-123")
+
+# 3. Search archival memory
+results = await manager.search_memories(
+    query="What are user's preferences?",
+    user_id="user-123",
+    limit=5
+)
+
+# 4. Update core memory
+await manager.update_memory_block(
+    label="facts",
+    content="User prefers dark mode",
+    user_id="user-123"
+)
+```
+
+### Integrate with Agent
+
+```python
+from suzent.memory import MemorySearchTool, MemoryBlockUpdateTool
+
+# 1. Create tools for agent
 search_tool = MemorySearchTool(manager)
 update_tool = MemoryBlockUpdateTool(manager)
 
-# Inject context
+# 2. Inject context
 search_tool._user_id = "user-123"
 update_tool._user_id = "user-123"
 

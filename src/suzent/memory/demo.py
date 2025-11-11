@@ -19,14 +19,16 @@ Usage:
 import asyncio
 import os
 from pathlib import Path
-from loguru import logger
 
+from suzent.logger import get_logger
 from suzent.memory import (
     MemoryManager,
     PostgresMemoryStore,
     MemorySearchTool,
     MemoryBlockUpdateTool
 )
+
+logger = get_logger(__name__)
 
 # Load .env file
 try:

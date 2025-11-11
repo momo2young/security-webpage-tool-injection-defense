@@ -4,10 +4,12 @@ Embedding generation for memory content using LiteLLM.
 
 from typing import List
 import asyncio
-from loguru import logger
 import litellm
 
 from suzent.config import CONFIG
+from suzent.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Drop unsupported parameters when calling embedding APIs
 litellm.drop_params = True

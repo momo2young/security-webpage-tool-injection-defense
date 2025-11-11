@@ -4,10 +4,12 @@ Memory Manager - orchestrates core and archival memory operations.
 
 from typing import Dict, List, Any, Optional
 import json
-from loguru import logger
 
+from suzent.logger import get_logger
 from .postgres_store import PostgresMemoryStore
 from .embeddings import EmbeddingGenerator
+
+logger = get_logger(__name__)
 
 class MemoryManager:
     """Central memory management service.
