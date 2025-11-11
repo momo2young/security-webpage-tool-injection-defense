@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgvector for memory system
+  postgres:
+    container_name: suzent-postgres
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-suzent}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ultra_secret}
+      - POSTGRES_DB=${POSTGRES_DB:-suzent}
+    ports:
+      - "${POSTGRES_PORT:-5430}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../src/suzent/memory/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      - suzent-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-suzent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis for SearXNG caching
+  redis:
+    container_name: suzent-redis
+    image: docker.io/valkey/valkey:8-alpine
+    command: valkey-server --save 30 1 --loglevel warning
+    restart: unless-stopped
+    networks:
+      - suzent-network
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # SearXNG privacy-respecting metasearch engine
+  searxng:
+    container_name: suzent-searxng
+    image: docker.io/searxng/searxng:latest
+    restart: unless-stopped
+    networks:
+      - suzent-network
+    ports:
+      - "${SEARXNG_PORT:-2077}:8080"
+    volumes:
+      - ./searxng:/etc/searxng:rw
+      - searxng-data:/var/cache/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=${SEARXNG_BASE_URL:-http://localhost:2077/}
+      - SEARXNG_SECRET=${SEARXNG_SECRET:-}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  suzent-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  searxng-data:
+    driver: local
