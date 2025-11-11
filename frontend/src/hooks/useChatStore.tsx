@@ -632,6 +632,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [currentChatId, messagesByChat, configByChat, computeDefaultConfig, generateChatTitle, refreshChatList, clearScheduledSave]);
 
   const loadChat = useCallback(async (chatId: string) => {
+    // Clear any pending saves for the previous chat before switching
+    if (currentChatId && currentChatId !== chatId) {
+      clearScheduledSave(currentChatId);
+    }
+
     const key = keyForChat(chatId);
     setCurrentChatId(chatId);
     setShouldResetNext(false);
@@ -680,7 +685,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error loading chat:', error);
     }
-  }, [chats, configByChat]);  const deleteChat = useCallback(async (chatId: string) => {
+  }, [chats, configByChat, currentChatId, clearScheduledSave]);  const deleteChat = useCallback(async (chatId: string) => {
     try {
       const res = await fetch(`/api/chats/${chatId}`, { method: 'DELETE' });
       if (res.ok) {
