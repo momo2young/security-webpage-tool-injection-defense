@@ -185,7 +185,6 @@ memory/
 ├── __init__.py           # Module exports
 ├── postgres_store.py     # PostgreSQL + pgvector operations
 ├── manager.py            # Memory orchestration
-├── embeddings.py         # Embedding generation
 ├── tools.py              # Agent-facing tools
 ├── schema.sql            # Database schema
 ├── demo.py               # Proof-of-concept demo
