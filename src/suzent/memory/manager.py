@@ -22,7 +22,7 @@ DEFAULT_IMPORTANCE = 0.5
 
 # Deduplication and extraction settings
 DEDUPLICATION_SEARCH_LIMIT = 3
-DEDUPLICATION_SIMILARITY_THRESHOLD = 0.9
+DEDUPLICATION_SIMILARITY_THRESHOLD = 0.85
 LLM_EXTRACTION_TEMPERATURE = 1.0
 
 class MemoryManager:
@@ -245,11 +245,13 @@ class MemoryManager:
             # For each fact, check if it already exists
             for fact in facts:
                 # Search for similar existing memories
+                # Use pure semantic similarity for deduplication to get a 'similarity' score
                 similar = await self.search_memories(
                     query=fact["content"],
                     limit=DEDUPLICATION_SEARCH_LIMIT,
                     user_id=user_id,
-                    chat_id=None  # Search user-level memories
+                    chat_id=None,  # Search user-level memories
+                    use_hybrid=False
                 )
 
                 if similar and similar[0].get('similarity', 0) > DEDUPLICATION_SIMILARITY_THRESHOLD:

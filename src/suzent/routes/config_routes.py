@@ -31,5 +31,6 @@ async def get_config(request: Request) -> JSONResponse:
         "tools": CONFIG.tool_options,
         "defaultTools": CONFIG.default_tools,
         "codeTag": CONFIG.code_tag,
+        "userId": CONFIG.user_id,
     }
     return JSONResponse(data)

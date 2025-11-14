@@ -189,6 +189,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (res.ok) {
           const data: ConfigOptions = await res.json();
           setBackendConfig(data);
+          // Align memory user id with backend-provided userId if present
+          try {
+            if (data.userId) {
+              // Lazy import to avoid circulars; memory hook standalone
+              const { useMemory } = await import('./useMemory');
+              useMemory.getState().setUserId(data.userId);
+            }
+          } catch (e) {
+            console.warn('Failed to set memory userId from backend config:', e);
+          }
           const firstConfig: ChatConfig = {
             model: data.models[0] || '',
             agent: data.agents[0] || '',

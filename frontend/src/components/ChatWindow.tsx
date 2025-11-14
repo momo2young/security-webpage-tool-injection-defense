@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypePrism from 'rehype-prism-plus';
 import { usePlan } from '../hooks/usePlan';
+import { useMemory } from '../hooks/useMemory';
 
 // Helper to normalize Python code indentation
 function normalizePythonCode(code: string): string {
@@ -233,6 +234,7 @@ export const ChatWindow: React.FC = () => {
     activeStreamingChatId,
   } = useChatStore();
   const { refresh: refreshPlan, applySnapshot: applyPlanSnapshot } = usePlan();
+  const { loadCoreMemory, loadStats } = useMemory();
   const [input, setInput] = useState('');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -433,6 +435,9 @@ export const ChatWindow: React.FC = () => {
                 console.error('Error in forceSaveNow from onStreamComplete:', error);
               }
             }, 200);
+            // Refresh memory views so core blocks reflect tool updates
+            // Fetch user-level blocks (persona/user/facts) since those persist across chats
+            try { loadCoreMemory(); loadStats(); } catch {}
           },
           onStreamStopped: () => {
             setIsStreaming(false, chatIdForSend);

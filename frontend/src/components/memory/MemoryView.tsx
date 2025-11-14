@@ -21,7 +21,7 @@ export const MemoryView: React.FC = () => {
   } = useMemory();
 
   useEffect(() => {
-    loadCoreMemory();
+    loadCoreMemory(); // No chatId - loads user-level blocks for Memory tab view
     loadStats();
   }, []);
 

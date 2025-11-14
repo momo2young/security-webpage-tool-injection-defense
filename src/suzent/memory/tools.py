@@ -215,9 +215,13 @@ Returns:
             user_id = getattr(self, '_user_id', CONFIG.user_id)
             chat_id = getattr(self, '_chat_id', None)
 
-            # Get current content
+            # Decide scope: 'context' is chat-specific, others are user-level
+            # This ensures persona/user/facts persist across all conversations
+            update_chat_id = chat_id if block == 'context' else None
+
+            # Get current content (read from chat-specific or user-level)
             current_blocks = await self.memory_manager.get_core_memory(
-                chat_id=chat_id,
+                chat_id=chat_id,  # Read prioritizes chat-specific
                 user_id=user_id
             )
             current_content = current_blocks.get(block, "")
@@ -237,11 +241,11 @@ Returns:
             else:
                 return f"Error: Unknown operation '{operation}'. Use 'replace', 'append', or 'search_replace'"
 
-            # Update the block
+            # Update the block (write to user-level for persistence, except 'context')
             success = await self.memory_manager.update_memory_block(
                 label=block,
                 content=new_content,
-                chat_id=chat_id,
+                chat_id=update_chat_id,  # None for persona/user/facts, chat_id for context
                 user_id=user_id
             )
 

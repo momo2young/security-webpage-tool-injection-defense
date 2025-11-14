@@ -16,8 +16,12 @@ export const memoryApi = {
   /**
    * Get all core memory blocks
    */
-  async getCoreMemory(userId: string = 'default-user'): Promise<CoreMemoryBlocks> {
-    const response = await fetch(`${API_BASE}/core?user_id=${encodeURIComponent(userId)}`);
+  async getCoreMemory(userId: string = 'default-user', chatId?: string | null): Promise<CoreMemoryBlocks> {
+    const params = new URLSearchParams({ user_id: userId });
+    if (chatId) {
+      params.set('chat_id', chatId);
+    }
+    const response = await fetch(`${API_BASE}/core?${params}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch core memory: ${response.statusText}`);
     }

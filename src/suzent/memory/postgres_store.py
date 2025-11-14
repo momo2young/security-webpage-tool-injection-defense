@@ -84,13 +84,27 @@ class PostgresMemoryStore:
                 return {}
 
             async with self.pool.acquire() as conn:
+                # Priority: chat-specific > user-level > global (NULL user_id)
+                # Within each tier, most recent wins
                 rows = await conn.fetch("""
                     SELECT DISTINCT ON (label) label, content
                     FROM memory_blocks
                     WHERE
                         (chat_id IS NULL OR chat_id = $1)
                         AND (user_id IS NULL OR user_id = $2)
-                    ORDER BY label, created_at DESC
+                    ORDER BY 
+                        label,
+                        CASE 
+                            WHEN chat_id = $1 THEN 1
+                            WHEN chat_id IS NULL THEN 2
+                            ELSE 3
+                        END,
+                        CASE
+                            WHEN user_id = $2 THEN 1
+                            WHEN user_id IS NULL THEN 2
+                            ELSE 3
+                        END,
+                        created_at DESC
                 """, chat_id, user_id)
 
                 return {row['label']: row['content'] for row in rows}

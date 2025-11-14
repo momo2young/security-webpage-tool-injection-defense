@@ -33,7 +33,7 @@ interface MemoryState {
 
   // Actions
   setUserId: (userId: string) => void;
-  loadCoreMemory: () => Promise<void>;
+  loadCoreMemory: (chatId?: string | null) => Promise<void>;
   updateCoreMemoryBlock: (label: CoreMemoryLabel, content: string) => Promise<void>;
   loadArchivalMemories: (query?: string, append?: boolean) => Promise<void>;
   deleteArchivalMemory: (memoryId: string) => Promise<void>;
@@ -62,10 +62,10 @@ export const useMemory = create<MemoryState>((set, get) => ({
     set({ userId });
   },
 
-  loadCoreMemory: async () => {
+  loadCoreMemory: async (chatId?: string | null) => {
     set({ coreMemoryLoading: true, coreMemoryError: null });
     try {
-      const blocks = await memoryApi.getCoreMemory(get().userId);
+      const blocks = await memoryApi.getCoreMemory(get().userId, chatId);
       set({ coreMemory: blocks, coreMemoryLoading: false });
     } catch (error) {
       set({
