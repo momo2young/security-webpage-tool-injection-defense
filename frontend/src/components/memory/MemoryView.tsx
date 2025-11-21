@@ -95,24 +95,7 @@ export const MemoryView: React.FC = () => {
   }
 
   return (
-    <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-offset-top memory-scroll px-4 md:px-8 pb-8 space-y-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 animate-brutal-drop border-b-3 border-brutal-black pb-6">
-        <div>
-          <h2 className="font-brutal text-4xl uppercase tracking-tight text-brutal-black mb-2">
-            Memory System
-          </h2>
-          <p className="text-neutral-600 font-mono text-sm">
-            // LONG_TERM_STORAGE_ACCESS_TERMINAL
-          </p>
-        </div>
-        {/* Auto-refresh indicator instead of manual button */}
-        <div className="flex items-center gap-2 text-xs font-mono text-neutral-400">
-          <div className={`w-2 h-2 rounded-full ${isStreaming ? 'bg-brutal-yellow animate-pulse' : 'bg-brutal-green'}`}></div>
-          <span>{isStreaming ? 'SYNCING...' : 'SYSTEM_READY'}</span>
-        </div>
-      </div>
-
+    <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-offset-top memory-scroll px-4 md:px-8 py-8 space-y-8 max-w-7xl mx-auto">
       {/* Stats Dashboard */}
       <section>
         <MemoryStatsComponent stats={stats} isLoading={statsLoading} />

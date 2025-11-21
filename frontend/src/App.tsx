@@ -9,13 +9,13 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { PlanProvider, usePlan } from './hooks/usePlan';
 import { ChatProvider, useChatStore } from './hooks/useChatStore.js';
 
-const HeaderTitle: React.FC = () => {
+const HeaderTitle: React.FC<{ text?: string }> = ({ text }) => {
   const { backendConfig } = useChatStore();
   return (
     <div className="flex items-center gap-3">
       <div className="w-3 h-3 bg-brutal-black"></div>
       <h1 className="font-brutal text-3xl text-brutal-black tracking-tighter uppercase leading-none">
-        {backendConfig?.title || 'SUZENT'}
+        {text || backendConfig?.title || 'SUZENT'}
       </h1>
       <div className="w-3 h-3 bg-brutal-black"></div>
     </div>
@@ -97,8 +97,8 @@ const AppInner: React.FC = () => {
           configContent={<ConfigView />}
         />
         <div className="flex-1 flex flex-col">
-          <header className="border-b-4 border-brutal-black px-6 py-5 flex items-center justify-between bg-brutal-white shadow-[0_4px_0_0_#000000]">
-            <HeaderTitle />
+          <header className="border-b-3 border-brutal-black px-6 py-5 flex items-center justify-between bg-brutal-white">
+            {mainView === 'chat' ? <HeaderTitle /> : <HeaderTitle text="MEMORY SYSTEM" />}
             <div className="flex gap-2">
               <button
                 onClick={() => setMainView('chat')}
