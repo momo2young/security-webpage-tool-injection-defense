@@ -17,12 +17,14 @@ class WebpageTool(Tool):
     }
     output_type: str = "string"
 
-    def __init__(self):
-        self.crawler = AsyncWebCrawler()
+    async def _crawl_url(self, url: str) -> str:
+        """Async helper to properly initialize and use the crawler."""
+        async with AsyncWebCrawler() as crawler:
+            result = await crawler.arun(url=url)
+            return result.markdown if result else "Error: Unable to retrieve content from the specified URL."
 
     def forward(self, url: str) -> str:
-        result = asyncio.run(self.crawler.arun(url=url))
-        return result.markdown if result else "Error: Unable to retrieve content from the specified URL."
+        return asyncio.run(self._crawl_url(url))
 
 
         
