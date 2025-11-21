@@ -18,13 +18,41 @@ export interface StreamCallbacks {
 // Detect if agent is using code tags (CodeAgent) or structured tool calls (ToolCallingAgent)
 let detectedAgentType: 'code' | 'toolcalling' | null = null;
 
-interface ContentBlock { type: 'markdown' | 'code'; content: string }
+interface ContentBlock { 
+  type: 'markdown' | 'code' | 'log'; 
+  content: string;
+  title?: string; // For log blocks
+}
+
+function escapeHtml(unsafe: string) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatLogContent(content: any): string {
+  if (typeof content === 'string') return escapeHtml(content);
+  try {
+    return escapeHtml(JSON.stringify(content, null, 2));
+  } catch {
+    return escapeHtml(String(content));
+  }
+}
 
 function assembleForStorage(blocks: ContentBlock[], isInCodeBlock: boolean): string {
   // Build markdown incrementally; keep final code block open if still streaming
   return blocks
     .map((b, i) => {
       if (b.type === 'markdown') return b.content;
+      
+      if (b.type === 'log') {
+        // Reconstruct the HTML details block for storage
+        return `\n\n<details><summary>${b.title || 'Details'}</summary>\n\n<pre><code class="language-text">${b.content}</code></pre>\n\n</details>\n\n`;
+      }
+
       const isLast = i === blocks.length - 1;
       // Preserve whitespace in code blocks - only check if empty
       const cleanContent = String(b.content || '');
@@ -253,7 +281,15 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
         const output = data?.output || data?.observation || '';
         
         if (output && !data?.is_final_answer) {
-          blocks[blocks.length - 1].content += `\n\n<details><summary>📦 Tool Output: \`${toolName}\`</summary>\n\n\`\`\`\n${output}\n\`\`\`\n\n</details>`;
+          const escapedOutput = formatLogContent(output);
+          // Push a log block instead of appending HTML string
+          if (isInCodeBlock) { isInCodeBlock = false; blocks.push({ type: 'markdown', content: '' }); }
+          blocks.push({ 
+            type: 'log', 
+            content: escapedOutput, 
+            title: `📦 Tool Output: \`${toolName}\`` 
+          });
+          blocks.push({ type: 'markdown', content: '' });
           emitDiff();
         }
       } else if (type === 'action') {
@@ -272,7 +308,15 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
             const splitObs = observations.split(/Last output from code snippet:\s*/i);
             observations = splitObs[0].trimEnd();
             if (observations) {
-              actionMarkdown += `\n\n<details><summary>📝 Execution Logs</summary>\n\n${observations}\n\n</details>`;
+              const escapedObs = formatLogContent(observations);
+              // Push a log block
+              if (isInCodeBlock) { isInCodeBlock = false; blocks.push({ type: 'markdown', content: '' }); }
+              blocks.push({ 
+                type: 'log', 
+                content: escapedObs, 
+                title: 'Execution Logs' 
+              });
+              blocks.push({ type: 'markdown', content: '' });
             }
           } else {
             // ToolCallingAgent: plain observation text
@@ -303,7 +347,8 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
         if (output && !data?.is_final_answer) {
           flushPendingIfAny();
           if (isInCodeBlock) { isInCodeBlock = false; blocks.push({ type: 'markdown', content: '' }); }
-          blocks[blocks.length - 1].content += `\n\n**Result:** ${output}\n\n`;
+          const outputStr = typeof output === 'object' ? JSON.stringify(output, null, 2) : output;
+          blocks[blocks.length - 1].content += `\n\n**Result:**\n\`\`\`text\n${outputStr}\n\`\`\`\n\n`;
           emitDiff();
         }
       } else if (type === 'error') {
