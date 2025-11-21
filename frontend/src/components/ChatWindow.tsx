@@ -265,16 +265,16 @@ const MarkdownRenderer = (props: { content: string }) => {
         components={{
           details(p: any) {
             return (
-              <details className="group border-4 border-brutal-black bg-neutral-900 my-6 shadow-brutal-lg open:shadow-none open:translate-x-[4px] open:translate-y-[4px] transition-all overflow-hidden">
+              <details className="group border-3 border-brutal-black bg-white my-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] open:shadow-none open:translate-x-[2px] open:translate-y-[2px] transition-all overflow-hidden">
                 {p.children}
               </details>
             );
           },
           summary(p: any) {
             return (
-              <summary className="cursor-pointer font-mono font-bold p-3 bg-brutal-black text-white border-b-4 border-brutal-black group-open:border-b-4 list-none flex items-center justify-between select-none hover:bg-neutral-800 transition-colors uppercase tracking-wider text-xs">
+              <summary className="cursor-pointer font-mono font-bold p-3 bg-brutal-black text-white border-b-3 border-brutal-black group-open:border-b-3 list-none flex items-center justify-between select-none hover:bg-neutral-800 transition-colors uppercase tracking-wider text-xs">
                 <div className="flex items-center gap-3">
-                  <span className="text-brutal-yellow transform group-open:rotate-90 transition-transform inline-block">►</span>
+                  <span className="text-white transform group-open:rotate-90 transition-transform inline-block">►</span>
                   <span>{p.children}</span>
                 </div>
                 <span className="text-[10px] text-neutral-400 group-open:hidden">CLICK TO EXPAND</span>
@@ -285,8 +285,8 @@ const MarkdownRenderer = (props: { content: string }) => {
           pre(p: any) {
             // Special handling for pre tags inside details (logs)
             return (
-              <div className="bg-neutral-900 p-4 overflow-x-auto">
-                <pre className="font-mono text-xs text-green-400 leading-relaxed whitespace-pre-wrap break-all">
+              <div className="bg-neutral-50 p-4 overflow-x-auto">
+                <pre className="font-mono text-xs text-brutal-black leading-relaxed whitespace-pre-wrap break-all">
                   {p.children}
                 </pre>
               </div>
@@ -333,7 +333,7 @@ const MarkdownRenderer = (props: { content: string }) => {
             }
             return <p className="leading-relaxed break-words whitespace-pre-wrap m-0">{pArg.children}</p>;
           },
-          blockquote(p: any) { return <blockquote className="border-l-4 border-brand-600/30 pl-3 italic text-neutral-600 break-words">{p.children}</blockquote>; }
+          blockquote(p: any) { return <blockquote className="border-l-4 border-brutal-black pl-3 italic text-neutral-600 break-words bg-neutral-50 py-1 pr-2">{p.children}</blockquote>; }
         }}
       >
   {sanitized}

@@ -141,7 +141,7 @@ export const ConfigView: React.FC = () => {
         <select
           value={config.model}
           onChange={e => update({ model: e.target.value })}
-          className="w-full bg-brutal-white border-3 border-brutal-black px-3 py-2 font-bold text-sm focus:outline-none"
+          className="w-full bg-white border-3 border-brutal-black px-3 py-2 font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow duration-200"
         >
           {backendConfig.models.map((m: string) => <option key={m} value={m}>{m}</option>)}
         </select>
@@ -151,7 +151,7 @@ export const ConfigView: React.FC = () => {
         <select
           value={config.agent}
           onChange={e => update({ agent: e.target.value })}
-          className="w-full bg-brutal-white border-3 border-brutal-black px-3 py-2 font-bold text-sm focus:outline-none"
+          className="w-full bg-white border-3 border-brutal-black px-3 py-2 font-bold text-sm focus:outline-none focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow duration-200"
         >
           {backendConfig.agents.map((a: string) => <option key={a} value={a}>{a}</option>)}
         </select>
@@ -174,10 +174,10 @@ export const ConfigView: React.FC = () => {
                 key={tool}
                 type="button"
                 onClick={() => toggleTool(tool)}
-                className={`px-2.5 py-1 border-2 text-xs font-bold uppercase ${
+                className={`px-2.5 py-1 border-3 text-xs font-bold uppercase transition-all duration-200 ${
                   active
-                    ? 'bg-brutal-green text-brutal-black border-brutal-black shadow-brutal-sm'
-                    : 'border-brutal-black text-brutal-black bg-brutal-white hover:bg-neutral-100'
+                    ? 'bg-brutal-green text-brutal-black border-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] translate-x-[-1px] translate-y-[-1px]'
+                    : 'border-brutal-black text-brutal-black bg-white hover:bg-brutal-yellow hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
                 }`}
               >
                 {tool}
@@ -190,7 +190,7 @@ export const ConfigView: React.FC = () => {
         <label className="block font-bold tracking-wide text-brutal-black uppercase">MCP Servers</label>
         <div className="space-y-2">
           <div className="flex gap-2 flex-wrap items-start">
-            <select value={addType} onChange={e => setAddType(e.target.value as 'url' | 'stdio')} className="w-20 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-bold text-xs focus:outline-none focus:shadow-brutal-sm">
+            <select value={addType} onChange={e => setAddType(e.target.value as 'url' | 'stdio')} className="w-20 bg-white border-3 border-brutal-black px-2 py-1 font-bold text-xs focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-shadow">
               <option value="url">URL</option>
               <option value="stdio">Stdio</option>
             </select>
@@ -198,14 +198,14 @@ export const ConfigView: React.FC = () => {
               value={srvName}
               onChange={e => setSrvName(e.target.value)}
               placeholder="Name"
-              className="w-28 shrink-0 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:shadow-brutal-sm"
+              className="w-28 shrink-0 bg-white border-3 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-shadow"
             />
             {addType === 'url' ? (
               <input
                 value={srvUrl}
                 onChange={e => setSrvUrl(e.target.value)}
                 placeholder="https://host/path"
-                className="flex-1 min-w-[140px] bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:shadow-brutal-sm"
+                className="flex-1 min-w-[140px] bg-white border-3 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-shadow"
               />
             ) : (
               <>
@@ -213,23 +213,23 @@ export const ConfigView: React.FC = () => {
                   value={stdioCmd}
                   onChange={e => setStdioCmd(e.target.value)}
                   placeholder="command"
-                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:shadow-brutal-sm"
+                  className="w-36 bg-white border-3 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-shadow"
                 />
                 <input
                   value={stdioArgs}
                   onChange={e => setStdioArgs(e.target.value)}
                   placeholder="args"
-                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:shadow-brutal-sm"
+                  className="w-36 bg-white border-3 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-shadow"
                 />
                 <input
                   value={stdioEnv}
                   onChange={e => setStdioEnv(e.target.value)}
                   placeholder="env"
-                  className="w-36 bg-brutal-white border-2 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:shadow-brutal-sm"
+                  className="w-36 bg-white border-3 border-brutal-black px-2 py-1 font-mono font-bold text-xs placeholder:opacity-40 focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-shadow"
                 />
               </>
             )}
-            <button type="button" onClick={addServer} className="shrink-0 px-3 py-1 bg-brutal-green border-2 border-brutal-black text-brutal-black text-xs font-bold uppercase disabled:opacity-50" disabled={addType === 'url' ? !srvUrl : !stdioCmd}>Add</button>
+            <button type="button" onClick={addServer} className="shrink-0 px-3 py-1 bg-brutal-green border-3 border-brutal-black text-brutal-black text-xs font-bold uppercase disabled:opacity-50 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none" disabled={addType === 'url' ? !srvUrl : !stdioCmd}>Add</button>
           </div>
           {servers.length === 0 && (
             <div className="text-[11px] text-brutal-black font-bold uppercase">
@@ -237,12 +237,12 @@ export const ConfigView: React.FC = () => {
             </div>
           )}
           <ul
-            className={`space-y-1 ${servers.length > 4 ? 'max-h-40 overflow-y-auto pr-1' : ''}`}
+            className={`space-y-2 ${servers.length > 4 ? 'max-h-40 overflow-y-auto pr-1' : ''}`}
             style={servers.length > 4 ? { scrollbarGutter: 'stable both-edges' } : undefined}
           >
             {servers.map(s => (
-              <li key={s.name} className="flex items-center gap-2 bg-brutal-white border-3 border-brutal-black px-2 py-1 group">
-                <input aria-label="Enable server" type="checkbox" checked={s.enabled} onChange={() => toggleServer(s.name)} disabled={loading} className="w-4 h-4 border-2 border-brutal-black" />
+              <li key={s.name} className="flex items-center gap-2 bg-white border-3 border-brutal-black px-2 py-1 group shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-transform">
+                <input aria-label="Enable server" type="checkbox" checked={s.enabled} onChange={() => toggleServer(s.name)} disabled={loading} className="w-4 h-4 border-2 border-brutal-black accent-brutal-black" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <div className="truncate font-bold text-brutal-black text-xs" title={s.name}>{s.name}</div>
@@ -262,7 +262,7 @@ export const ConfigView: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <button type="button" onClick={() => removeServer(s.name)} className="text-brutal-white bg-brutal-red border-2 border-brutal-black text-xs font-bold px-1" title="Remove" disabled={loading}>×</button>
+                <button type="button" onClick={() => removeServer(s.name)} className="text-white bg-brutal-red border-2 border-brutal-black text-xs font-bold px-1.5 py-0.5 hover:bg-red-600 transition-colors" title="Remove" disabled={loading}>×</button>
               </li>
             ))}
           </ul>

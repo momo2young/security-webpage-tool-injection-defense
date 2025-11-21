@@ -124,7 +124,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
               <select
                 value={selectedPlanKey ?? ''}
                 onChange={handleSelectChange}
-                className="relative z-20 w-full max-w-full text-xs border-3 border-brutal-black px-2 py-1.5 bg-brutal-white text-brutal-black font-bold uppercase hover:bg-neutral-100 focus:outline-none overflow-hidden text-ellipsis"
+                className="relative z-20 w-full max-w-full text-xs border-3 border-brutal-black px-2 py-1.5 bg-white text-brutal-black font-bold uppercase hover:bg-brutal-yellow focus:outline-none overflow-hidden text-ellipsis transition-colors duration-200"
                 style={{ maxWidth: '100%' }}
               >
                 {combinedPlans.map(item => (
@@ -147,7 +147,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
           <div className={`text-sm font-medium leading-snug text-brutal-black ${isNewPlan ? 'animate-brutal-drop' : ''}`}>
             {plan.objective}
           </div>
-          <div className="w-full h-2 bg-neutral-200 border-2 border-brutal-black overflow-hidden relative">
+          <div className="w-full h-3 bg-white border-3 border-brutal-black overflow-hidden relative shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             <div
               className="h-full bg-brutal-blue transition-all duration-300 linear will-change-[width]"
               style={{ width: `${progress * 100}%` }}
@@ -156,29 +156,31 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
           <div className={`text-[10px] text-brutal-black font-bold uppercase ${isNewPlan ? 'animate-brutal-slide' : ''}`}>
             {completed}/{totalTasks} tasks completed
           </div>
-          <ul className="space-y-2 text-[11px]">
+          <ul className="space-y-3 text-[11px]">
             {plan.tasks.map((task, index) => {
               const statusColors: Record<string, string> = {
-                pending: 'bg-neutral-200',
-                in_progress: 'bg-brutal-blue',
+                pending: 'bg-white',
+                in_progress: 'bg-brutal-blue text-white',
                 completed: 'bg-brutal-green',
-                failed: 'bg-brutal-red'
+                failed: 'bg-brutal-red text-white'
               };
               const animationDelay = isNewPlan ? `${index * 50}ms` : '0ms';
-              const bgColor = statusColors[task.status] || 'bg-neutral-200';
+              const bgColor = statusColors[task.status] || 'bg-white';
+              const textColor = (task.status === 'in_progress' || task.status === 'failed') ? 'text-white' : 'text-brutal-black';
+              
               return (
                 <li
                   key={task.id ?? `${getPlanKey(plan)}-${task.number}`}
-                  className={`${bgColor} border-3 border-brutal-black p-2.5 ${isNewPlan ? 'animate-brutal-drop' : ''}`}
+                  className={`${bgColor} border-3 border-brutal-black p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${isNewPlan ? 'animate-brutal-drop' : ''}`}
                   style={{ animationDelay }}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <span className="font-medium text-brutal-black flex-1 text-sm leading-snug">{task.number}. {task.description}</span>
-                    <span className={`shrink-0 text-[9px] font-bold text-brutal-black px-1.5 py-0.5 bg-brutal-black/10 border border-brutal-black ${task.status === 'in_progress' ? 'animate-brutal-blink' : ''}`}>
+                    <span className={`font-bold ${textColor} flex-1 text-sm leading-snug`}>{task.number}. {task.description}</span>
+                    <span className={`shrink-0 text-[9px] font-bold border-2 border-brutal-black px-1.5 py-0.5 bg-white text-brutal-black ${task.status === 'in_progress' ? 'animate-pulse' : ''}`}>
                       {task.status.toUpperCase()}
                     </span>
                   </div>
-                  {task.note && <div className="mt-2 text-brutal-black text-xs font-medium italic opacity-70 border-l-2 border-brutal-black pl-2">{task.note}</div>}
+                  {task.note && <div className={`mt-2 ${textColor} text-xs font-medium italic opacity-80 border-l-2 ${task.status === 'in_progress' || task.status === 'failed' ? 'border-white' : 'border-brutal-black'} pl-2`}>{task.note}</div>}
                 </li>
               );
             })}
@@ -191,7 +193,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
       {otherPlans.length > 0 && (
         <div className="border-t-3 border-brutal-black pt-3 mt-2">
           <div className="text-[10px] font-bold uppercase tracking-wide text-brutal-black mb-2">Other Versions</div>
-          <ul className="space-y-1.5 text-[11px]">
+          <ul className="space-y-2 text-[11px]">
             {otherPlans.map((item, idx) => {
               const label = item.label;
               const otherPlan = item.plan;
@@ -201,7 +203,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
               return (
                 <li
                   key={item.key}
-                  className="flex items-center justify-between gap-3 border-3 border-brutal-black bg-brutal-white px-2.5 py-2"
+                  className="flex items-center justify-between gap-3 border-3 border-brutal-black bg-white px-2.5 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-brutal-black truncate text-[11px]">{label}</div>
@@ -214,7 +216,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
                   <div className="text-xs text-brutal-black font-bold whitespace-nowrap mr-2">{otherCompleted}/{otherPlan.tasks.length}</div>
                   <button
                     onClick={() => onSelectPlan(item.key)}
-                    className="text-[11px] bg-brutal-yellow border-2 border-brutal-black px-2 py-1 font-bold uppercase text-brutal-black"
+                    className="text-[11px] bg-brutal-yellow border-2 border-brutal-black px-2 py-1 font-bold uppercase text-brutal-black hover:bg-white transition-colors"
                   >
                     View
                   </button>

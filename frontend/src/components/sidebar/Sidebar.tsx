@@ -47,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="w-80 border-r-4 border-brutal-black flex flex-col bg-neutral-100">
+    <aside className="w-80 border-r-3 border-brutal-black flex flex-col bg-neutral-50">
       <nav className="flex border-b-3 border-brutal-black">
         {['chats', 'plan', 'config'].map(tab => {
           const active = activeTab === tab;
@@ -55,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={tab}
               onClick={() => onTabChange(tab as any)}
-              className={`flex-1 py-3 text-xs font-bold uppercase relative active:animate-brutal-shake ${active ? 'bg-brutal-black text-brutal-white' : 'bg-neutral-100 text-brutal-black hover:bg-neutral-200 border-r-3 border-brutal-black last:border-r-0'}`}
+              className={`flex-1 py-3 text-xs font-bold uppercase relative transition-all duration-200 ${active ? 'bg-brutal-black text-white' : 'bg-white text-brutal-black hover:bg-brutal-yellow border-r-3 border-brutal-black last:border-r-0'}`}
             >
               {getTabLabel(tab)}
             </button>
@@ -63,9 +63,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
       <div
-        className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-brand-300 ${
-          animateContent ? 'sidebar-content-animate' : ''
-        }`}
+        className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-brutal-black scrollbar-track-neutral-200 ${
+          animateContent ? 'opacity-50' : 'opacity-100'
+        } transition-opacity duration-200`}
       >
         <div className={activeTab === 'chats' ? '' : 'hidden'} aria-hidden={activeTab !== 'chats'}>
           {mountedTabs.has('chats') ? chatsContent : null}
