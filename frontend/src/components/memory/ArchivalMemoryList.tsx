@@ -27,6 +27,7 @@ export const ArchivalMemoryList: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [importanceFilter, setImportanceFilter] = useState<ImportanceFilter>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
 
   // Debounce search query
   useEffect(() => {
@@ -103,24 +104,38 @@ export const ArchivalMemoryList: React.FC = () => {
           <h3 className="font-brutal text-lg uppercase tracking-tight text-brutal-black">
             Archival Memory
           </h3>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`px-3 py-1 border-2 border-brutal-black font-bold text-xs uppercase transition-all shadow-[2px_2px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
-              showFilters ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100'
-            }`}
-          >
-            {showFilters ? '▲' : '▼'} Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsCompact(!isCompact)}
+              className={`px-3 py-1 border-2 border-brutal-black font-bold text-xs uppercase transition-all shadow-[2px_2px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
+                isCompact ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100'
+              }`}
+              title={isCompact ? "Switch to Card View" : "Switch to Compact View"}
+            >
+              {isCompact ? '☰ List' : '☷ Cards'}
+            </button>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-3 py-1 border-2 border-brutal-black font-bold text-xs uppercase transition-all shadow-[2px_2px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${
+                showFilters ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100'
+              }`}
+            >
+              {showFilters ? '▲' : '▼'} Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}
         <div className="relative mb-3">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+            🔍
+          </div>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search memories... (try adding keywords)"
-            className="w-full px-3 py-2 pr-10 border-3 border-brutal-black rounded-none focus:outline-none focus:ring-4 focus:ring-brutal-black text-sm font-sans"
+            className="w-full pl-10 pr-10 py-2 border-3 border-brutal-black rounded-none focus:outline-none focus:ring-4 focus:ring-brutal-black text-sm font-sans transition-all"
             style={{ backgroundColor: '#ffffff', color: '#000000' }}
           />
           {searchQuery && (
@@ -268,13 +283,14 @@ export const ArchivalMemoryList: React.FC = () => {
       )}
 
       {/* Memory Cards */}
-      <div className="space-y-3">
+      <div className={isCompact ? "space-y-2" : "space-y-3"}>
         {processedMemories.map((memory) => (
           <MemoryCard
             key={memory.id}
             memory={memory}
             onDelete={deleteArchivalMemory}
             searchQuery={debouncedQuery}
+            compact={isCompact}
           />
         ))}
       </div>

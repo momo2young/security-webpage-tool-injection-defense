@@ -10,9 +10,10 @@ interface MemoryCardProps {
   memory: ArchivalMemory;
   onDelete: (memoryId: string) => Promise<void>;
   searchQuery?: string;
+  compact?: boolean;
 }
 
-export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, searchQuery }) => {
+export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, searchQuery, compact = false }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -48,15 +49,9 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, search
     }
   };
 
-  const getImportanceColor = (importance: number) => {
-    if (importance >= 0.8) return 'bg-brutal-red';
-    if (importance >= 0.5) return 'bg-brutal-yellow';
-    return 'bg-brutal-gray';
-  };
-
   const getImportanceLabel = (importance: number) => {
     if (importance >= 0.8) return 'HIGH';
-    if (importance >= 0.5) return 'MEDIUM';
+    if (importance >= 0.5) return 'MED';
     return 'LOW';
   };
 
@@ -99,6 +94,50 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, search
     ? memory.content.slice(0, 200) + '...'
     : memory.content;
 
+  if (compact) {
+    return (
+      <div className="border-2 border-brutal-black bg-white shadow-brutal-sm hover:bg-neutral-50 transition-all animate-brutal-drop group">
+        <div className="p-2 flex items-center gap-3">
+          {/* Importance Indicator */}
+          <div className={`w-1.5 h-8 flex-shrink-0 ${
+            memory.importance >= 0.8 ? 'bg-brutal-black' :
+            memory.importance >= 0.5 ? 'bg-neutral-400' : 'bg-neutral-200'
+          }`} title={`Importance: ${memory.importance.toFixed(2)}`}></div>
+
+          {/* Content Preview */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-neutral-800 truncate font-mono">
+              {highlightText(memory.content, searchQuery)}
+            </p>
+            <div className="flex items-center gap-2 text-[10px] text-neutral-500 mt-0.5">
+              <span className="font-bold uppercase">{formatDate(memory.created_at)}</span>
+              {category && <span>• {category}</span>}
+              {tags.length > 0 && <span>• #{tags[0]}</span>}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+             {!showConfirm ? (
+              <button
+                onClick={() => setShowConfirm(true)}
+                className="w-6 h-6 border border-brutal-black hover:bg-brutal-black hover:text-white flex items-center justify-center font-bold text-xs"
+                title="Delete"
+              >
+                ×
+              </button>
+            ) : (
+              <div className="flex gap-1">
+                <button onClick={() => setShowConfirm(false)} className="text-[10px] underline">No</button>
+                <button onClick={handleDelete} className="text-[10px] font-bold text-red-600 underline">Yes</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="border-3 border-brutal-black bg-white shadow-brutal hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all animate-brutal-drop">
       <div className="p-4">
@@ -106,27 +145,27 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, search
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex gap-2 flex-wrap items-center">
             {/* Importance text indicator */}
-            <span className="text-xs font-bold uppercase text-brutal-black">
-              {getImportanceLabel(memory.importance)} [{memory.importance.toFixed(2)}]
+            <span className="text-xs font-bold uppercase text-brutal-black bg-neutral-100 px-2 py-0.5 border border-brutal-black">
+              {getImportanceLabel(memory.importance)} {memory.importance.toFixed(2)}
             </span>
 
             {/* Category badge */}
             {category && (
-              <span className="px-2 py-0.5 border-2 border-brutal-black bg-white text-brutal-black text-xs font-bold uppercase">
+              <span className="px-2 py-0.5 border border-brutal-black bg-white text-brutal-black text-xs font-bold uppercase">
                 {category}
               </span>
             )}
 
             {/* Recent indicator */}
             {isRecent() && (
-              <span className="text-xs font-bold uppercase text-brutal-black">
+              <span className="text-xs font-bold uppercase text-brutal-black border border-brutal-black px-1 bg-yellow-200">
                 NEW
               </span>
             )}
 
             {/* Frequently accessed indicator */}
             {isFrequentlyAccessed && (
-              <span className="text-xs font-bold uppercase text-brutal-black">
+              <span className="text-xs font-bold uppercase text-white bg-brutal-black px-1">
                 HOT
               </span>
             )}
@@ -163,13 +202,13 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, search
 
         {/* Content */}
         <div className="mb-3">
-          <p className="text-sm text-neutral-800 leading-relaxed break-words">
+          <p className="text-sm text-neutral-800 leading-relaxed break-words font-mono">
             {highlightText(displayContent, searchQuery)}
           </p>
           {shouldTruncate && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="mt-2 text-xs font-bold text-brutal-blue hover:underline uppercase"
+              className="mt-2 text-xs font-bold text-brutal-black hover:underline uppercase border-b-2 border-transparent hover:border-brutal-black inline-block"
             >
               {isExpanded ? '▲ Show Less' : '▼ Show More'}
             </button>
@@ -177,25 +216,20 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, search
         </div>
 
         {/* Metadata row */}
-        <div className="flex items-center gap-4 text-xs text-neutral-600 flex-wrap mb-2">
+        <div className="flex items-center gap-4 text-xs text-neutral-600 flex-wrap mb-2 border-t-2 border-neutral-100 pt-2">
           <span className="flex items-center gap-1">
-            <span className="font-bold">Date:</span>
+            <span className="font-bold">CREATED:</span>
             {formatDate(memory.created_at)}
           </span>
 
           <span className="flex items-center gap-1">
-            <span className="font-bold">Imp:</span>
-            {memory.importance.toFixed(2)}
-          </span>
-
-          <span className="flex items-center gap-1">
-            <span className="font-bold">Views:</span>
+            <span className="font-bold">VIEWS:</span>
             {memory.access_count}
           </span>
 
           {memory.similarity !== undefined && (
-            <span className="flex items-center gap-1 text-brutal-black font-bold">
-              <span className="font-bold">Match:</span>
+            <span className="flex items-center gap-1 text-brutal-black font-bold bg-yellow-100 px-1">
+              <span className="font-bold">MATCH:</span>
               {(memory.similarity * 100).toFixed(0)}%
             </span>
           )}
@@ -203,11 +237,11 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, search
 
         {/* Tags */}
         {tags.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap mt-2">
             {tags.map((tag: string, idx: number) => (
               <span
                 key={idx}
-                className="px-2 py-1 border-2 border-brutal-black bg-white text-brutal-black text-xs font-bold uppercase cursor-default"
+                className="px-2 py-0.5 border border-brutal-black bg-neutral-50 text-brutal-black text-[10px] font-bold uppercase cursor-default"
               >
                 #{tag}
               </span>

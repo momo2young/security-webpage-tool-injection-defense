@@ -57,6 +57,7 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setEditContent(content);
@@ -94,6 +95,12 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
     setHasUnsavedChanges(false);
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const { title, description } = getLabelInfo(label);
   const characterCount = editContent.length;
   const isOverLimit = characterCount > maxLength;
@@ -125,12 +132,20 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
         </div>
         <div className="flex gap-2 flex-shrink-0">
           {!isEditing ? (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-3 py-1 border-2 border-brutal-black bg-white hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all"
-            >
-              ✏️ Edit
-            </button>
+            <>
+              <button
+                onClick={handleCopy}
+                className="px-3 py-1 border-2 border-brutal-black bg-white hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all"
+              >
+                {copied ? '✓ Copied' : '📋 Copy'}
+              </button>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-3 py-1 border-2 border-brutal-black bg-white hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all"
+              >
+                ✏️ Edit
+              </button>
+            </>
           ) : (
             <>
               <button
@@ -166,8 +181,13 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
         <div className="animate-brutal-drop">
           <textarea
             value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            className={`w-full min-h-[150px] p-3 border-3 rounded-none font-sans text-sm resize-y focus:outline-none focus:ring-4 transition-all scrollbar-thin ${
+            onChange={(e) => {
+              setEditContent(e.target.value);
+              // Auto-resize
+              e.target.style.height = 'auto';
+              e.target.style.height = e.target.scrollHeight + 'px';
+            }}
+            className={`w-full min-h-[150px] p-3 border-3 rounded-none font-mono text-sm resize-y focus:outline-none focus:ring-4 transition-all scrollbar-thin ${
               isOverLimit
                 ? 'border-brutal-black focus:ring-brutal-black'
                 : 'border-brutal-black focus:ring-brutal-black'
@@ -175,6 +195,10 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
             style={{ backgroundColor: '#ffffff', color: '#000000' }}
             placeholder={`Enter ${title.toLowerCase()}...`}
             autoFocus
+            onFocus={(e) => {
+               e.target.style.height = 'auto';
+               e.target.style.height = e.target.scrollHeight + 'px';
+            }}
           />
 
           {/* Character count with progress bar */}
@@ -197,7 +221,7 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
       ) : (
         <div className="prose prose-sm max-w-none">
           <pre
-            className="whitespace-pre-wrap font-sans text-sm p-3 border-3 border-brutal-black rounded-none break-words"
+            className="whitespace-pre-wrap font-mono text-sm p-3 border-3 border-brutal-black rounded-none break-words max-h-[400px] overflow-y-auto scrollbar-thin"
             style={{ backgroundColor: '#f9fafb', color: '#000000' }}
           >
             {content || (
