@@ -1,110 +1,154 @@
 # Suzent
 
-An AI agent chat application with persistent conversation management, web search capabilities, and task planning.
+An AI agent chat application with persistent conversations, task planning, web search, and optional long-term memory.
+
+**Stack**: Python (Starlette + smolagents) backend, React (TypeScript + Vite) frontend
 
 ## Features
 
-- **Persistent Chat Storage**: All conversations are automatically saved to a SQLite database
-- **Multi-Chat Management**: Create, switch between, and manage multiple chat sessions
-- **Auto-Save**: Messages are automatically saved as you chat
-- **Chat History**: Browse and continue previous conversations
-- **Real-time Planning**: AI agent can create and manage task plans
-- **Model Configuration**: Support for multiple AI models and agents
-- **Privacy-Focused Web Search**: Optional SearXNG integration for privacy-respecting search
-- **Extensible Tools**: Easy to add custom tools and capabilities
-
-## 📚 Documentation
-
-For detailed documentation, please see the [docs](./docs) folder:
+- **Persistent Chats** - Auto-saved conversations in SQLite
+- **Task Planning** - Real-time task tracking and status management
+- **Long-Term Memory** - Optional PostgreSQL + pgvector with semantic search
+- **Multi-Model Support** - OpenAI, Anthropic, DeepSeek, Qwen, Gemini
+- **Web Search** - Privacy-focused SearXNG integration or default search
+- **Streaming Responses** - Real-time SSE updates
+- **MCP Support** - Model Context Protocol server integration
+- **Extensible** - Easy to add custom tools
 
 
 ## Quick Start
 
-Create or modify `.env`
+**Prerequisites**: Python 3.10+, Node.js 18+, PostgreSQL (optional)
+
+### 1. Configure Environment
+
+Create `.env` file with at least one API key:
 
 ```bash
+# At least one AI API key required
 OPENAI_API_KEY=sk-xxx
+ANTHROPIC_API_KEY=sk-xxx
 DEEPSEEK_API_KEY=sk-xxx
 QWEN_API_KEY=xxx
 GEMINI_API_KEY=xxx
-ANTHROPIC_API_KEY=sk-xxx
 
-# Optional: Use SearXNG for privacy-focused web search
-# SEARXNG_BASE_URL=http://localhost:8080
+# Optional: SearXNG for privacy-focused search
+SEARXNG_BASE_URL=http://localhost:8080
 
-# Optional: Configure logging
-# LOG_LEVEL=INFO  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
-# LOG_FILE=suzent.log  # Uncomment to enable file logging
+# Optional: Memory system (requires PostgreSQL + pgvector)
+POSTGRES_HOST=localhost
+POSTGRES_USER=suzent
+POSTGRES_PASSWORD=your_password
+POSTGRES_DB=suzent
 ```
 
+### 2. Install Dependencies
 
-1. **Activate virtual environment:**
 ```bash
-.venv/Scripts/activate
+# Activate environment
+.venv/Scripts/activate  # Windows
+source .venv/bin/activate  # Linux/Mac
+
+# Install
+uv sync  # Base install
+uv sync --extra memory  # With memory system
+playwright install  # For WebpageTool
 ```
 
-2. **Install dependencies:**
-```bash
-uv sync
-playwright install
-```
+### 3. Run
 
-3. **Start the backend server:**
 ```bash
-python src/suzent/server.py
-```
+# Backend (terminal 1)
+python src/suzent/server.py  # Runs on :8000
 
-4. **Start the frontend (in a new terminal):**
-```bash
+# Frontend (terminal 2)
 cd frontend
 npm install  # First time only
-npm run dev
+npm run dev  # Runs on :5173
 ```
 
-5. **Open your browser to:** `http://localhost:5173`
+Open `http://localhost:5173`
 
-## 🛠️ Tools
+## Tools
 
-Suzent includes several powerful tools for the AI agent:
+- **WebSearchTool** - SearXNG or default web search with markdown formatting
+- **PlanningTool** - Task planning with status tracking (pending → in_progress → completed/failed)
+- **WebpageTool** - Fetch and extract web page content
+- **FileTool** - File read/write operations
+- **Memory Tools** (optional) - Semantic search and core memory updates
 
-### WebSearchTool
-- **Flexible Search**: Automatically uses SearXNG if configured, or falls back to default web search
-- **Privacy-Focused**: SearXNG provides meta-search without tracking
-- **Clean Output**: Results formatted in readable markdown
-- **Advanced Parameters**: Supports categories, language filters, time ranges, and pagination (SearXNG only)
+See [docs/tools.md](./docs/tools.md) for details and [docs/searxng-setup.md](./docs/searxng-setup.md) for SearXNG setup.
 
-### PlanningTool
-- **Structured Planning**: Create and manage task plans
-- **Context-Aware**: Plans are associated with specific chats
+## Storage
 
-### WebpageTool
-- **Content Retrieval**: Fetch and process web page content
+### SQLite (chats.db)
+- Auto-saved conversations with agent state
+- Plans and tasks tracking
+- Browse, continue, or delete chats from sidebar
 
-**For detailed tool documentation and SearXNG setup, see:**
-- [Tools Guide](./docs/tools.md)
-- [SearXNG Setup Guide](./docs/searxng-setup.md)
+### PostgreSQL Memory (Optional)
+Letta-style long-term memory with:
+- **Core Memory**: 4 blocks (persona, user, facts, context) always in agent context
+- **Archival Memory**: Unlimited semantic search with hybrid scoring
+- **Auto Fact Extraction**: Automatic deduplication from conversations
 
-## 💾 Chat Persistence
+## API Endpoints
 
-The application now includes full chat persistence:
+```
+POST   /chat                Stream agent response (SSE)
+POST   /chat/stop           Stop active stream
+GET    /chats               List all chats
+POST   /chats               Create new chat
+GET    /chats/{id}          Get chat with messages
+PUT    /chats/{id}          Update chat
+DELETE /chats/{id}          Delete chat
+GET    /plan                Get current plan
+GET    /plans               Get plan history
+GET    /config              Get configuration
+POST   /config              Update configuration
+GET    /mcp_servers         List MCP servers
+POST   /mcp_servers         Add MCP server
+```
 
-- **Database**: SQLite database (`chats.db`) stores all conversations
-- **Auto-save**: Messages are saved automatically as you chat
-- **Chat List**: View all your conversations in the sidebar "Chats" tab
-- **Continue Conversations**: Click any chat in the list to resume
-- **New Chats**: Click "New Chat" to start a fresh conversation
-- **Delete Chats**: Hover over a chat and click the trash icon to delete
+See [API Reference](./docs/api-reference.md) for details.
 
-## 🔌 API Endpoints
+## Architecture
 
-The backend provides these chat management endpoints:
+**Backend**: Starlette ASGI + smolagents + LiteLLM
+**Frontend**: React + TypeScript + Vite + Tailwind
+**Database**: SQLite (chats), PostgreSQL + pgvector (memory)
 
-- `GET /chats` - List all chats
-- `POST /chats` - Create a new chat
-- `GET /chats/{id}` - Get a specific chat
-- `PUT /chats/{id}` - Update a chat
-- `DELETE /chats/{id}` - Delete a chat
-- `GET /plan?chat_id={id}` - Get the plan for a specific chat
+```
+src/suzent/
+├── server.py         # ASGI app entry point
+├── agent_manager.py  # Agent lifecycle & serialization
+├── streaming.py      # SSE streaming
+├── database.py       # SQLite operations
+├── routes/           # API endpoints
+├── tools/            # Custom tools
+└── memory/           # Memory system
 
-For complete API documentation, see [API Reference](./docs/api-reference.md) (coming soon).
+frontend/src/
+├── lib/              # API & streaming clients
+├── hooks/            # React Context stores
+└── components/       # UI components
+```
+
+**Key Patterns**: Agent state persistence, tool context injection, hybrid threading for SSE, semantic memory search
+
+## Documentation
+
+- [AGENTS.md](./AGENTS.md) - Developer guide
+- [docs/tools.md](./docs/tools.md) - Tool documentation
+- [docs/searxng-setup.md](./docs/searxng-setup.md) - SearXNG setup
+- [docs/MEMORY_SYSTEM_DESIGN.md](./docs/MEMORY_SYSTEM_DESIGN.md) - Memory specs
+- [MEMORY_POC_SUMMARY.md](./MEMORY_POC_SUMMARY.md) - Memory implementation
+
+## Adding Tools
+
+1. Create `src/suzent/tools/yourtool_tool.py` inheriting `smolagents.tools.Tool`
+2. Define `name`, `description`, `inputs`, `output_type`, `forward()` method
+3. Register in `agent_manager.py` → `tool_module_map`
+
+See [AGENTS.md](./AGENTS.md) for full details.
 
