@@ -732,7 +732,7 @@ export const ChatWindow: React.FC = () => {
                           </svg>
                           <span>AGENT</span>
                         </div>
-                        <div className="bg-white border-3 border-brutal-black shadow-brutal-lg px-6 py-5 space-y-4 animate-brutal-drop relative z-0 -mt-3 pt-6">
+                        <div className={`bg-white border-3 border-brutal-black px-6 py-5 space-y-4 relative z-0 -mt-3 pt-6 ${isStreamingAgentMessage ? 'shadow-brutal-lg' : 'shadow-brutal-lg animate-brutal-drop'}`}>
                         {blocks.map((b, bi) => {
                           if (b.type === 'markdown') {
                             return <MarkdownRenderer key={bi} content={b.content} />;
@@ -754,8 +754,10 @@ export const ChatWindow: React.FC = () => {
                         })}
                         {/* end user/assistant content */}
                         {idx === safeMessages.length - 1 && streamingForCurrentChat && (
-                          <div className="mt-4 inline-block bg-brutal-black text-white px-3 py-1 font-mono text-xs font-bold uppercase tracking-widest">
-                            PROCESSING<span className="animate-pulse">_</span>
+                          <div className="mt-3 flex items-center gap-1.5">
+                            <span className="text-neutral-500 font-mono text-sm animate-brutal-blink">●</span>
+                            <span className="text-neutral-500 font-mono text-sm animate-brutal-blink" style={{ animationDelay: '0.3s' }}>●</span>
+                            <span className="text-neutral-500 font-mono text-sm animate-brutal-blink" style={{ animationDelay: '0.6s' }}>●</span>
                           </div>
                         )}
                         </div>

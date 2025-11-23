@@ -113,6 +113,32 @@ module.exports = {
           '0%, 100%': { transform: 'translateX(0)' },
           '25%': { transform: 'translateX(-2px)' },
           '75%': { transform: 'translateX(2px)' }
+        },
+        brutalSpinOuter: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' }
+        },
+        brutalSpinInner: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(-360deg)' }
+        },
+        brutalProgressSegment: {
+          '0%, 100%': {
+            backgroundColor: '#FFFFFF',
+            borderColor: '#000000'
+          },
+          '25%': {
+            backgroundColor: '#0066FF',
+            borderColor: '#FFFFFF'
+          },
+          '50%': {
+            backgroundColor: '#FFE666',
+            borderColor: '#000000'
+          },
+          '75%': {
+            backgroundColor: '#A8E6A3',
+            borderColor: '#FFFFFF'
+          }
         }
       },
       animation: {
@@ -126,7 +152,10 @@ module.exports = {
         'brutal-slide': 'brutalSlide 0.2s linear',
         'brutal-drop': 'brutalDrop 0.15s linear',
         'brutal-glitch': 'brutalGlitch 0.3s linear infinite',
-        'brutal-shake': 'brutalShake 0.2s linear'
+        'brutal-shake': 'brutalShake 0.2s linear',
+        'brutal-spin-outer': 'brutalSpinOuter 3s linear infinite',
+        'brutal-spin-inner': 'brutalSpinInner 2s linear infinite',
+        'brutal-progress': 'brutalProgressSegment 2s linear infinite'
       },
       fontFamily: {
         'mono': [
