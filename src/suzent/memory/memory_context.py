@@ -60,19 +60,25 @@ def format_retrieved_memories_section(memories: list, tag_important: bool = True
     if not memories:
         return ""
     
-    memory_context = "\n## Relevant Memories\n\n"
-    memory_context += "Based on the user's query, here are some memories from past conversations that might be relevant:\n\n"
-    
+    memory_context = """
+<memory>
+Based on the user's query below, here are some memories from past conversations that might be relevant:
+{relevant_memories}
+
+If not explicitly asked, do not reference these memories or perform any tasks related to them.
+</memory>
+"""
+    relevant_memories = ""
     for i, memory in enumerate(memories, 1):
         content = memory.get('content', '')
         importance = memory.get('importance', 0)
         
-        memory_context += f"{i}. {content}"
+        relevant_memories += f"{i}. {content}"
         if tag_important and importance > 0.7:
-            memory_context += " [Important]"
-        memory_context += "\n"
+            relevant_memories += " [Important]"
+        relevant_memories += "\n"
     
-    memory_context += "\n"
+    memory_context = memory_context.format(relevant_memories=relevant_memories.strip())
     return memory_context
 
 
