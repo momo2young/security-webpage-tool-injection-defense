@@ -30,6 +30,8 @@ interface ChatContextValue {
   forceSaveNow: (chatId?: string | null) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
   refreshChatList: () => Promise<void>;
+  setViewSwitcher?: (switcher: (view: 'chat' | 'memory') => void) => void;
+  switchToView?: (view: 'chat' | 'memory') => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -86,6 +88,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const saveTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
   const messagesByChatRef = useRef(messagesByChat);
   const configByChatRef = useRef(configByChat);
+  const viewSwitcherRef = useRef<((view: 'chat' | 'memory') => void) | null>(null);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -95,6 +98,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     configByChatRef.current = configByChat;
   }, [configByChat]);
+
+  const setViewSwitcher = useCallback((switcher: (view: 'chat' | 'memory') => void) => {
+    viewSwitcherRef.current = switcher;
+  }, []);
+
+  const switchToView = useCallback((view: 'chat' | 'memory') => {
+    if (viewSwitcherRef.current) {
+      viewSwitcherRef.current(view);
+    }
+  }, []);
 
   const getMessagesForChat = useCallback((chatId: string | null) => {
     const key = keyForChat(chatId);
@@ -751,7 +764,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       finalSave,
       forceSaveNow,
       deleteChat,
-      refreshChatList
+      refreshChatList,
+      setViewSwitcher,
+      switchToView
     }}>
       {children}
     </ChatContext.Provider>

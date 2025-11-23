@@ -26,13 +26,18 @@ const AppInner: React.FC = () => {
   const [sidebarTab, setSidebarTab] = useState<'chats' | 'plan' | 'config'>('chats');
   const [mainView, setMainView] = useState<'chat' | 'memory'>('chat');
   const { plan, plans, currentPlan, snapshotPlan, selectedPlanKey, selectPlan, refresh } = usePlan();
-  const { currentChatId } = useChatStore();
+  const { currentChatId, setViewSwitcher } = useChatStore();
   const prevSnapshotRef = React.useRef<{ key?: string; taskCount?: number }>({});
   const chatIdRef = React.useRef<string | null>(null);
 
   const handlePlanRefresh = React.useCallback(() => {
     refresh(currentChatId);
   }, [refresh, currentChatId]);
+
+  // Set view switcher in context so child components can switch views
+  React.useEffect(() => {
+    setViewSwitcher?.(setMainView);
+  }, [setViewSwitcher, setMainView]);
 
   // Load plan when chat changes
   React.useEffect(() => {
@@ -99,27 +104,41 @@ const AppInner: React.FC = () => {
         <div className="flex-1 flex flex-col">
           <header className="border-b-3 border-brutal-black px-6 py-5 flex items-center justify-between bg-brutal-white">
             {mainView === 'chat' ? <HeaderTitle /> : <HeaderTitle text="MEMORY SYSTEM" />}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setMainView('chat')}
-                className={`px-4 py-2 border-2 border-brutal-black font-bold text-xs uppercase transition-all ${
-                  mainView === 'chat'
-                    ? 'bg-brutal-black text-brutal-white'
-                    : 'bg-white hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] shadow-[2px_2px_0_0_#000000] active:shadow-none'
-                }`}
-              >
+            {/* Neo-brutalist physical toggle switch */}
+            <div className="relative flex items-center gap-3">
+              <span className={`text-xs font-bold uppercase transition-colors ${mainView === 'chat' ? 'text-brutal-black' : 'text-neutral-400'}`}>
                 Chat
-              </button>
+              </span>
               <button
-                onClick={() => setMainView('memory')}
-                className={`px-4 py-2 border-2 border-brutal-black font-bold text-xs uppercase transition-all ${
-                  mainView === 'memory'
-                    ? 'bg-brutal-black text-brutal-white'
-                    : 'bg-white hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] shadow-[2px_2px_0_0_#000000] active:shadow-none'
-                }`}
+                onClick={() => setMainView(mainView === 'chat' ? 'memory' : 'chat')}
+                className="relative w-20 h-10 bg-neutral-200 border-4 border-brutal-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] transition-all duration-200"
+                aria-label={`Switch to ${mainView === 'chat' ? 'memory' : 'chat'} view`}
               >
-                Memory
+                {/* Switch track grooves for physical feel */}
+                <div className="absolute inset-1 flex gap-0.5">
+                  <div className="flex-1 border-l-2 border-brutal-black/20"></div>
+                  <div className="flex-1 border-l-2 border-brutal-black/20"></div>
+                  <div className="flex-1 border-l-2 border-brutal-black/20"></div>
+                </div>
+                {/* Toggle knob */}
+                <div
+                  className={`absolute top-1 h-6 w-9 bg-brutal-black border-2 border-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out ${
+                    mainView === 'chat'
+                      ? 'left-1'
+                      : 'left-[calc(100%-2.375rem)]'
+                  }`}
+                >
+                  {/* Knob grip lines */}
+                  <div className="absolute inset-0 flex items-center justify-center gap-0.5">
+                    <div className="w-0.5 h-3 bg-white/40"></div>
+                    <div className="w-0.5 h-3 bg-white/40"></div>
+                    <div className="w-0.5 h-3 bg-white/40"></div>
+                  </div>
+                </div>
               </button>
+              <span className={`text-xs font-bold uppercase transition-colors ${mainView === 'memory' ? 'text-brutal-black' : 'text-neutral-400'}`}>
+                Memory
+              </span>
             </div>
           </header>
           {mainView === 'chat' ? (

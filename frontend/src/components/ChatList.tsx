@@ -3,14 +3,15 @@ import { useChatStore } from '../hooks/useChatStore';
 import { ChatSummary } from '../types/api';
 
 export const ChatList: React.FC = () => {
-  const { 
-    chats, 
-    loadingChats, 
+  const {
+    chats,
+    loadingChats,
     refreshingChats,
-    currentChatId, 
-    loadChat, 
+    currentChatId,
+    loadChat,
     beginNewChat,
-    deleteChat 
+    deleteChat,
+    switchToView
   } = useChatStore();
   
   const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
@@ -114,7 +115,13 @@ export const ChatList: React.FC = () => {
             {chats.map((chat: ChatSummary, idx: number) => (
               <div
                 key={chat.id}
-                onClick={() => loadChat(chat.id)}
+                onClick={() => {
+                  loadChat(chat.id);
+                  // Switch back to chat view when loading a chat
+                  if (switchToView) {
+                    switchToView('chat');
+                  }
+                }}
                 className={`group relative p-3 cursor-pointer transition-all duration-200 animate-brutal-drop ${
                   currentChatId === chat.id
                     ? 'bg-brutal-yellow border-3 border-brutal-black shadow-brutal translate-x-[-2px] translate-y-[-2px]'
