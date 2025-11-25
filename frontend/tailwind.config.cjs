@@ -104,6 +104,10 @@ module.exports = {
           '0%': { transform: 'translateY(-8px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' }
         },
+        viewFade: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' }
+        },
         brutalGlitch: {
           '0%, 100%': { transform: 'translate(0, 0)' },
           '33%': { transform: 'translate(-2px, 0)' },
@@ -155,7 +159,8 @@ module.exports = {
         'brutal-shake': 'brutalShake 0.2s linear',
         'brutal-spin-outer': 'brutalSpinOuter 3s linear infinite',
         'brutal-spin-inner': 'brutalSpinInner 2s linear infinite',
-        'brutal-progress': 'brutalProgressSegment 2s linear infinite'
+        'brutal-progress': 'brutalProgressSegment 2s linear infinite',
+        'view-fade': 'viewFade 0.3s ease-out'
       },
       fontFamily: {
         'mono': [

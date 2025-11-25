@@ -168,7 +168,7 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
       </div>
 
       {error && (
-        <div className="mb-3 p-3 border-3 border-brutal-black bg-white text-brutal-black text-sm flex items-start gap-2 animate-brutal-shake">
+        <div className="mb-3 p-3 border-3 border-brutal-black bg-white text-brutal-black text-sm flex items-start gap-2">
           <span className="text-lg">⚠️</span>
           <div>
             <p className="font-bold text-brutal-black">Save Failed</p>
@@ -178,7 +178,7 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
       )}
 
       {isEditing ? (
-        <div className="animate-brutal-drop">
+        <div>
           <textarea
             value={editContent}
             onChange={(e) => {

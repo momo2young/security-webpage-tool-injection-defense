@@ -103,7 +103,7 @@ export const MemoryView: React.FC = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         {/* Core Memory Section - Takes 4 columns on large screens */}
-        <div className="xl:col-span-5 space-y-4 animate-brutal-drop" style={{ animationDelay: '0.1s' }}>
+        <div className="xl:col-span-5 space-y-4">
           <div className="flex items-center justify-between bg-brutal-black text-white p-3 border-3 border-brutal-black">
             <div>
               <h3 className="font-brutal text-xl uppercase tracking-tight">
@@ -124,12 +124,8 @@ export const MemoryView: React.FC = () => {
           {showCoreMemory && (
             <div className="space-y-4">
               {coreMemory &&
-                (Object.keys(coreMemory) as CoreMemoryLabel[]).map((label, idx) => (
-                  <div
-                    key={label}
-                    className="animate-brutal-drop"
-                    style={{ animationDelay: `${0.05 * idx}s` }}
-                  >
+                (Object.keys(coreMemory) as CoreMemoryLabel[]).map((label) => (
+                  <div key={label}>
                     <CoreMemoryBlock
                       label={label}
                       content={coreMemory[label]}
@@ -142,7 +138,7 @@ export const MemoryView: React.FC = () => {
         </div>
 
         {/* Archival Memory Section - Takes 8 columns on large screens */}
-        <div className="xl:col-span-7 space-y-4 animate-brutal-drop" style={{ animationDelay: '0.15s' }}>
+        <div className="xl:col-span-7 space-y-4">
           <div className="bg-white p-1 border-b-3 border-brutal-black mb-2">
              <h3 className="font-brutal text-xl uppercase tracking-tight text-brutal-black">
               Archival Database

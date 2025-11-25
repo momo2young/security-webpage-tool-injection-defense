@@ -101,8 +101,8 @@ const AppInner: React.FC = () => {
           )}
           configContent={<ConfigView />}
         />
-        <div className="flex-1 flex flex-col">
-          <header className="border-b-3 border-brutal-black px-6 py-5 flex items-center justify-between bg-brutal-white">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="border-b-3 border-brutal-black px-6 py-5 flex items-center justify-between bg-brutal-white flex-shrink-0">
             {mainView === 'chat' ? <HeaderTitle /> : <HeaderTitle text="MEMORY SYSTEM" />}
             {/* Neo-brutalist physical toggle switch */}
             <div className="relative flex items-center gap-3">
@@ -142,11 +142,11 @@ const AppInner: React.FC = () => {
             </div>
           </header>
           {mainView === 'chat' ? (
-            <div key="chat" className="flex-1 flex flex-col min-h-0 animate-brutal-drop">
+            <div key="chat" className="flex-1 flex flex-col min-h-0 animate-view-fade">
               <ChatWindow />
             </div>
           ) : (
-            <div key="memory" className="flex-1 flex flex-col min-h-0 animate-brutal-drop">
+            <div key="memory" className="flex-1 flex flex-col min-h-0 animate-view-fade">
               <MemoryView />
             </div>
           )}

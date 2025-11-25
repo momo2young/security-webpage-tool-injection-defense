@@ -99,7 +99,7 @@ export const ArchivalMemoryList: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Search and Filters Header */}
-      <div className="border-3 border-brutal-black bg-white shadow-brutal p-4 animate-brutal-drop">
+      <div className="border-3 border-brutal-black bg-white shadow-brutal p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-brutal text-lg uppercase tracking-tight text-brutal-black">
             Archival Memory
@@ -255,7 +255,7 @@ export const ArchivalMemoryList: React.FC = () => {
 
       {/* Empty State */}
       {processedMemories.length === 0 && !archivalLoading && (
-        <div className="border-3 border-brutal-black bg-white p-12 text-center animate-brutal-drop">
+        <div className="border-3 border-brutal-black bg-white p-12 text-center">
           <h4 className="font-brutal text-2xl uppercase mb-2">
             {debouncedQuery || importanceFilter !== 'all'
               ? 'No Matches Found'
@@ -284,15 +284,14 @@ export const ArchivalMemoryList: React.FC = () => {
 
       {/* Memory Cards */}
       <div className={isCompact ? "space-y-2" : "space-y-3"}>
-        {processedMemories.map((memory, idx) => (
-          <div key={memory.id} className="animate-brutal-drop" style={{ animationDelay: `${idx * 0.05}s` }}>
-            <MemoryCard
-              memory={memory}
-              onDelete={deleteArchivalMemory}
-              searchQuery={debouncedQuery}
-              compact={isCompact}
-            />
-          </div>
+        {processedMemories.map((memory) => (
+          <MemoryCard
+            key={memory.id}
+            memory={memory}
+            onDelete={deleteArchivalMemory}
+            searchQuery={debouncedQuery}
+            compact={isCompact}
+          />
         ))}
       </div>
 

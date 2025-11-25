@@ -96,7 +96,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, search
 
   if (compact) {
     return (
-      <div className="border-2 border-brutal-black bg-white shadow-brutal-sm hover:bg-neutral-50 transition-all animate-brutal-drop group">
+      <div className="border-2 border-brutal-black bg-white shadow-brutal-sm hover:bg-neutral-50 transition-all group">
         <div className="p-2 flex items-center gap-3">
           {/* Importance Indicator */}
           <div className={`w-1.5 h-8 flex-shrink-0 ${
@@ -139,7 +139,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, search
   }
 
   return (
-    <div className="border-3 border-brutal-black bg-white shadow-brutal hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all animate-brutal-drop">
+    <div className="border-3 border-brutal-black bg-white shadow-brutal hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all">
       <div className="p-4">
         {/* Header with badges */}
         <div className="flex items-start justify-between gap-3 mb-3">

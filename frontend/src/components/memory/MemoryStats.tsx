@@ -41,7 +41,7 @@ export const MemoryStatsComponent: React.FC<MemoryStatsProps> = ({ stats, isLoad
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Memories */}
-        <div className="border-3 border-brutal-black bg-white shadow-brutal p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all animate-brutal-drop">
+        <div className="border-3 border-brutal-black bg-white shadow-brutal p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase text-neutral-600">Total Memories</span>
           </div>
@@ -49,7 +49,7 @@ export const MemoryStatsComponent: React.FC<MemoryStatsProps> = ({ stats, isLoad
         </div>
 
         {/* Avg Importance */}
-        <div className="border-3 border-brutal-black bg-white shadow-brutal p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all animate-brutal-drop" style={{ animationDelay: '0.05s' }}>
+        <div className="border-3 border-brutal-black bg-white shadow-brutal p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase text-neutral-600">Avg Importance</span>
           </div>
@@ -65,7 +65,7 @@ export const MemoryStatsComponent: React.FC<MemoryStatsProps> = ({ stats, isLoad
         </div>
 
         {/* Total Accesses */}
-        <div className="border-3 border-brutal-black bg-white shadow-brutal p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all animate-brutal-drop" style={{ animationDelay: '0.1s' }}>
+        <div className="border-3 border-brutal-black bg-white shadow-brutal p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase text-neutral-600">Total Accesses</span>
           </div>
@@ -78,7 +78,7 @@ export const MemoryStatsComponent: React.FC<MemoryStatsProps> = ({ stats, isLoad
         </div>
 
         {/* Importance Range */}
-        <div className="border-3 border-brutal-black bg-white shadow-brutal p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all animate-brutal-drop" style={{ animationDelay: '0.15s' }}>
+        <div className="border-3 border-brutal-black bg-white shadow-brutal p-4 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg transition-all">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase text-neutral-600">Importance Range</span>
           </div>
@@ -96,7 +96,7 @@ export const MemoryStatsComponent: React.FC<MemoryStatsProps> = ({ stats, isLoad
 
       {/* Importance Distribution Bar */}
       {(high > 0 || medium > 0 || low > 0) && (
-        <div className="border-3 border-brutal-black bg-white shadow-brutal p-4 animate-brutal-drop" style={{ animationDelay: '0.2s' }}>
+        <div className="border-3 border-brutal-black bg-white shadow-brutal p-4">
           <h4 className="font-bold text-xs uppercase text-neutral-600 mb-3">
             Importance Distribution
           </h4>
