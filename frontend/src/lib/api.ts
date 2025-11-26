@@ -50,3 +50,26 @@ export async function fetchBackendConfig(): Promise<ConfigOptions | null> {
     return null;
   }
 }
+
+export async function saveUserPreferences(preferences: {
+  model?: string;
+  agent?: string;
+  tools?: string[];
+  memory_enabled?: boolean;
+}) {
+  try {
+    const res = await fetch('/api/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(preferences)
+    });
+    if (!res.ok) {
+      console.error('Failed to save preferences:', res.status, res.statusText);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Error saving preferences:', error);
+    return false;
+  }
+}

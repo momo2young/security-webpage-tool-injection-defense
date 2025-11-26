@@ -89,6 +89,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const messagesByChatRef = useRef(messagesByChat);
   const configByChatRef = useRef(configByChat);
   const viewSwitcherRef = useRef<((view: 'chat' | 'memory') => void) | null>(null);
+  const lastSavedPreferencesRef = useRef<{model: string, agent: string, tools: string[], memory_enabled?: boolean} | null>(null);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -115,7 +116,26 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [messagesByChat]);
 
   const computeDefaultConfig = useCallback((): ChatConfig => {
-    // Try to load last used config from localStorage
+    // First priority: user preferences from backend database
+    if (backendConfig && (backendConfig as any).userPreferences) {
+      const prefs = (backendConfig as any).userPreferences;
+      // Track these as the last saved preferences to avoid re-saving
+      lastSavedPreferencesRef.current = {
+        model: prefs.model,
+        agent: prefs.agent,
+        tools: prefs.tools,
+        memory_enabled: prefs.memory_enabled
+      };
+      return {
+        model: prefs.model || backendConfig.models[0] || '',
+        agent: prefs.agent || backendConfig.agents[0] || '',
+        tools: prefs.tools || backendConfig.defaultTools || [],
+        memory_enabled: prefs.memory_enabled,
+        mcp_urls: []
+      };
+    }
+
+    // Second priority: load last used config from localStorage
     try {
       const saved = localStorage.getItem(LAST_CONFIG_KEY);
       if (saved) {
@@ -138,8 +158,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return {
         model: backendConfig.models[0] || '',
         agent: backendConfig.agents[0] || '',
-    tools: backendConfig.defaultTools || [],
-    mcp_urls: []
+        tools: backendConfig.defaultTools || [],
+        mcp_urls: []
       };
     }
     return defaultConfig;
@@ -215,12 +235,31 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } catch (e) {
             console.warn('Failed to set memory userId from backend config:', e);
           }
-          const firstConfig: ChatConfig = {
+
+          // Use user preferences if available, otherwise use defaults
+          const firstConfig: ChatConfig = (data as any).userPreferences ? {
+            model: (data as any).userPreferences.model || data.models[0] || '',
+            agent: (data as any).userPreferences.agent || data.agents[0] || '',
+            tools: (data as any).userPreferences.tools || data.defaultTools || [],
+            memory_enabled: (data as any).userPreferences.memory_enabled,
+            mcp_urls: []
+          } : {
             model: data.models[0] || '',
             agent: data.agents[0] || '',
             tools: data.defaultTools || [],
             mcp_urls: []
           };
+
+          // Track saved preferences to avoid re-saving on initial load
+          if ((data as any).userPreferences) {
+            lastSavedPreferencesRef.current = {
+              model: (data as any).userPreferences.model,
+              agent: (data as any).userPreferences.agent,
+              tools: (data as any).userPreferences.tools,
+              memory_enabled: (data as any).userPreferences.memory_enabled
+            };
+          }
+
           setConfigState(firstConfig);
           setConfigByChat(prev => ({ ...prev, [UNSAVED_CHAT_KEY]: firstConfig }));
         } else if (attempt < maxAttempts) {
@@ -460,6 +499,33 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(LAST_CONFIG_KEY, JSON.stringify(resolved));
     } catch (e) {
       console.warn('Failed to save config to localStorage:', e);
+    }
+
+    // Check if preferences actually changed before saving to backend
+    const newPrefs = {
+      model: resolved.model,
+      agent: resolved.agent,
+      tools: resolved.tools,
+      memory_enabled: resolved.memory_enabled
+    };
+
+    const lastSaved = lastSavedPreferencesRef.current;
+    const prefsChanged = !lastSaved ||
+      lastSaved.model !== newPrefs.model ||
+      lastSaved.agent !== newPrefs.agent ||
+      lastSaved.memory_enabled !== newPrefs.memory_enabled ||
+      JSON.stringify(lastSaved.tools) !== JSON.stringify(newPrefs.tools);
+
+    if (prefsChanged) {
+      // Save preferences to backend database (async, don't await)
+      import('../lib/api').then(({ saveUserPreferences }) => {
+        saveUserPreferences(newPrefs).then(() => {
+          // Update ref after successful save
+          lastSavedPreferencesRef.current = newPrefs;
+        }).catch(err => {
+          console.warn('Failed to save preferences to backend:', err);
+        });
+      });
     }
 
     if (currentChatId && !configsEqual(previousConfig, resolved)) {

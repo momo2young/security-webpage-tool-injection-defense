@@ -26,7 +26,7 @@ class PlanningTool(Tool):
     """
     A tool that should be actively used to solve complex tasks or problems.
     """
-    description: str = "A tool for managing a plan to solve a complex task or problem."
+    description: str = "A tool for managing a plan to do a complex task or problem."
     name: str = "PlanningTool"
     is_initialized: bool = False
     # Forward signature includes non-LLM exposed kwargs (e.g., chat_id), so skip strict validation.

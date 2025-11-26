@@ -84,7 +84,34 @@ class ChatDatabase:
             except sqlite3.OperationalError:
                 # Column already exists
                 pass
-            
+
+            # Create user_preferences table for global config persistence
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_preferences (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    model TEXT,
+                    agent TEXT,
+                    tools TEXT,
+                    memory_enabled INTEGER DEFAULT 0,
+                    updated_at TIMESTAMP NOT NULL
+                )
+            """)
+
+            # Create mcp_servers table for MCP server persistence
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS mcp_servers (
+                    name TEXT PRIMARY KEY,
+                    type TEXT NOT NULL,
+                    url TEXT,
+                    command TEXT,
+                    args TEXT,
+                    env TEXT,
+                    enabled INTEGER DEFAULT 1,
+                    created_at TIMESTAMP NOT NULL,
+                    updated_at TIMESTAMP NOT NULL
+                )
+            """)
+
             conn.commit()
     
     def create_chat(self, title: str, config: Dict[str, Any], messages: List[Dict[str, Any]] = None, 
@@ -519,6 +546,163 @@ class ChatDatabase:
         """Delete the plan for a specific chat."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("DELETE FROM plans WHERE chat_id = ?", (chat_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    # User preferences methods
+    def get_user_preferences(self) -> Optional[Dict[str, Any]]:
+        """Get user preferences from the database."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute("SELECT * FROM user_preferences WHERE id = 1")
+            row = cursor.fetchone()
+
+            if row:
+                return {
+                    "model": row["model"],
+                    "agent": row["agent"],
+                    "tools": json.loads(row["tools"]) if row["tools"] else [],
+                    "memory_enabled": bool(row["memory_enabled"]),
+                    "updated_at": row["updated_at"]
+                }
+            return None
+
+    def save_user_preferences(self, model: str = None, agent: str = None,
+                             tools: List[str] = None, memory_enabled: bool = None) -> bool:
+        """Save user preferences to the database."""
+        now = datetime.now().isoformat()
+
+        with sqlite3.connect(self.db_path) as conn:
+            # Check if preferences exist
+            cursor = conn.execute("SELECT id FROM user_preferences WHERE id = 1")
+            exists = cursor.fetchone() is not None
+
+            if exists:
+                # Update existing preferences
+                updates = []
+                params = []
+
+                if model is not None:
+                    updates.append("model = ?")
+                    params.append(model)
+
+                if agent is not None:
+                    updates.append("agent = ?")
+                    params.append(agent)
+
+                if tools is not None:
+                    updates.append("tools = ?")
+                    params.append(json.dumps(tools))
+
+                if memory_enabled is not None:
+                    updates.append("memory_enabled = ?")
+                    params.append(1 if memory_enabled else 0)
+
+                if updates:
+                    updates.append("updated_at = ?")
+                    params.append(now)
+                    params.append(1)  # id = 1
+
+                    conn.execute(f"""
+                        UPDATE user_preferences SET {', '.join(updates)} WHERE id = ?
+                    """, params)
+            else:
+                # Insert new preferences
+                conn.execute("""
+                    INSERT INTO user_preferences (id, model, agent, tools, memory_enabled, updated_at)
+                    VALUES (1, ?, ?, ?, ?, ?)
+                """, (
+                    model,
+                    agent,
+                    json.dumps(tools) if tools is not None else None,
+                    1 if memory_enabled else 0,
+                    now
+                ))
+
+            conn.commit()
+            return True
+
+    # MCP server methods
+    def get_mcp_servers(self) -> Dict[str, Any]:
+        """Get all MCP servers from the database."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute("SELECT * FROM mcp_servers")
+            rows = cursor.fetchall()
+
+            urls = {}
+            stdio = {}
+            enabled = {}
+
+            for row in rows:
+                name = row["name"]
+                enabled[name] = bool(row["enabled"])
+
+                if row["type"] == "url":
+                    urls[name] = row["url"]
+                elif row["type"] == "stdio":
+                    stdio_params = {
+                        "command": row["command"]
+                    }
+                    if row["args"]:
+                        stdio_params["args"] = json.loads(row["args"])
+                    if row["env"]:
+                        stdio_params["env"] = json.loads(row["env"])
+                    stdio[name] = stdio_params
+
+            return {
+                "urls": urls,
+                "stdio": stdio,
+                "enabled": enabled
+            }
+
+    def add_mcp_server(self, name: str, url: str = None, stdio_params: Dict[str, Any] = None) -> bool:
+        """Add or update an MCP server."""
+        now = datetime.now().isoformat()
+
+        with sqlite3.connect(self.db_path) as conn:
+            # Delete existing server if it exists
+            conn.execute("DELETE FROM mcp_servers WHERE name = ?", (name,))
+
+            if url:
+                # URL server
+                conn.execute("""
+                    INSERT INTO mcp_servers (name, type, url, enabled, created_at, updated_at)
+                    VALUES (?, 'url', ?, 1, ?, ?)
+                """, (name, url, now, now))
+            elif stdio_params:
+                # Stdio server
+                conn.execute("""
+                    INSERT INTO mcp_servers
+                    (name, type, command, args, env, enabled, created_at, updated_at)
+                    VALUES (?, 'stdio', ?, ?, ?, 1, ?, ?)
+                """, (
+                    name,
+                    stdio_params.get("command"),
+                    json.dumps(stdio_params.get("args")) if stdio_params.get("args") else None,
+                    json.dumps(stdio_params.get("env")) if stdio_params.get("env") else None,
+                    now,
+                    now
+                ))
+            else:
+                return False
+
+            conn.commit()
+            return True
+
+    def remove_mcp_server(self, name: str) -> bool:
+        """Remove an MCP server."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("DELETE FROM mcp_servers WHERE name = ?", (name,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def set_mcp_server_enabled(self, name: str, enabled: bool) -> bool:
+        """Enable or disable an MCP server."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("""
+                UPDATE mcp_servers SET enabled = ?, updated_at = ? WHERE name = ?
+            """, (1 if enabled else 0, datetime.now().isoformat(), name))
             conn.commit()
             return cursor.rowcount > 0
 

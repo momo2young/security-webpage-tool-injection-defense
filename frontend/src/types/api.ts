@@ -71,6 +71,12 @@ export interface ConfigOptions {
   defaultTools: string[]; // default enabled tools
   codeTag: string;        // CODE_TAG (e.g. <code>) so frontend can parse blocks consistently
   userId?: string;        // backend-provided user identifier for memory system alignment
+  userPreferences?: {     // saved user preferences from database
+    model: string;
+    agent: string;
+    tools: string[];
+    memory_enabled: boolean;
+  };
 }
 
 // Stream event types from backend

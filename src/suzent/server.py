@@ -32,7 +32,7 @@ from suzent.routes.chat_routes import (
 )
 from suzent.routes.plan_routes import get_plans, get_plan
 
-from suzent.routes.config_routes import get_config
+from suzent.routes.config_routes import get_config, save_preferences
 from suzent.routes.mcp_routes import (
     list_mcp_servers, add_mcp_server, remove_mcp_server, set_mcp_server_enabled
 )
@@ -94,8 +94,9 @@ app = Starlette(
         # Plan endpoints
         Route("/plans", get_plans, methods=["GET"]),
         Route("/plan", get_plan, methods=["GET"]),
-        # Configuration endpoint
+        # Configuration endpoints
         Route("/config", get_config, methods=["GET"]),
+        Route("/preferences", save_preferences, methods=["POST"]),
         # MCP server management endpoints
         Route("/mcp_servers", list_mcp_servers, methods=["GET"]),
         Route("/mcp_servers", add_mcp_server, methods=["POST"]),

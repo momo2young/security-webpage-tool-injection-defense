@@ -5,23 +5,43 @@ MCP server management API routes.
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from suzent.config import CONFIG
+from suzent.database import get_database
 
-# In-memory store for MCP servers (replace with persistent storage as needed)
-MCP_SERVERS = {
-    "urls": dict(CONFIG.mcp_urls),
-    "stdio": dict(CONFIG.mcp_stdio_params),
-    "enabled": {k: True for k in CONFIG.mcp_urls.keys()}
-}
+
+def get_mcp_servers_merged():
+    """
+    Get MCP servers merged from database and config file defaults.
+    Database servers take precedence.
+    """
+    db = get_database()
+    db_servers = db.get_mcp_servers()
+
+    # Start with config defaults
+    merged = {
+        "urls": dict(CONFIG.mcp_urls),
+        "stdio": dict(CONFIG.mcp_stdio_params),
+        "enabled": {k: True for k in CONFIG.mcp_urls.keys()}
+    }
+
+    # Merge in database servers (overrides config)
+    merged["urls"].update(db_servers["urls"])
+    merged["stdio"].update(db_servers["stdio"])
+    merged["enabled"].update(db_servers["enabled"])
+
+    return merged
+
 
 async def list_mcp_servers(request: Request) -> JSONResponse:
     """
     List all MCP servers (URLs and stdio params).
     """
+    servers = get_mcp_servers_merged()
     return JSONResponse({
-        "urls": MCP_SERVERS["urls"],
-        "stdio": MCP_SERVERS["stdio"],
-        "enabled": MCP_SERVERS["enabled"]
+        "urls": servers["urls"],
+        "stdio": servers["stdio"],
+        "enabled": servers["enabled"]
     })
+
 
 async def add_mcp_server(request: Request) -> JSONResponse:
     """
@@ -32,15 +52,17 @@ async def add_mcp_server(request: Request) -> JSONResponse:
     name = data.get("name")
     url = data.get("url")
     stdio = data.get("stdio")
+
     if not name or (not url and not stdio):
         return JSONResponse({"error": "Missing name and url/stdio"}, status_code=400)
-    if url:
-        MCP_SERVERS["urls"][name] = url
-        MCP_SERVERS["enabled"][name] = True
-    elif stdio:
-        MCP_SERVERS["stdio"][name] = stdio
-        MCP_SERVERS["enabled"][name] = True
-    return JSONResponse({"success": True})
+
+    db = get_database()
+    success = db.add_mcp_server(name, url=url, stdio_params=stdio)
+
+    if success:
+        return JSONResponse({"success": True})
+    return JSONResponse({"error": "Failed to add server"}, status_code=500)
+
 
 async def remove_mcp_server(request: Request) -> JSONResponse:
     """
@@ -49,17 +71,17 @@ async def remove_mcp_server(request: Request) -> JSONResponse:
     """
     data = await request.json()
     name = data.get("name")
-    found = False
-    if name in MCP_SERVERS["urls"]:
-        MCP_SERVERS["urls"].pop(name)
-        found = True
-    if name in MCP_SERVERS["stdio"]:
-        MCP_SERVERS["stdio"].pop(name)
-        found = True
-    MCP_SERVERS["enabled"].pop(name, None)
-    if found:
+
+    if not name:
+        return JSONResponse({"error": "Missing name"}, status_code=400)
+
+    db = get_database()
+    success = db.remove_mcp_server(name)
+
+    if success:
         return JSONResponse({"success": True})
     return JSONResponse({"error": "Not found"}, status_code=404)
+
 
 async def set_mcp_server_enabled(request: Request) -> JSONResponse:
     """
@@ -69,7 +91,25 @@ async def set_mcp_server_enabled(request: Request) -> JSONResponse:
     data = await request.json()
     name = data.get("name")
     enabled = data.get("enabled")
-    if (name in MCP_SERVERS["urls"] or name in MCP_SERVERS["stdio"]) and isinstance(enabled, bool):
-        MCP_SERVERS["enabled"][name] = enabled
+
+    if not name or not isinstance(enabled, bool):
+        return JSONResponse({"error": "Invalid request"}, status_code=400)
+
+    db = get_database()
+    success = db.set_mcp_server_enabled(name, enabled)
+
+    # If server not found in database, check if it's in config and add it first
+    if not success:
+        # Check if server exists in config
+        if name in CONFIG.mcp_urls:
+            # Add config server to database, then set enabled state
+            db.add_mcp_server(name, url=CONFIG.mcp_urls[name])
+            success = db.set_mcp_server_enabled(name, enabled)
+        elif name in CONFIG.mcp_stdio_params:
+            # Add stdio server to database, then set enabled state
+            db.add_mcp_server(name, stdio_params=CONFIG.mcp_stdio_params[name])
+            success = db.set_mcp_server_enabled(name, enabled)
+
+    if success:
         return JSONResponse({"success": True})
-    return JSONResponse({"error": "Invalid request"}, status_code=400)
+    return JSONResponse({"error": "Server not found"}, status_code=404)
