@@ -30,6 +30,7 @@ MCP_STDIO_PARAMS:
       OBSIDIAN_API_KEY: ""
 
 INSTRUCTIONS: ""
+ADDITIONAL_AUTHORIZED_IMPORTS: ["*"]
 
 # Memory System (requires PostgreSQL with pgvector - see .env for connection)
 MEMORY_ENABLED: false

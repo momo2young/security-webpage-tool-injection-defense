@@ -272,12 +272,18 @@ def create_agent(config: Dict[str, Any], memory_context: Optional[str] = None) -
     if memory_context:
         instructions = f"{instructions}\n\n{memory_context}"
 
+    params = {
+        "model": model,
+        "tools": tools,
+        "stream_outputs": True,
+        "instructions": instructions,
+    }
+
+    if agent_name == "CodeAgent" and additional_authorized_imports:
+        params["additional_authorized_imports"] = additional_authorized_imports
+
     agent = agent_class(
-        model=model,
-        tools=tools,
-        stream_outputs=True,
-        instructions=instructions,
-        # verbosity_level=0  # Set to 0 to reduce console output
+        **params
     )
     # Store tool instances on the agent for later context injection
     agent._tool_instances = tools

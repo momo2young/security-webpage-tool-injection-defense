@@ -76,6 +76,7 @@ class ConfigModel(BaseModel):
     mcp_stdio_params: Dict[str, Any] = {}
 
     instructions: str = ""
+    additional_authorized_imports: List[str] = []
 
     # Embedding configuration
     embedding_model: str = None
