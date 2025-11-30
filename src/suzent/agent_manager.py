@@ -12,7 +12,6 @@ This module handles the lifecycle of AI agents including:
 import asyncio
 import importlib
 import pickle
-import io
 import os
 from typing import Optional, Dict, Any
 from mcp import StdioServerParameters
@@ -28,35 +27,6 @@ from suzent.prompts import format_instructions
 os.environ["LITELLM_LOG"] = "ERROR"
 
 logger = get_logger(__name__)
-
-
-class _AgentErrorCompatUnpickler(pickle.Unpickler):
-    """
-    Custom unpickler that handles old AgentError objects from previous library versions.
-    
-    The smolagents library changed AgentError.__init__ to require a 'logger' parameter.
-    Old pickled agent states contain AgentError objects without this parameter.
-    This unpickler intercepts AgentError construction and provides a dummy logger.
-    """
-    
-    def find_class(self, module, name):
-        """Override to intercept AgentError class loading."""
-        if module == 'smolagents.agents' and name == 'AgentError':
-            # Return a wrapper that handles both old and new signatures
-            from smolagents.agents import AgentError
-            
-            class CompatAgentError(AgentError):
-                """Compatibility wrapper for AgentError that handles missing logger."""
-                def __init__(self, message, logger=None):
-                    # If logger is not provided, use a minimal dummy logger
-                    if logger is None:
-                        from suzent.logger import get_logger
-                        logger = get_logger('agent_error_compat')
-                    super().__init__(message, logger)
-            
-            return CompatAgentError
-        
-        return super().find_class(module, name)
 
 
 # --- Agent State ---
@@ -330,37 +300,42 @@ def _sanitize_memory(memory):
         memory: Agent memory (list of message dicts or other structure).
 
     Returns:
-        Sanitized copy of memory safe for pickling.
+        Sanitized memory safe for pickling.
     """
-    import copy
+    from smolagents.memory import ActionStep, FinalAnswerStep
 
-    def sanitize_value(value):
-        """Recursively sanitize a value."""
-        # Handle AgentError objects - convert to simple dict
-        if type(value).__name__ == 'AgentError':
-            return {
-                '_error_type': 'AgentError',
-                '_error_message': str(value),
-                '_error_args': value.args if hasattr(value, 'args') else []
-            }
-
-        # Recursively handle lists
+    # First pass: clear all error fields from ActionStep objects IN-PLACE
+    # This must be done before any copy attempts
+    errors_cleared = 0
+    
+    def clear_errors(value):
+        """Clear error fields from ActionStep objects."""
+        nonlocal errors_cleared
+        if isinstance(value, ActionStep):
+            if hasattr(value, 'error') and value.error is not None:
+                value.error = None
+                errors_cleared += 1
         elif isinstance(value, list):
-            return [sanitize_value(item) for item in value]
-
-        # Recursively handle dicts
+            for item in value:
+                clear_errors(item)
         elif isinstance(value, dict):
-            return {k: sanitize_value(v) for k, v in value.items()}
-
-        # Return other values as-is
-        else:
-            return value
-
+            for v in value.values():
+                clear_errors(v)
+    
     try:
-        return sanitize_value(memory)
-    except Exception as e:
-        logger.warning(f"Error sanitizing memory, using original: {e}")
+        # Clear errors in-place first (safe because errors are not needed for restoration)
+        clear_errors(memory)
+        
+        if errors_cleared > 0:
+            logger.debug(f"Cleared {errors_cleared} AgentError objects from memory before serialization")
+        
+        # Now return the cleaned memory
         return memory
+        
+    except Exception as e:
+        logger.error(f"Error sanitizing memory: {e}")
+        # Return empty memory rather than risk corrupt state
+        return []
 
 
 def serialize_agent(agent: CodeAgent) -> Optional[bytes]:
@@ -436,8 +411,19 @@ def deserialize_agent(agent_data: bytes, config: Dict[str, Any]) -> Optional[Cod
         return None
 
     try:
-        # Deserialize the state using custom unpickler for compatibility
-        state = _AgentErrorCompatUnpickler(io.BytesIO(agent_data)).load()
+        # Try to deserialize the state
+        try:
+            # Use standard pickle first (custom unpickler doesn't actually help with this issue)
+            state = pickle.loads(agent_data)
+        except (TypeError, AttributeError, pickle.UnpicklingError) as unpickle_error:
+            # If unpickling fails, it's likely due to incompatible AgentError objects
+            # Log and return None so caller can clear the corrupted state
+            error_msg = str(unpickle_error)
+            if 'AgentError' in error_msg or 'logger' in error_msg or 'missing' in error_msg:
+                logger.info(f"Agent state contains incompatible AgentError, will be cleared")
+            else:
+                logger.warning(f"Failed to unpickle agent state: {unpickle_error}")
+            return None
 
         # Create a new agent with the same configuration
         # Use tool names from saved state to ensure consistency
