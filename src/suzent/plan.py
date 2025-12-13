@@ -54,7 +54,7 @@ class Plan:
             completed_count = sum(1 for t in self.tasks if t.status == "completed")
             remaining_count = len(self.tasks) - completed_count
             if completed_count > 0:
-                markdown = f"### {self.objective}\n*{remaining_count} remaining • {completed_count} done*\n\n"
+                markdown = f"### {self.objective}\n*{remaining_count} remaining • {completed_count} completed*\n\n"
             else:
                 markdown = f"### {self.objective}\n\n"
         else:
