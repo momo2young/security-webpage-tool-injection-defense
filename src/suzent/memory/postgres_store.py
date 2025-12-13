@@ -187,6 +187,7 @@ class PostgresMemoryStore:
                         metadata,
                         importance,
                         created_at,
+                        updated_at,
                         access_count,
                         1 - (embedding <=> $1) AS similarity
                     FROM archival_memories
@@ -204,6 +205,7 @@ class PostgresMemoryStore:
                         metadata,
                         importance,
                         created_at,
+                        updated_at,
                         access_count,
                         1 - (embedding <=> $1) AS similarity
                     FROM archival_memories
@@ -258,6 +260,7 @@ class PostgresMemoryStore:
                             metadata,
                             importance,
                             created_at,
+                            updated_at,
                             access_count,
                             1 - (embedding <=> $1) AS semantic_score
                         FROM archival_memories
@@ -280,6 +283,7 @@ class PostgresMemoryStore:
                         s.metadata,
                         s.importance,
                         s.created_at,
+                        s.updated_at,
                         s.access_count,
                         s.semantic_score,
                         COALESCE(f.fts_score, 0) AS fts_score,
@@ -305,6 +309,7 @@ class PostgresMemoryStore:
                             metadata,
                             importance,
                             created_at,
+                            updated_at,
                             access_count,
                             1 - (embedding <=> $1) AS semantic_score
                         FROM archival_memories
@@ -328,6 +333,7 @@ class PostgresMemoryStore:
                         s.metadata,
                         s.importance,
                         s.created_at,
+                        s.updated_at,
                         s.access_count,
                         s.semantic_score,
                         COALESCE(f.fts_score, 0) AS fts_score,
@@ -483,6 +489,7 @@ class PostgresMemoryStore:
                         metadata,
                         importance,
                         created_at,
+                        updated_at,
                         access_count,
                         accessed_at
                     FROM archival_memories
@@ -499,6 +506,7 @@ class PostgresMemoryStore:
                         metadata,
                         importance,
                         created_at,
+                        updated_at,
                         access_count,
                         accessed_at
                     FROM archival_memories

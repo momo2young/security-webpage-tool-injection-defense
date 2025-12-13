@@ -5,6 +5,7 @@ Centralizes all prompt engineering for the memory system.
 """
 
 from typing import Dict, Optional
+from datetime import datetime
 
 
 # ===== Core Memory Context Prompts =====
@@ -72,10 +73,14 @@ If not explicitly asked, do not reference these memories or perform any tasks re
     for i, memory in enumerate(memories, 1):
         content = memory.get('content', '')
         importance = memory.get('importance', 0)
-        
+        updated_at = memory.get('updated_at')
+
         relevant_memories += f"{i}. {content}"
         if tag_important and importance > 0.7:
             relevant_memories += " [Important]"
+        if updated_at:
+            time_str = updated_at.strftime("%Y-%m-%d %H:%M")
+            relevant_memories += f" (Updated: {time_str})"
         relevant_memories += "\n"
     
     memory_context = memory_context.format(relevant_memories=relevant_memories.strip())
