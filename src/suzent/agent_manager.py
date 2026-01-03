@@ -172,12 +172,12 @@ def create_agent(config: Dict[str, Any], memory_context: Optional[str] = None) -
     Raises:
         ValueError: If an unknown agent type is specified.
     """
-    model_id = config.get("model", "gemini/gemini-2.5-pro")
-    agent_name = config.get("agent", "CodeAgent")
-    # Use default_tools if tools not specified in config
-    tool_names = config.get("tools", CONFIG.default_tools).copy()
-    memory_enabled = config.get("memory_enabled", False)
-    additional_authorized_imports = config.get("additional_authorized_imports", [])
+    # Extract configuration with CONFIG-based fallbacks
+    model_id = config.get("model") or (CONFIG.model_options[0] if CONFIG.model_options else "gemini/gemini-2.5-pro")
+    agent_name = config.get("agent") or (CONFIG.agent_options[0] if CONFIG.agent_options else "CodeAgent")
+    tool_names = (config.get("tools") or CONFIG.default_tools).copy()
+    memory_enabled = config.get("memory_enabled", CONFIG.memory_enabled)
+    additional_authorized_imports = config.get("additional_authorized_imports") or CONFIG.additional_authorized_imports
     model = LiteLLMModel(model_id=model_id)
 
     tools = []
