@@ -313,6 +313,7 @@ def _sanitize_memory(memory):
         nonlocal errors_cleared
         if isinstance(value, ActionStep):
             if hasattr(value, 'error') and value.error is not None:
+                logger.debug(f"Clearing error from ActionStep: {type(value.error).__name__}")
                 value.error = None
                 errors_cleared += 1
         elif isinstance(value, list):
@@ -321,6 +322,9 @@ def _sanitize_memory(memory):
         elif isinstance(value, dict):
             for v in value.values():
                 clear_errors(v)
+        elif hasattr(value, 'steps'):  # Memory object with steps attribute
+            logger.debug(f"Sanitizing Memory object with {len(value.steps)} steps")
+            clear_errors(value.steps)
     
     try:
         # Clear errors in-place first (safe because errors are not needed for restoration)
@@ -375,7 +379,9 @@ def serialize_agent(agent: CodeAgent) -> Optional[bytes]:
                 tool_names.append(name)
 
         # Sanitize memory to remove AgentError objects that can't be pickled
+        logger.debug(f"Sanitizing memory before serialization (type: {type(agent.memory)})")
         sanitized_memory = _sanitize_memory(agent.memory)
+        logger.debug(f"Memory sanitization complete")
 
         serializable_state = {
             'memory': sanitized_memory,
@@ -416,34 +422,31 @@ def deserialize_agent(agent_data: bytes, config: Dict[str, Any]) -> Optional[Cod
             # Use standard pickle first (custom unpickler doesn't actually help with this issue)
             state = pickle.loads(agent_data)
         except (TypeError, AttributeError, pickle.UnpicklingError) as unpickle_error:
-            # If unpickling fails, it's likely due to incompatible AgentError objects
-            # Log and return None so caller can clear the corrupted state
+            # Log the ACTUAL error to help debug what's wrong
+            import traceback
+            logger.error(f"Failed to unpickle agent state: {unpickle_error}")
+            logger.debug(f"Unpickling traceback:\n{traceback.format_exc()}")
+
             error_msg = str(unpickle_error)
-            if 'AgentError' in error_msg or 'logger' in error_msg or 'missing' in error_msg:
+            if 'AgentError' in error_msg or 'logger' in error_msg:
                 logger.info(f"Agent state contains incompatible AgentError, will be cleared")
             else:
-                logger.warning(f"Failed to unpickle agent state: {unpickle_error}")
+                logger.warning(f"Unpickling failed for unknown reason: {error_msg}")
             return None
 
-        # Create a new agent with the same configuration
-        # Use tool names from saved state to ensure consistency
-        if 'tool_names' in state and state['tool_names']:
-            # Map tool names back to config format
-            tool_name_mapping = {
-                'WebSearchTool': 'WebSearchTool',
-                'PlanningTool': 'PlanningTool',
-                'WebpageTool': 'WebpageTool',
-                'FileTool': 'FileTool',
-            }
-            config_with_tools = config.copy()
-            config_with_tools['tools'] = [
-                tool_name_mapping.get(tool_name, tool_name)
-                for tool_name in state['tool_names']
-                if tool_name in tool_name_mapping
-            ]
-            agent = create_agent(config_with_tools)
+        # Log what we got to help debug
+        logger.debug(f"Unpickled state type: {type(state)}")
+        if isinstance(state, dict):
+            logger.debug(f"State dict keys: {list(state.keys())}")
         else:
-            agent = create_agent(config)
+            # State is not a dict - might be from new format (just memory object)
+            logger.warning(f"Agent state is not a dict (type: {type(state).__name__}), expected old format with dict. Creating fresh agent.")
+            return None
+
+        # Create a new agent with the config that was passed in
+        # This allows config changes (tool changes, model changes) to take effect
+        # We only restore memory, not the configuration
+        agent = create_agent(config)
 
         # Restore the memory and state
         if 'memory' in state:
@@ -479,7 +482,13 @@ async def get_or_create_agent(config: Dict[str, Any], reset: bool = False) -> Co
 
     async with agent_lock:
         # Re-create agent if config changes, reset requested, or not initialized
-        if agent_instance is None or config != agent_config or reset:
+        config_changed = config != agent_config
+        if config_changed and agent_config is not None:
+            logger.info(f"Config changed - creating new agent")
+            logger.debug(f"Old config tools: {agent_config.get('tools', [])}")
+            logger.debug(f"New config tools: {config.get('tools', [])}")
+
+        if agent_instance is None or config_changed or reset:
             # Fetch memory context if memory system is enabled (in async context)
             memory_context = None
             memory_enabled = config.get("memory_enabled", False)

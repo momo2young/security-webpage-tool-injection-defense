@@ -184,20 +184,24 @@ async def chat(request: Request) -> StreamingResponse:
 
                 # Get or create agent with specified configuration
                 agent_instance = await get_or_create_agent(config, reset=reset)
+                logger.debug(f"Agent from get_or_create_agent has tools: {[t.__class__.__name__ for t in agent_instance._tool_instances]}")
 
                 # If we have a chat_id and not resetting, try to restore agent state
                 if chat_id and not reset:
                     try:
                         db = get_database()
                         chat = db.get_chat(chat_id)
-                        
+
                         if chat:
                             agent_state = chat.get('agent_state')
-                            
+
                             if agent_state:
+                                logger.debug(f"Attempting to restore agent state for chat {chat_id}")
                                 restored_agent = deserialize_agent(agent_state, config)
                                 if restored_agent:
+                                    logger.debug(f"Restored agent has tools: {[t.__class__.__name__ for t in restored_agent._tool_instances]}")
                                     agent_instance = restored_agent
+                                    logger.debug(f"Replaced agent_instance with restored_agent")
                                 else:
                                     # Agent state was corrupted (e.g., incompatible library version)
                                     # Clear it from database so fresh state can be saved
