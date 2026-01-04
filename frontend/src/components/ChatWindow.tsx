@@ -55,7 +55,7 @@ const LogBlock: React.FC<{ title?: string; content: string }> = ({ title, conten
       </div>
       
       {/* Content Area */}
-      <div className={`bg-neutral-50 transition-all duration-300 ease-in-out overflow-y-auto scrollbar-thin scrollbar-thumb-brutal-black scrollbar-track-neutral-200 ${expanded ? 'max-h-[800px]' : 'max-h-32'}`}>
+      <div className={`bg-neutral-50 transition-all duration-300 ease-in-out overflow-y-auto scrollbar-thin ${expanded ? 'max-h-[800px]' : 'max-h-32'}`}>
         <div className="w-full p-3">
            <pre className="text-xs text-brutal-black whitespace-pre-wrap break-all leading-relaxed font-mono">
              {content}
@@ -514,7 +514,7 @@ export const ChatWindow: React.FC = () => {
       )}
       
       <div className="relative flex-1 min-h-0">
-        <div ref={scrollContainerRef} className="h-full overflow-y-auto p-4 md:p-6 pb-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300/80">
+        <div ref={scrollContainerRef} className="h-full overflow-y-auto p-4 md:p-6 pb-6 scrollbar-thin">
           {safeMessages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center p-8 animate-brutal-drop">
               <div className="w-20 h-20 bg-brutal-black text-white flex items-center justify-center mb-6 border-4 border-brutal-black shadow-brutal-lg rotate-3 hover:rotate-0 transition-transform duration-300">

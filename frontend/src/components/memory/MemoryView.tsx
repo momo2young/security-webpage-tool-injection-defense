@@ -95,7 +95,7 @@ export const MemoryView: React.FC = () => {
   }
 
   return (
-    <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-offset-top memory-scroll px-4 md:px-8 py-8 space-y-8 max-w-7xl mx-auto">
+    <div className="h-full w-full overflow-y-auto scrollbar-thin memory-scroll px-4 md:px-8 py-8 space-y-8 max-w-7xl mx-auto">
       {/* Stats Dashboard */}
       <section>
         <MemoryStatsComponent stats={stats} isLoading={statsLoading} />

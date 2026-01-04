@@ -25,6 +25,7 @@ const HeaderTitle: React.FC<{ text?: string }> = ({ text }) => {
 const AppInner: React.FC = () => {
   const [sidebarTab, setSidebarTab] = useState<'chats' | 'plan' | 'config'>('chats');
   const [mainView, setMainView] = useState<'chat' | 'memory'>('chat');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { plan, plans, currentPlan, snapshotPlan, selectedPlanKey, selectPlan, refresh } = usePlan();
   const { currentChatId, setViewSwitcher } = useChatStore();
   const prevSnapshotRef = React.useRef<{ key?: string; taskCount?: number }>({});
@@ -45,6 +46,10 @@ const AppInner: React.FC = () => {
     refresh(currentChatId);
     // Track chat change
     chatIdRef.current = currentChatId;
+    // Close sidebar on mobile when chat changes (user selected a chat)
+    if (window.innerWidth < 768) {
+      setIsSidebarOpen(false);
+    }
   }, [currentChatId, refresh]);
 
   // Auto-switch to plan tab when plan is actually updated (has tasks and changed)
@@ -83,7 +88,7 @@ const AppInner: React.FC = () => {
 
   return (
     <div className="h-full w-full bg-neutral-50 text-brutal-black font-sans">
-      <div className="flex h-full">
+      <div className="flex h-full relative">
         <Sidebar
           activeTab={sidebarTab}
           onTabChange={setSidebarTab}
@@ -100,10 +105,23 @@ const AppInner: React.FC = () => {
             />
           )}
           configContent={<ConfigView />}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
         />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="border-b-3 border-brutal-black px-6 py-5 flex items-center justify-between bg-brutal-white flex-shrink-0">
-            {mainView === 'chat' ? <HeaderTitle /> : <HeaderTitle text="MEMORY SYSTEM" />}
+        <div className="flex-1 flex flex-col overflow-hidden w-full">
+          <header className="border-b-3 border-brutal-black px-4 md:px-6 py-3 md:py-5 flex items-center justify-between bg-brutal-white flex-shrink-0 h-16 md:h-auto">
+            <div className="flex items-center gap-2 md:gap-0">
+              <button 
+                onClick={() => setIsSidebarOpen(true)} 
+                className="md:hidden p-2 -ml-2 mr-1 hover:bg-neutral-100 active:bg-neutral-200 transition-colors"
+                aria-label="Open Menu"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="square" strokeLinejoin="miter" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              {mainView === 'chat' ? <HeaderTitle /> : <HeaderTitle text="MEMORY SYSTEM" />}
+            </div>
             {/* Neo-brutalist physical toggle switch */}
             <div className="relative flex items-center gap-3">
               <span className={`text-xs font-bold uppercase transition-colors ${mainView === 'chat' ? 'text-brutal-black' : 'text-neutral-400'}`}>
