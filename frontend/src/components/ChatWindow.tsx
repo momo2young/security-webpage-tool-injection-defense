@@ -15,9 +15,13 @@ import { useStatusStore } from '../hooks/useStatusStore';
 
 
 const LogBlock: React.FC<{ title?: string; content: string }> = ({ title, content }) => {
-  const [expanded, setExpanded] = useState(false);
+  // Auto-expand if content is short (less than 5 lines or 300 chars)
+  const [expanded, setExpanded] = useState(() => {
+    return content.length < 300 && content.split('\n').length <= 5;
+  });
   const { setStatus } = useStatusStore();
   const [copied, setCopied] = useState(false);
+  const lineCount = content.split('\n').length;
 
   const copyToClipboard = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -37,6 +41,9 @@ const LogBlock: React.FC<{ title?: string; content: string }> = ({ title, conten
           </div>
           <span className="text-white font-bold uppercase tracking-wider text-xs truncate max-w-[200px]">
             {title || 'System Log'}
+          </span>
+          <span className="text-neutral-400 text-[10px] font-bold">
+            {lineCount} LINES
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -67,7 +74,7 @@ const LogBlock: React.FC<{ title?: string; content: string }> = ({ title, conten
       </div>
       
       {/* Content Area */}
-      <div className={`bg-neutral-50 transition-all duration-300 ease-in-out overflow-y-auto scrollbar-thin ${expanded ? 'max-h-[800px]' : 'max-h-32'}`}>
+      <div className={`bg-neutral-50 transition-all duration-300 ease-in-out overflow-y-auto scrollbar-thin ${expanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="w-full p-3">
            <pre className="text-xs text-brutal-black whitespace-pre-wrap break-all leading-relaxed font-mono">
              {content}
@@ -114,6 +121,84 @@ const CopyButton: React.FC<{ text: string; className?: string; color?: string }>
         </svg>
       )}
     </button>
+  );
+};
+
+const CodeBlockComponent: React.FC<{ lang?: string; content: string }> = ({ lang, content }) => {
+  const [expanded, setExpanded] = useState(true);
+  const [isWrapped, setIsWrapped] = useState(true);
+  const { setStatus } = useStatusStore();
+  const [copied, setCopied] = useState(false);
+  const lineCount = content.split('\n').length;
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(content);
+    setStatus('CODE_COPIED_TO_CLIPBOARD', 'success');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const safeLang = (lang || 'text').replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+
+  return (
+    <div className="my-4 font-mono text-sm border-3 border-brutal-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white group/code relative">
+      {/* Header Bar */}
+      <div className="flex items-center justify-between px-3 py-2 bg-brutal-black border-b-3 border-brutal-black select-none">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-6 h-6 bg-white border-2 border-white text-brutal-black font-bold text-xs">
+            <span>{'{}'}</span>
+          </div>
+          <span className="text-white font-bold uppercase tracking-wider text-xs truncate max-w-[200px]">
+            {lang || 'CODE'}
+          </span>
+          <span className="text-neutral-400 text-[10px] font-bold">
+            {lineCount} LINES
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+           <button 
+             onClick={() => setIsWrapped(!isWrapped)}
+             className={`w-8 h-8 flex items-center justify-center border-2 border-white transition-colors ${!isWrapped ? 'bg-white text-brutal-black' : 'bg-brutal-black text-white hover:bg-white hover:text-brutal-black'}`}
+             title={isWrapped ? "Disable wrapping" : "Enable wrapping"}
+           >
+             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+             </svg>
+           </button>
+           <button 
+             onClick={handleCopy}
+             className="w-8 h-8 flex items-center justify-center bg-brutal-black text-white border-2 border-white hover:bg-white hover:text-brutal-black transition-colors"
+             title="Copy code"
+           >
+             {copied ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+             ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <rect x="8" y="8" width="12" height="12" rx="2" ry="2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" />
+                </svg>
+             )}
+           </button>
+           <button 
+             onClick={() => setExpanded(!expanded)}
+             className="w-8 h-8 flex items-center justify-center bg-brutal-black text-white text-lg font-bold border-2 border-white hover:bg-white hover:text-brutal-black transition-colors uppercase"
+             title={expanded ? "Collapse" : "Expand"}
+           >
+             {expanded ? '−' : '+'}
+           </button>
+        </div>
+      </div>
+      
+      {/* Content Area */}
+      <div className={`bg-brutal-code-bg transition-all duration-300 ease-in-out overflow-hidden ${expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <pre className={`max-w-full overflow-x-auto text-xs text-brutal-code-text p-4 pt-4 font-mono leading-relaxed ${isWrapped ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'}`}>
+          <code className={`language-${safeLang}`}>{content}</code>
+        </pre>
+      </div>
+    </div>
   );
 };
 
@@ -664,17 +749,7 @@ export const ChatWindow: React.FC = () => {
                           } else if (b.type === 'log') {
                             return <LogBlock key={blockKey} title={b.title} content={b.content} />;
                           } else {
-                            return (
-                              <div key={blockKey} className="relative my-4 group/code">
-                                <div className="absolute -top-3 left-4 bg-brutal-black text-white text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider border-2 border-brutal-black z-10">
-                                  {(b as any).lang || 'CODE'}
-                                </div>
-                                <CopyButton text={b.content} />
-                                <pre className="max-w-full overflow-x-auto text-xs bg-brutal-code-bg text-brutal-code-text border-3 border-brutal-black p-4 pt-6 font-mono leading-relaxed shadow-brutal-sm">
-                                  <code className={`language-${((b as any).lang || 'text').replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase() || 'text'}`}>{b.content}</code>
-                                </pre>
-                              </div>
-                            );
+                            return <CodeBlockComponent key={blockKey} lang={(b as any).lang} content={b.content} />;
                           }
                         })}
                         {/* end user/assistant content */}
