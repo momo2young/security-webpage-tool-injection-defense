@@ -76,7 +76,7 @@ const LogBlock: React.FC<{ title?: string; content: string }> = ({ title, conten
       {/* Content Area */}
       <div className={`bg-neutral-50 transition-all duration-300 ease-in-out overflow-y-auto scrollbar-thin ${expanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="w-full p-3">
-           <pre className="text-xs text-brutal-black whitespace-pre-wrap break-all leading-relaxed font-mono">
+           <pre className="text-xs text-brutal-black leading-relaxed font-mono whitespace-pre-wrap break-all">
              {content}
            </pre>
         </div>
@@ -126,7 +126,6 @@ const CopyButton: React.FC<{ text: string; className?: string; color?: string }>
 
 const CodeBlockComponent: React.FC<{ lang?: string; content: string }> = ({ lang, content }) => {
   const [expanded, setExpanded] = useState(true);
-  const [isWrapped, setIsWrapped] = useState(true);
   const { setStatus } = useStatusStore();
   const [copied, setCopied] = useState(false);
   const lineCount = content.split('\n').length;
@@ -158,15 +157,6 @@ const CodeBlockComponent: React.FC<{ lang?: string; content: string }> = ({ lang
         </div>
         <div className="flex items-center gap-2">
            <button 
-             onClick={() => setIsWrapped(!isWrapped)}
-             className={`w-8 h-8 flex items-center justify-center border-2 border-white transition-colors ${!isWrapped ? 'bg-white text-brutal-black' : 'bg-brutal-black text-white hover:bg-white hover:text-brutal-black'}`}
-             title={isWrapped ? "Disable wrapping" : "Enable wrapping"}
-           >
-             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
-             </svg>
-           </button>
-           <button 
              onClick={handleCopy}
              className="w-8 h-8 flex items-center justify-center bg-brutal-black text-white border-2 border-white hover:bg-white hover:text-brutal-black transition-colors"
              title="Copy code"
@@ -194,7 +184,7 @@ const CodeBlockComponent: React.FC<{ lang?: string; content: string }> = ({ lang
       
       {/* Content Area */}
       <div className={`bg-brutal-code-bg transition-all duration-300 ease-in-out overflow-hidden ${expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-        <pre className={`max-w-full overflow-x-auto text-xs text-brutal-code-text p-4 pt-4 font-mono leading-relaxed ${isWrapped ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'}`}>
+        <pre className="max-w-full text-xs text-brutal-code-text p-4 pt-4 font-mono leading-relaxed whitespace-pre overflow-x-auto">
           <code className={`language-${safeLang}`}>{content}</code>
         </pre>
       </div>
@@ -272,6 +262,12 @@ const MarkdownRenderer = React.memo((props: { content: string }) => {
             );
           },
           pre(p: any) {
+            // Check if this pre contains a code block (which is handled by the code component)
+            // We check the HAST node to see if it's a pre > code structure
+            if (p.node && p.node.children && p.node.children.length === 1 && p.node.children[0].tagName === 'code') {
+              return <>{p.children}</>;
+            }
+
             // Special handling for pre tags inside details (logs)
             return (
               <div className="bg-neutral-50 p-4 overflow-x-auto">
@@ -286,17 +282,16 @@ const MarkdownRenderer = React.memo((props: { content: string }) => {
             // More robust language extraction with validation
             const match = /language-([a-zA-Z0-9_-]+)/.exec(className || '');
             const lang = match ? match[1] : null;
+            const content = String(children).replace(/\n$/, '');
             
-            if (!inline && lang) {
-              // Validate and clean the language name
-              const cleanLang = lang.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
-              const safeClassName = cleanLang ? `language-${cleanLang}` : 'language-text';
+            // Heuristic: Demote short, single-line "text" blocks to inline styling
+            // This prevents "Thought: [BLOCK] variable [BLOCK]" visual stutter
+            const isText = !lang || lang === 'text';
+            const isSingleLine = !content.includes('\n');
+            const isShort = content.length < 60;
 
-              return (
-                <pre className="max-w-3xl overflow-x-auto text-xs bg-brutal-code-bg text-brutal-code-text border-3 border-brutal-black p-3 font-mono leading-relaxed break-words">
-                  <code className={safeClassName}>{String(children)}</code>
-                </pre>
-              );
+            if (!inline && !(isText && isSingleLine && isShort)) {
+              return <CodeBlockComponent lang={lang || 'text'} content={content} />;
             }
             return <code className="bg-brutal-yellow px-1.5 py-0.5 border-2 border-brutal-black text-[11px] font-mono text-brutal-black font-bold break-words" {...rest}>{children}</code>;
           },
