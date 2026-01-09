@@ -172,8 +172,6 @@ DEFAULT_TOOLS = [
 
 ## Creating Custom Tools
 
-See the [Development Guide](development.md) for detailed instructions on creating custom tools.
-
 Quick overview:
 
 1. Create a new file in `src/suzent/tools/` (e.g., `my_tool.py`)
@@ -252,15 +250,6 @@ class MyCustomTool(Tool):
 2. **Caching** - SearXNG caches results in Redis for better performance
 3. **Rate limiting** - Consider rate limits when using external APIs
 4. **Parallel requests** - Some tools can make parallel requests for better performance
-
----
-
-## Related Documentation
-
-- [SearXNG Setup Guide](searxng-setup.md) - Detailed SearXNG installation
-- [Development Guide](development.md) - Creating custom tools
-- [Configuration Guide](configuration.md) - Environment and agent configuration
-- [API Reference](api-reference.md) - API documentation
 
 ---
 
