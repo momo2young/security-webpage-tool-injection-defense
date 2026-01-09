@@ -11,6 +11,7 @@ import { usePlan } from '../hooks/usePlan';
 import { useMemory } from '../hooks/useMemory';
 import { normalizePythonCode, generateBlockKey, splitAssistantContent } from '../lib/chatUtils';
 import { useStatusStore } from '../hooks/useStatusStore';
+import { PlanProgress } from './PlanProgress';
 
 
 
@@ -376,10 +377,12 @@ export const ChatWindow: React.FC = () => {
     isStreaming,
     activeStreamingChatId,
   } = useChatStore();
-  const { refresh: refreshPlan, applySnapshot: applyPlanSnapshot } = usePlan();
+  const { refresh: refreshPlan, applySnapshot: applyPlanSnapshot, plan } = usePlan();
   const { loadCoreMemory, loadStats } = useMemory();
   const [input, setInput] = useState('');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [isPlanDocked, setIsPlanDocked] = useState(false);
+  const [isPlanExpanded, setIsPlanExpanded] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -638,7 +641,7 @@ export const ChatWindow: React.FC = () => {
 
   return (
     <div
-      className="flex flex-col flex-1 h-full overflow-hidden bg-neutral-50 relative"
+      className="flex flex-row flex-1 h-full overflow-hidden bg-neutral-50 relative"
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -656,276 +659,323 @@ export const ChatWindow: React.FC = () => {
         </div>
       )}
 
-      <div className="relative flex-1 min-h-0">
-        <div ref={scrollContainerRef} className="h-full overflow-y-auto p-4 md:p-6 pb-6 scrollbar-thin">
-          {safeMessages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center p-8 animate-brutal-drop">
-              <div className="w-20 h-20 bg-brutal-black text-white flex items-center justify-center mb-6 border-4 border-brutal-black shadow-brutal-lg rotate-3 hover:rotate-0 transition-transform duration-300">
-                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-              </div>
-              <h2 className="text-3xl font-brutal font-bold uppercase mb-2 text-brutal-black tracking-tight">System Ready</h2>
-              <p className="text-neutral-600 max-w-md font-mono text-xs mb-8 bg-white px-3 py-1 border-2 border-brutal-black shadow-brutal-sm">
+      {/* Main Chat Column */}
+      <div className="flex flex-col flex-1 min-w-0 h-full relative">
+
+
+        <div className="relative flex-1 min-h-0">
+          <div ref={scrollContainerRef} className="h-full overflow-y-auto p-4 md:p-6 pb-6 scrollbar-thin">
+            {safeMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center p-8 animate-brutal-drop">
+                <div className="w-20 h-20 bg-brutal-black text-white flex items-center justify-center mb-6 border-4 border-brutal-black shadow-brutal-lg rotate-3 hover:rotate-0 transition-transform duration-300">
+                  <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+                <h2 className="text-3xl font-brutal font-bold uppercase mb-2 text-brutal-black tracking-tight">System Ready</h2>
+                <p className="text-neutral-600 max-w-md font-mono text-xs mb-8 bg-white px-3 py-1 border-2 border-brutal-black shadow-brutal-sm">
                 // WAITING_FOR_INPUT...
-              </p>
+                </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl w-full">
-                {['Help me plan a project', 'Analyze this code', 'Search the web', 'Write a story'].map((suggestion, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setInput(suggestion)}
-                    className="p-4 bg-white border-3 border-brutal-black shadow-brutal hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg active:translate-x-[0px] active:translate-y-[0px] active:shadow-brutal transition-all text-left font-bold uppercase text-sm group relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-brutal-yellow translate-y-full group-hover:translate-y-0 transition-transform duration-200 z-0"></div>
-                    <span className="relative z-10 flex items-center justify-between">
-                      {suggestion}
-                      <span className="text-brutal-black opacity-0 group-hover:opacity-100 transition-opacity">►</span>
-                    </span>
-                  </button>
-                ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl w-full">
+                  {['Help me plan a project', 'Analyze this code', 'Search the web', 'Write a story'].map((suggestion, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setInput(suggestion)}
+                      className="p-4 bg-white border-3 border-brutal-black shadow-brutal hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-lg active:translate-x-[0px] active:translate-y-[0px] active:shadow-brutal transition-all text-left font-bold uppercase text-sm group relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-brutal-yellow translate-y-full group-hover:translate-y-0 transition-transform duration-200 z-0"></div>
+                      <span className="relative z-10 flex items-center justify-between">
+                        {suggestion}
+                        <span className="text-brutal-black opacity-0 group-hover:opacity-100 transition-opacity">►</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {safeMessages.map((m: Message, idx: number) => {
-                const isUser = m.role === 'user';
-                const blocks = isUser ? [{ type: 'markdown', content: m.content } as { type: 'markdown'; content: string; lang?: string }] : splitAssistantContent(m.content);
+            ) : (
+              <div className="space-y-8">
+                {safeMessages.map((m: Message, idx: number) => {
+                  const isUser = m.role === 'user';
+                  const blocks = isUser ? [{ type: 'markdown', content: m.content } as { type: 'markdown'; content: string; lang?: string }] : splitAssistantContent(m.content);
 
-                // Calculate clean content for copy (excluding logs)
-                const cleanContent = isUser ? m.content : blocks
-                  .filter(b => b.type !== 'log')
-                  .map(b => {
-                    if (b.type === 'code') {
-                      return '```' + (b.lang || '') + '\n' + b.content + '\n```';
-                    }
-                    return b.content;
-                  })
-                  .join('').trim();
+                  // Calculate clean content for copy (excluding logs)
+                  const cleanContent = isUser ? m.content : blocks
+                    .filter(b => b.type !== 'log')
+                    .map(b => {
+                      if (b.type === 'code') {
+                        return '```' + (b.lang || '') + '\n' + b.content + '\n```';
+                      }
+                      return b.content;
+                    })
+                    .join('').trim();
 
-                // Determine if we should show the main copy button
-                // 1. Must have content
-                // 2. Should not be a "Thought" bubble (intermediate step)
-                // 3. Should not be an intermediate step (has stepInfo)
-                const isThought = !isUser && cleanContent.startsWith('Thought:');
-                const hasStepInfo = !isUser && !!m.stepInfo;
-                const showMainCopyButton = cleanContent && !isThought && !hasStepInfo;
+                  // Determine if we should show the main copy button
+                  // 1. Must have content
+                  // 2. Should not be a "Thought" bubble (intermediate step)
+                  // 3. Should not be an intermediate step (has stepInfo)
+                  const isThought = !isUser && cleanContent.startsWith('Thought:');
+                  const hasStepInfo = !isUser && !!m.stepInfo;
+                  const showMainCopyButton = cleanContent && !isThought && !hasStepInfo;
 
-                const alignClass = isUser ? 'justify-end' : 'justify-start';
-                const isStreamingAgentMessage = !isUser && streamingForCurrentChat && idx === safeMessages.length - 1;
-                const eyeClass = isStreamingAgentMessage ? 'robot-eye robot-eye-blink' : 'robot-eye robot-eye-idle';
-                const rightEyeStyle = !isUser
-                  ? (isStreamingAgentMessage ? undefined : { animationDelay: '1.8s' })
-                  : undefined;
+                  const alignClass = isUser ? 'justify-end' : 'justify-start';
+                  const isStreamingAgentMessage = !isUser && streamingForCurrentChat && idx === safeMessages.length - 1;
+                  const eyeClass = isStreamingAgentMessage ? 'robot-eye robot-eye-blink' : 'robot-eye robot-eye-idle';
+                  const rightEyeStyle = !isUser
+                    ? (isStreamingAgentMessage ? undefined : { animationDelay: '1.8s' })
+                    : undefined;
 
-                return (
-                  <div key={idx} className="w-full flex flex-col group/message">
-                    <div className={`flex ${alignClass} w-full`}>
-                      {isUser ? (
-                        // User message: display images and text separately
-                        <div className="w-full max-w-3xl space-y-3 pl-8 md:pl-16">
-                          {m.images && m.images.length > 0 && (
-                            <div className="flex flex-wrap gap-3 justify-end">
-                              {m.images.map((img, imgIdx) => (
-                                <div key={imgIdx} className="relative group animate-brutal-pop">
-                                  <img
-                                    src={`data:${img.mime_type};base64,${img.data}`}
-                                    alt={img.filename}
-                                    className="max-w-sm max-h-64 border-4 border-brutal-black shadow-brutal-lg object-contain bg-white"
-                                    title={img.filename}
-                                  />
-                                  <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-xs px-2 py-1 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-100">
-                                    {img.filename}
+                  return (
+                    <div key={idx} className="w-full flex flex-col group/message">
+                      <div className={`flex ${alignClass} w-full`}>
+                        {isUser ? (
+                          // User message: display images and text separately
+                          <div className="w-full max-w-3xl space-y-3 pl-8 md:pl-16">
+                            {m.images && m.images.length > 0 && (
+                              <div className="flex flex-wrap gap-3 justify-end">
+                                {m.images.map((img, imgIdx) => (
+                                  <div key={imgIdx} className="relative group animate-brutal-pop">
+                                    <img
+                                      src={`data:${img.mime_type};base64,${img.data}`}
+                                      alt={img.filename}
+                                      className="max-w-sm max-h-64 border-4 border-brutal-black shadow-brutal-lg object-contain bg-white"
+                                      title={img.filename}
+                                    />
+                                    <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-xs px-2 py-1 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                                      {img.filename}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {m.content && (
-                            <div className="flex justify-end">
-                              <div className="bg-brutal-yellow border-3 border-brutal-black shadow-brutal-lg px-5 py-4 max-w-full font-medium relative select-text">
-                                <div className="prose prose-sm max-w-none break-words text-brutal-black font-sans">{m.content}</div>
-                              </div>
-                            </div>
-                          )}
-                          <div className="text-[10px] font-bold text-neutral-400 uppercase text-right pr-1 opacity-0 group-hover/message:opacity-100 transition-opacity select-none">
-                            User
-                          </div>
-                        </div>
-                      ) : (
-                        // Assistant message: Neo-brutalist white bubble with AI indicator
-                        <div className={`group w-full max-w-4xl break-words overflow-visible space-y-0 text-sm leading-relaxed relative pr-4 md:pr-12`}>
-                          {/* AI Assistant Label - Bold & Brutalist */}
-                          <div className="inline-flex items-center gap-2 bg-brutal-black text-brutal-white px-3 py-1 font-bold text-xs tracking-wider border-3 border-brutal-black mb-0 shadow-[4px_4px_0_0_rgba(0,0,0,0.1)] relative pointer-events-none select-none">
-                            <svg className={`w-4 h-4 ${isStreamingAgentMessage ? 'robot-streaming' : ''}`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                              <rect x="2" y="2" width="20" height="20" rx="3" fill="currentColor" />
-                              <rect x="4" y="4" width="16" height="16" rx="3" fill="#000000" />
-                              <rect className={eyeClass} x="5.5" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
-                              <rect className={eyeClass} style={rightEyeStyle} x="13.5" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
-                            </svg>
-                            <span>AGENT</span>
-                          </div>
-                          <div className={`bg-white border-3 border-brutal-black px-6 py-5 space-y-4 relative -mt-3 pt-6 shadow-brutal-lg select-text`}>
-                            {showMainCopyButton && <CopyButton text={cleanContent} className="absolute top-2 right-2 z-10" color="bg-brutal-yellow" />}
-                            {blocks.map((b, bi) => {
-                              const blockKey = generateBlockKey(b, bi, idx);
-                              if (b.type === 'markdown') {
-                                return <MarkdownRenderer key={blockKey} content={b.content} />;
-                              } else if (b.type === 'log') {
-                                return <LogBlock key={blockKey} title={b.title} content={b.content} />;
-                              } else {
-                                return <CodeBlockComponent key={blockKey} lang={(b as any).lang} content={b.content} />;
-                              }
-                            })}
-                            {/* end user/assistant content */}
-                            {idx === safeMessages.length - 1 && streamingForCurrentChat && (
-                              <div className="mt-3 flex items-center gap-1.5">
-                                <span className="text-neutral-500 font-mono text-sm animate-brutal-blink">●</span>
-                                <span className="text-neutral-500 font-mono text-sm animate-brutal-blink" style={{ animationDelay: '0.3s' }}>●</span>
-                                <span className="text-neutral-500 font-mono text-sm animate-brutal-blink" style={{ animationDelay: '0.6s' }}>●</span>
+                                ))}
                               </div>
                             )}
+                            {m.content && (
+                              <div className="flex justify-end">
+                                <div className="bg-brutal-yellow border-3 border-brutal-black shadow-brutal-lg px-5 py-4 max-w-full font-medium relative select-text">
+                                  <div className="prose prose-sm max-w-none break-words text-brutal-black font-sans">{m.content}</div>
+                                </div>
+                              </div>
+                            )}
+                            <div className="text-[10px] font-bold text-neutral-400 uppercase text-right pr-1 opacity-0 group-hover/message:opacity-100 transition-opacity select-none">
+                              User
+                            </div>
+                          </div>
+                        ) : (
+                          // Assistant message: Neo-brutalist white bubble with AI indicator
+                          <div className={`group w-full max-w-4xl break-words overflow-visible space-y-0 text-sm leading-relaxed relative pr-4 md:pr-12`}>
+                            {/* AI Assistant Label - Bold & Brutalist */}
+                            <div className="inline-flex items-center gap-2 bg-brutal-black text-brutal-white px-3 py-1 font-bold text-xs tracking-wider border-3 border-brutal-black mb-0 shadow-[4px_4px_0_0_rgba(0,0,0,0.1)] relative pointer-events-none select-none">
+                              <svg className={`w-4 h-4 ${isStreamingAgentMessage ? 'robot-streaming' : ''}`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <rect x="2" y="2" width="20" height="20" rx="3" fill="currentColor" />
+                                <rect x="4" y="4" width="16" height="16" rx="3" fill="#000000" />
+                                <rect className={eyeClass} x="5.5" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
+                                <rect className={eyeClass} style={rightEyeStyle} x="13.5" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
+                              </svg>
+                              <span>AGENT</span>
+                            </div>
+                            <div className={`bg-white border-3 border-brutal-black px-6 py-5 space-y-4 relative -mt-3 pt-6 shadow-brutal-lg select-text`}>
+                              {showMainCopyButton && <CopyButton text={cleanContent} className="absolute top-2 right-2 z-10" color="bg-brutal-yellow" />}
+                              {blocks.map((b, bi) => {
+                                const blockKey = generateBlockKey(b, bi, idx);
+                                if (b.type === 'markdown') {
+                                  return <MarkdownRenderer key={blockKey} content={b.content} />;
+                                } else if (b.type === 'log') {
+                                  return <LogBlock key={blockKey} title={b.title} content={b.content} />;
+                                } else {
+                                  return <CodeBlockComponent key={blockKey} lang={(b as any).lang} content={b.content} />;
+                                }
+                              })}
+                              {/* end user/assistant content */}
+                              {idx === safeMessages.length - 1 && streamingForCurrentChat && (
+                                <div className="mt-3 flex items-center gap-1.5">
+                                  <span className="text-neutral-500 font-mono text-sm animate-brutal-blink">●</span>
+                                  <span className="text-neutral-500 font-mono text-sm animate-brutal-blink" style={{ animationDelay: '0.3s' }}>●</span>
+                                  <span className="text-neutral-500 font-mono text-sm animate-brutal-blink" style={{ animationDelay: '0.6s' }}>●</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {!isUser && m.stepInfo && (
+                        <div className={`flex ${alignClass} w-full mt-2 pl-4`}>
+                          <div className="inline-flex items-center gap-2 text-[10px] text-brutal-black font-mono font-bold px-3 py-1 bg-neutral-100 border-2 border-brutal-black shadow-sm select-none">
+                            <span className="text-brutal-blue">⚡</span>
+                            <span>{m.stepInfo}</span>
                           </div>
                         </div>
                       )}
                     </div>
-                    {!isUser && m.stepInfo && (
-                      <div className={`flex ${alignClass} w-full mt-2 pl-4`}>
-                        <div className="inline-flex items-center gap-2 text-[10px] text-brutal-black font-mono font-bold px-3 py-1 bg-neutral-100 border-2 border-brutal-black shadow-sm select-none">
-                          <span className="text-brutal-blue">⚡</span>
-                          <span>{m.stepInfo}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {!configReady && (
-            <div className="flex items-center justify-center p-4">
-              <div className="bg-brutal-yellow border-2 border-brutal-black px-4 py-2 text-xs font-bold uppercase animate-pulse shadow-brutal-sm">
-                Connecting to Neural Core...
+                  );
+                })}
               </div>
+            )}
+            {!configReady && (
+              <div className="flex items-center justify-center p-4">
+                <div className="bg-brutal-yellow border-2 border-brutal-black px-4 py-2 text-xs font-bold uppercase animate-pulse shadow-brutal-sm">
+                  Connecting to Neural Core...
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} className="h-4" />
+          </div>
+
+          {/* Scroll to bottom button */}
+          {showScrollButton && (
+            <button
+              onClick={scrollToBottom}
+              className="absolute bottom-6 right-6 z-20 w-10 h-10 bg-brutal-black text-white border-2 border-white shadow-brutal-lg flex items-center justify-center hover:bg-brutal-blue transition-colors animate-brutal-pop"
+              title="Scroll to bottom"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <form onSubmit={(e) => { e.preventDefault(); send(); }} className="border-t-4 border-brutal-black p-4 flex flex-col gap-3 bg-neutral-100">
+          {/* Plan Progress (Inline) */}
+          {!isPlanDocked && (
+            <PlanProgress
+              plan={plan}
+              isDocked={false}
+              onToggleDock={() => setIsPlanDocked(true)}
+              isExpanded={isPlanExpanded}
+              onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
+            />
+          )}
+
+          {/* Image preview section */}
+          {selectedImages.length > 0 && (
+            <div className="flex flex-wrap gap-2 p-3 bg-brutal-white border-3 border-brutal-black shadow-brutal-sm">
+              {selectedImages.map((file, idx) => (
+                <div key={idx} className="relative group">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    className="w-20 h-20 object-cover border-3 border-brutal-black"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(idx)}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-brutal-red border-2 border-brutal-black text-white text-sm flex items-center justify-center font-bold shadow-brutal-sm hover:shadow-none transition-all"
+                    title="Remove image"
+                  >
+                    ×
+                  </button>
+                  <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-[10px] px-1 py-0.5 truncate font-bold">
+                    {file.name}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-          <div ref={bottomRef} className="h-4" />
-        </div>
 
-        {/* Scroll to bottom button */}
-        {showScrollButton && (
-          <button
-            onClick={scrollToBottom}
-            className="absolute bottom-6 right-6 z-20 w-10 h-10 bg-brutal-black text-white border-2 border-white shadow-brutal-lg flex items-center justify-center hover:bg-brutal-blue transition-colors animate-brutal-pop"
-            title="Scroll to bottom"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
-          </button>
-        )}
-      </div>
-      <form onSubmit={(e) => { e.preventDefault(); send(); }} className="border-t-4 border-brutal-black p-4 flex flex-col gap-3 bg-neutral-100">
-        {/* Image preview section */}
-        {selectedImages.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-3 bg-brutal-white border-3 border-brutal-black shadow-brutal-sm">
-            {selectedImages.map((file, idx) => (
-              <div key={idx} className="relative group">
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt={file.name}
-                  className="w-20 h-20 object-cover border-3 border-brutal-black"
+          {/* Input area with clean grid layout */}
+          <div className="flex flex-col gap-2">
+            <textarea
+              ref={textareaRef}
+              className="w-full resize-none overflow-y-auto min-h-[80px] max-h-[200px] bg-brutal-white border-3 border-brutal-black focus:outline-none focus:ring-4 focus:ring-brutal-yellow px-4 py-3 text-sm placeholder-neutral-400 font-medium placeholder:font-bold placeholder:uppercase transition-shadow scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-400"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (!isStreaming && configReady && input.trim()) {
+                    send();
+                  }
+                }
+              }}
+              placeholder={configReady ? 'TYPE YOUR MESSAGE HERE...' : 'SYSTEM LOADING...'}
+              disabled={!configReady}
+            />
+
+            {/* Button row */}
+            <div className="flex gap-2 items-center justify-between">
+              <div className="flex gap-2 items-center">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageSelect}
+                  className="hidden"
                 />
                 <button
                   type="button"
-                  onClick={() => removeImage(idx)}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-brutal-red border-2 border-brutal-black text-white text-sm flex items-center justify-center font-bold shadow-brutal-sm hover:shadow-none transition-all"
-                  title="Remove image"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-12 px-4 bg-brutal-white border-3 border-brutal-black shadow-brutal hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all duration-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold uppercase text-xs flex items-center gap-2"
+                  title="Attach images"
+                  disabled={!configReady || isStreaming}
                 >
-                  ×
+                  <svg className="w-5 h-5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="2" width="12" height="12" />
+                    <circle cx="6" cy="6" r="1.5" fill="currentColor" />
+                    <polyline points="4,12 7,9 9,11 12,8 14,10" strokeLinecap="square" />
+                  </svg>
+                  <span className="hidden sm:inline">IMAGE</span>
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-[10px] px-1 py-0.5 truncate font-bold">
-                  {file.name}
+              </div>
+
+              <div className="flex gap-3 items-center">
+                <div className="text-[10px] text-brutal-black font-mono font-bold select-none uppercase opacity-50 hidden sm:block">
+                  ↵ SEND • ⇧↵ NEW LINE
+                </div>
+
+                <div className="flex gap-2">
+                  {streamingForCurrentChat && (
+                    <button
+                      type="button"
+                      onClick={stopStreaming}
+                      className="h-12 bg-brutal-red border-3 border-brutal-black shadow-brutal hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all duration-100 px-5 text-xs font-bold disabled:opacity-60 disabled:cursor-not-allowed text-white uppercase"
+                      disabled={stopInFlightRef.current}
+                    >
+                      STOP
+                    </button>
+                  )}
+
+
+
+                  <button
+                    type="submit"
+                    className="h-12 bg-brutal-blue border-3 border-brutal-black shadow-brutal hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all duration-100 px-6 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white uppercase"
+                    disabled={isStreaming || !configReady}
+                  >
+                    {streamingForCurrentChat ? 'SENDING...' : 'SEND'}
+                  </button>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        )}
+        </form>
+      </div>
 
-        {/* Input area with clean grid layout */}
-        <div className="flex flex-col gap-2">
-          <textarea
-            ref={textareaRef}
-            className="w-full resize-none overflow-y-auto min-h-[80px] max-h-[200px] bg-brutal-white border-3 border-brutal-black focus:outline-none focus:ring-4 focus:ring-brutal-yellow px-4 py-3 text-sm placeholder-neutral-400 font-medium placeholder:font-bold placeholder:uppercase transition-shadow scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-400"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (!isStreaming && configReady && input.trim()) {
-                  send();
-                }
-              }
-            }}
-            placeholder={configReady ? 'TYPE YOUR MESSAGE HERE...' : 'SYSTEM LOADING...'}
-            disabled={!configReady}
-          />
+      {/* Right Sidebar - Plan Docked */}
+      {isPlanDocked && (
+        <div className="w-96 bg-white border-l-3 border-brutal-black z-10 flex flex-col shrink-0 transition-all duration-300">
+          <div className="h-14 bg-brutal-yellow border-b-3 border-brutal-black flex items-center justify-between px-4 shrink-0">
+            <span className="font-brutal font-bold text-sm tracking-wider uppercase">PLAN DETAILS</span>
+            <button
+              onClick={() => setIsPlanDocked(false)}
+              className="w-8 h-8 flex items-center justify-center border-2 border-brutal-black bg-white hover:bg-black hover:text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
-          {/* Button row */}
-          <div className="flex gap-2 items-center justify-between">
-            <div className="flex gap-2 items-center">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="h-12 px-4 bg-brutal-white border-3 border-brutal-black shadow-brutal hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all duration-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold uppercase text-xs flex items-center gap-2"
-                title="Attach images"
-                disabled={!configReady || isStreaming}
-              >
-                <svg className="w-5 h-5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="2" y="2" width="12" height="12" />
-                  <circle cx="6" cy="6" r="1.5" fill="currentColor" />
-                  <polyline points="4,12 7,9 9,11 12,8 14,10" strokeLinecap="square" />
-                </svg>
-                <span className="hidden sm:inline">IMAGE</span>
-              </button>
-            </div>
-
-            <div className="flex gap-3 items-center">
-              <div className="text-[10px] text-brutal-black font-mono font-bold select-none uppercase opacity-50 hidden sm:block">
-                ↵ SEND • ⇧↵ NEW LINE
-              </div>
-
-              <div className="flex gap-2">
-                {streamingForCurrentChat && (
-                  <button
-                    type="button"
-                    onClick={stopStreaming}
-                    className="h-12 bg-brutal-red border-3 border-brutal-black shadow-brutal hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all duration-100 px-5 text-xs font-bold disabled:opacity-60 disabled:cursor-not-allowed text-white uppercase"
-                    disabled={stopInFlightRef.current}
-                  >
-                    STOP
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  className="h-12 bg-brutal-blue border-3 border-brutal-black shadow-brutal hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-brutal-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all duration-100 px-6 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white uppercase"
-                  disabled={isStreaming || !configReady}
-                >
-                  {streamingForCurrentChat ? 'SENDING...' : 'SEND'}
-                </button>
-              </div>
-            </div>
+          <div className="flex-1 overflow-y-auto p-4 bg-neutral-50/50 scrollbar-thin scrollbar-track-neutral-200 scrollbar-thumb-brutal-black">
+            <PlanProgress
+              plan={plan}
+              isDocked={true}
+              onToggleDock={() => setIsPlanDocked(false)}
+              isExpanded={isPlanExpanded}
+              onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
+            />
           </div>
         </div>
-      </form>
+      )}
+
     </div>
   );
 };

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { ChatWindow } from './components/ChatWindow';
-import { PlanView } from './components/sidebar/PlanView';
 import { ConfigView } from './components/sidebar/ConfigView';
 import { ChatList } from './components/ChatList';
 import { MemoryView } from './components/memory/MemoryView';
@@ -24,12 +23,11 @@ const HeaderTitle: React.FC<{ text?: string }> = ({ text }) => {
 };
 
 const AppInner: React.FC = () => {
-  const [sidebarTab, setSidebarTab] = useState<'chats' | 'plan' | 'config'>('chats');
+  const [sidebarTab, setSidebarTab] = useState<'chats' | 'config'>('chats');
   const [mainView, setMainView] = useState<'chat' | 'memory'>('chat');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { plan, plans, currentPlan, snapshotPlan, selectedPlanKey, selectPlan, refresh } = usePlan();
+  const { refresh } = usePlan();
   const { currentChatId, setViewSwitcher } = useChatStore();
-  const prevSnapshotRef = React.useRef<{ key?: string; phaseCount?: number }>({});
   const chatIdRef = React.useRef<string | null>(null);
 
   const handlePlanRefresh = React.useCallback(() => {
@@ -53,40 +51,6 @@ const AppInner: React.FC = () => {
     }
   }, [currentChatId, refresh]);
 
-  // Auto-switch to plan tab when plan is actually updated (has tasks and changed)
-  React.useEffect(() => {
-    const snapshotKey = snapshotPlan?.versionKey;
-    const snapshotPhaseCount = snapshotPlan?.phases.length || 0;
-
-    const prev = prevSnapshotRef.current;
-
-    console.log('Plan update check:', {
-      snapshotKey,
-      snapshotPhaseCount,
-      prevKey: prev.key,
-      prevPhaseCount: prev.phaseCount,
-      hasSnapshot: !!snapshotPlan
-    });
-
-    // Switch to plan tab whenever we have a snapshot with phases AND
-    // either we didn't have one before OR it changed
-    if (snapshotKey && snapshotPhaseCount > 0) {
-      const hadNoPreviousSnapshot = !prev.key;
-      const snapshotChanged = prev.key && (snapshotKey !== prev.key || snapshotPhaseCount !== prev.phaseCount);
-
-      if (hadNoPreviousSnapshot || snapshotChanged) {
-        console.log('Plan created/updated! Switching to plan tab', { hadNoPreviousSnapshot, snapshotChanged });
-        setSidebarTab('plan');
-      }
-    }
-
-    // Update ref for next comparison
-    prevSnapshotRef.current = {
-      key: snapshotKey,
-      phaseCount: snapshotPhaseCount
-    };
-  }, [snapshotPlan]);
-
   return (
     <div className="h-full w-full bg-neutral-50 text-brutal-black font-sans">
       <div className="flex h-full relative">
@@ -94,17 +58,6 @@ const AppInner: React.FC = () => {
           activeTab={sidebarTab}
           onTabChange={setSidebarTab}
           chatsContent={<ChatList />}
-          planContent={(
-            <PlanView
-              plan={plan}
-              currentPlan={currentPlan}
-              snapshotPlan={snapshotPlan}
-              plans={plans}
-              selectedPlanKey={selectedPlanKey}
-              onSelectPlan={selectPlan}
-              onRefresh={handlePlanRefresh}
-            />
-          )}
           configContent={<ConfigView />}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -142,8 +95,8 @@ const AppInner: React.FC = () => {
                 {/* Toggle knob */}
                 <div
                   className={`absolute top-1 h-6 w-9 bg-brutal-black border-2 border-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out ${mainView === 'chat'
-                      ? 'left-1'
-                      : 'left-[calc(100%-2.375rem)]'
+                    ? 'left-1'
+                    : 'left-[calc(100%-2.375rem)]'
                     }`}
                 >
                   {/* Knob grip lines */}
