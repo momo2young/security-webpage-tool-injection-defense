@@ -1,5 +1,4 @@
 import React from 'react';
-import { BrutalSelect } from './BrutalSelect';
 import { ChatInputPanel } from './ChatInputPanel';
 import { ConfigOptions, ChatConfig } from '../types/api';
 
