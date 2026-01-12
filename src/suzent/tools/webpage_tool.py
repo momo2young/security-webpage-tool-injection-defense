@@ -21,7 +21,13 @@ class WebpageTool(Tool):
         """Async helper to properly initialize and use the crawler."""
         async with AsyncWebCrawler() as crawler:
             result = await crawler.arun(url=url)
-            return result.markdown if result else "Error: Unable to retrieve content from the specified URL."
+            if not result:
+                return "Error: Unable to retrieve content from the specified URL."
+            # Convert to plain str to avoid pickle issues with StringCompatibleMarkdown
+            # (crawl4ai's str subclass fails to unpickle because its __new__ expects
+            #  a MarkdownGenerationResult object, not a raw string)
+            markdown = result.markdown
+            return str(markdown) if markdown else ""
 
     def forward(self, url: str) -> str:
         return asyncio.run(self._crawl_url(url))
