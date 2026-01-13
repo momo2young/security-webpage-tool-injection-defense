@@ -58,6 +58,9 @@ except Exception:
     pass
 
 # Setup logging
+if "--debug" in sys.argv:
+    os.environ["LOG_LEVEL"] = "DEBUG"
+
 log_level = os.getenv("LOG_LEVEL", "INFO")
 log_file = os.getenv("LOG_FILE")  # Optional: set LOG_FILE=/path/to/suzent.log
 setup_logging(level=log_level, log_file=log_file)

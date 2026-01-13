@@ -28,6 +28,7 @@ from suzent.agent_manager import (
 from suzent.database import get_database
 from suzent.streaming import stream_agent_responses, stop_stream
 from suzent.image_utils import compress_image_with_bytes
+from smolagents.memory import ActionStep, PlanningStep, FinalAnswerStep
 
 logger = get_logger(__name__)
 
@@ -144,23 +145,8 @@ async def chat(request: Request) -> StreamingResponse:
                 # Extract facts from user message FIRST (before retrieval)
                 # This ensures facts from current message are available for search
                 memory_enabled = config.get("memory_enabled", False)
-                if chat_id and message and memory_enabled:
-                    try:
-                        from suzent.agent_manager import get_memory_manager
-                        memory_mgr = get_memory_manager()
-
-                        if memory_mgr:
-                            # Process the user's message for memory extraction (BLOCKING)
-                            user_message = {"role": "user", "content": message}
-                            result = await memory_mgr.process_message_for_memories(
-                                message=user_message,
-                                chat_id=chat_id,
-                                user_id=CONFIG.user_id
-                            )
-                            if result.get("memories_created"):
-                                logger.debug(f"Memory extraction completed: created {len(result['memories_created'])} memories")
-                    except Exception as e:
-                        logger.debug(f"Memory extraction skipped: {e}")
+                
+                # NOTE: Extraction moved to AFTER streaming to capture full agent context (Phase 2)
 
                 # Retrieve relevant memories and inject into context (after extraction)
                 memory_context = ""
@@ -216,16 +202,69 @@ async def chat(request: Request) -> StreamingResponse:
                     user_id = config.get('_user_id', CONFIG.user_id)
                     inject_chat_context(agent_instance, chat_id, user_id)
 
-                # Inject memory context into the message if available
-                final_message = message
+                # Inject memory context into agent instructions (ephemeral)
+                # We do this instead of prepending to message to keep the user's query clean
+                # and treat memory as system-level context.
+                original_instructions = getattr(agent_instance, 'instructions', '')
                 if memory_context:
-                    final_message = memory_context + "\n" + message
+                    logger.debug(f"Injecting memory context:\n{memory_context}")
+                    agent_instance.instructions = f"{original_instructions}\n\n{memory_context}"
+                    logger.debug(f"Final Agent Instructions:\n{agent_instance.instructions}")
 
-                # Stream agent responses (pass PIL images to agent)
-                async for chunk in stream_agent_responses(
-                    agent_instance, final_message, reset=reset, chat_id=chat_id, images=pil_images if pil_images else None
-                ):
-                    yield chunk
+                try:
+                    # Stream agent responses (pass PIL images to agent)
+                    async for chunk in stream_agent_responses(
+                        agent_instance, message, reset=reset, chat_id=chat_id, images=pil_images if pil_images else None
+                    ):
+                        yield chunk
+
+                    # Extract memories from the full conversation turn (Phase 1 & 2)
+                    if chat_id and memory_enabled:
+                        try:
+                            from suzent.agent_manager import get_memory_manager
+                            from suzent.memory import (
+                                ConversationTurn,
+                                Message,
+                                AgentAction,
+                                AgentStepsSummary,
+                            )
+                            memory_mgr = get_memory_manager()
+                            
+                            if memory_mgr:
+                                # Phase 1: Access agent memory for context
+                                succinct_steps = agent_instance.memory.get_succinct_steps()
+                                
+                                # Debug: Show what steps we got
+                                logger.debug(f"Retrieved {len(succinct_steps)} succinct steps from agent memory")
+                                
+                                steps = AgentStepsSummary.from_succinct_steps(succinct_steps)
+                                logger.debug(f"Created AgentStepsSummary: {len(steps.actions)} actions, {len(steps.planning)} planning steps, has_answer={bool(steps.final_answer)}")
+                                
+                                # Phase 2: Build ConversationTurn for extraction
+                                conversation_turn = ConversationTurn(
+                                    user_message=Message(role="user", content=message),
+                                    assistant_message=Message(role="assistant", content=steps.final_answer),
+                                    agent_actions=steps.actions,
+                                    agent_reasoning=steps.planning
+                                )
+                                
+                                logger.debug(f"Extracting memories from turn:\nUser: {message}\nAssistant: {steps.final_answer}")
+                                
+                                await memory_mgr.process_conversation_turn_for_memories(
+                                    conversation_turn=conversation_turn,
+                                    chat_id=chat_id,
+                                    user_id=CONFIG.user_id
+                                )
+                                
+                        except Exception as e:
+                            logger.error(f"Error extracting memories from conversation turn: {e}")
+                            import traceback
+                            logger.error(traceback.format_exc())
+
+                finally:
+                    # Restore original instructions to avoid persisting ephemeral memory context
+                    if memory_context:
+                        agent_instance.instructions = original_instructions
 
                 # Save agent state after streaming completes
                 if chat_id:

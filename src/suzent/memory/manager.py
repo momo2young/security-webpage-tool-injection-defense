@@ -2,13 +2,23 @@
 Memory Manager - orchestrates core and archival memory operations.
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 import json
+from datetime import datetime
 
 from suzent.logger import get_logger
 from suzent.llm import EmbeddingGenerator, LLMClient
 from .postgres_store import PostgresMemoryStore
 from . import memory_context
+from .models import (
+    ConversationTurn,
+    Message,
+    AgentAction,
+    ExtractedFact,
+    ConversationContext,
+    MemoryExtractionResult,
+    FactExtractionResponse,
+)
 
 logger = get_logger(__name__)
 
@@ -103,6 +113,65 @@ class MemoryManager:
         except Exception as e:
             logger.error(f"Failed to update memory block '{label}': {e}")
             return False
+
+    async def refresh_core_memory_facts(self, user_id: str):
+        """
+        Refresh the 'facts' core memory block by summarizing highly important archival memories.
+        
+        This condenses scattered archival memories into a high-density 'facts' block
+        that is always visible to the agent.
+        """
+        try:
+            # 1. Fetch top important memories
+            # We use list_memories instead of search to get global top facts for user
+            memories = await self.store.list_memories(
+                user_id=user_id,
+                limit=50,  # Fetch enough to summarize
+                order_by='importance',
+                order_desc=True
+            )
+            
+            if not memories:
+                return
+
+            # Filter for high importance only
+            important_facts = [
+                f"- {m['content']}" 
+                for m in memories 
+                if m.get('importance', 0) >= IMPORTANT_MEMORY_THRESHOLD
+            ]
+
+            if not important_facts:
+                logger.debug("No important facts found for core memory refresh")
+                return
+
+            facts_list_text = "\n".join(important_facts)
+
+            # 2. Summarize with LLM
+            if self.llm_client:
+                summary = await self.llm_client.complete(
+                    prompt=memory_context.CORE_MEMORY_SUMMARIZATION_PROMPT.format(
+                        facts_list=facts_list_text
+                    ),
+                    temperature=0.3, # Low temp for factual summary
+                    max_tokens=1000
+                )
+                
+                # 3. Update Core Memory Block
+                if summary:
+                    stats = await self.get_memory_stats(user_id)
+                    # Append stats to show freshness
+                    final_content = f"{summary.strip()}\n\n(Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Total Memories: {stats['total_memories']})"
+                    
+                    await self.update_memory_block(
+                        label="facts",
+                        content=final_content,
+                        user_id=user_id
+                    )
+                    logger.info(f"Refreshed core memory 'facts' block for user {user_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to refresh core memory facts: {e}")
 
     async def format_core_memory_for_context(
         self,
@@ -209,70 +278,142 @@ class MemoryManager:
 
     # ===== Automatic Memory Management (Internal) =====
 
+    async def process_conversation_turn_for_memories(
+        self,
+        conversation_turn: Union[ConversationTurn, Dict[str, Any]],
+        chat_id: str,
+        user_id: str
+    ) -> MemoryExtractionResult:
+        """
+        Automatically extract and store important facts from a conversation turn.
+        Called after the assistant response is complete.
+
+        Args:
+            conversation_turn: ConversationTurn model or dict with same structure
+            chat_id: Chat identifier
+            user_id: User identifier
+
+        Returns:
+            MemoryExtractionResult with extracted facts and memory IDs
+        """
+        result = MemoryExtractionResult.empty()
+        high_importance_found = False
+
+        try:
+            # Convert dict to Pydantic model if needed
+            if isinstance(conversation_turn, dict):
+                turn = ConversationTurn.from_dict(conversation_turn)
+            else:
+                turn = conversation_turn
+
+            # Format the full turn into a text representation for the LLM
+            turn_text = turn.format_for_extraction()
+            
+            # Extract facts using the formatted text
+            extracted_facts = await self._extract_facts_llm(turn_text)
+
+            if not extracted_facts:
+                logger.debug("No facts extracted from conversation turn")
+                return result
+
+            logger.debug(f"Extracted {len(extracted_facts)} facts: {[f.content for f in extracted_facts]}")
+
+            result.extracted_facts = [f.content for f in extracted_facts]
+
+            # Store memories
+            await self._deduplicate_and_store_facts(extracted_facts, user_id, chat_id, result)
+            
+            # Check for high importance facts to trigger core memory update
+            for fact in extracted_facts:
+                if fact.importance >= IMPORTANT_MEMORY_THRESHOLD:
+                    high_importance_found = True
+                    break
+
+            logger.info(f"Processed conversation turn: created {len(result.memories_created)} memories")
+            
+            # Trigger core memory refresh if needed (fire and forget handled by caller/event loop in theory, 
+            # here we await it but log errors so it doesn't fail the request)
+            if high_importance_found:
+                # We could make this async in background, but for now just await safely
+                logger.info("High importance fact found, triggering core memory refresh")
+                try:
+                    await self.refresh_core_memory_facts(user_id)
+                except Exception as e:
+                    logger.error(f"Background core memory refresh failed: {e}")
+
+        except Exception as e:
+            logger.error(f"Failed to process conversation turn for memories: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
+        return result
+
+    async def _deduplicate_and_store_facts(
+        self,
+        facts: List[ExtractedFact],
+        user_id: str,
+        source_chat_id: str,
+        result: MemoryExtractionResult
+    ):
+        """Helper to deduplicate and store a list of facts."""
+        for fact in facts:
+            # Metadata construction
+            metadata = {
+                "importance": fact.importance,
+                "category": fact.category,
+                "tags": fact.tags,
+                "source_chat_id": source_chat_id,
+            }
+            if fact.conversation_context:
+                metadata["conversation_context"] = fact.conversation_context.model_dump()
+
+            # Search for similar existing memories
+            similar = await self.search_memories(
+                query=fact.content,
+                limit=DEDUPLICATION_SEARCH_LIMIT,
+                user_id=user_id,
+                chat_id=None,  # User-level memories
+                use_hybrid=False
+            )
+
+            if similar and similar[0].get('similarity', 0) > DEDUPLICATION_SIMILARITY_THRESHOLD:
+                # Very similar memory exists - update/skip
+                result.memories_updated.append(str(similar[0]['id']))
+            else:
+                # New fact - store it
+                memory_id = await self._add_memory_internal(
+                    content=fact.content,
+                    metadata=metadata,
+                    chat_id=None,  # User-level memory
+                    user_id=user_id
+                )
+                result.memories_created.append(memory_id)
+
     async def process_message_for_memories(
         self,
         message: Dict[str, Any],
         chat_id: str,
         user_id: str
-    ) -> Dict[str, Any]:
+    ) -> MemoryExtractionResult:
         """
-        Automatically extract and store important facts from a message.
-        Called after each user message or assistant response.
-
-        Returns: {
-            "extracted_facts": List[str],
-            "memories_created": List[str],  # memory IDs
-            "memories_updated": List[str],
-            "conflicts_detected": List[Dict]
-        }
+        (Legacy) Automatically extract and store important facts from a single message.
+        kept for backward compatibility or direct calls.
         """
-        result = {
-            "extracted_facts": [],
-            "memories_created": [],
-            "memories_updated": [],
-            "conflicts_detected": []
-        }
+        result = MemoryExtractionResult.empty()
 
         try:
-            # Extract facts from message (simplified for POC)
+            # Extract facts from message
             facts = await self._extract_facts_simple(message)
 
             if not facts:
                 return result
 
-            result["extracted_facts"] = [f["content"] for f in facts]
+            result.extracted_facts = [f.content for f in facts]
 
-            # For each fact, check if it already exists
-            for fact in facts:
-                # Search for similar existing memories
-                # Use pure semantic similarity for deduplication to get a 'similarity' score
-                similar = await self.search_memories(
-                    query=fact["content"],
-                    limit=DEDUPLICATION_SEARCH_LIMIT,
-                    user_id=user_id,
-                    chat_id=None,  # Search user-level memories
-                    use_hybrid=False
-                )
+            # Use shared storage logic
+            await self._deduplicate_and_store_facts(facts, user_id, chat_id, result)
 
-                if similar and similar[0].get('similarity', 0) > DEDUPLICATION_SIMILARITY_THRESHOLD:
-                    # Very similar memory exists - skip
-                    result["memories_updated"].append(str(similar[0]['id']))
-                else:
-                    # New fact - store it
-                    memory_id = await self._add_memory_internal(
-                        content=fact["content"],
-                        metadata={
-                            "importance": fact.get("importance", DEFAULT_IMPORTANCE),
-                            "category": fact.get("category"),
-                            "tags": fact.get("tags", []),
-                            "source_chat_id": chat_id,
-                        },
-                        chat_id=None,  # User-level memory
-                        user_id=user_id
-                    )
-                    result["memories_created"].append(memory_id)
-
-            logger.info(f"Processed message: created {len(result['memories_created'])} memories")
+            logger.info(f"Processed message: created {len(result.memories_created)} memories")
 
         except Exception as e:
             logger.error(f"Failed to process message for memories: {e}")
@@ -282,7 +423,7 @@ class MemoryManager:
     async def _extract_facts_simple(
         self,
         message: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+    ) -> List[ExtractedFact]:
         """
         Extract facts from a message.
         Uses LLM if available
@@ -300,29 +441,96 @@ class MemoryManager:
         else:
             return []
 
-    async def _extract_facts_llm(self, content: str) -> List[Dict[str, Any]]:
+    async def _extract_facts_llm(self, content: str) -> List[ExtractedFact]:
         """
-        Extract facts using LLM with structured output.
+        Extract facts using LLM with Pydantic schema-based structured output.
         
-        Returns list of facts with category, importance, and tags.
+        Uses LiteLLM's structured output feature to enforce the FactExtractionResponse
+        schema, ensuring validated ExtractedFact models are returned.
+        
+        Returns:
+            List of ExtractedFact models
         """
         system_prompt = memory_context.FACT_EXTRACTION_SYSTEM_PROMPT
         user_prompt = memory_context.format_fact_extraction_user_prompt(content)
 
         try:
-            response = await self.llm_client.extract_structured(
+            # Use schema-based extraction with Pydantic model
+            # LiteLLM converts FactExtractionResponse to json_schema format
+            extraction_result = await self.llm_client.extract_with_schema(
                 prompt=user_prompt,
+                response_model=FactExtractionResponse,
                 system=system_prompt,
                 temperature=LLM_EXTRACTION_TEMPERATURE
             )
-
-            facts = response.get("facts", [])
-            logger.info(f"LLM extracted {len(facts)} facts from message")
+            
+            facts = extraction_result.facts
+            
+            # Ensure all facts have conversation_context set
+            for fact in facts:
+                if fact.conversation_context is None:
+                    fact.conversation_context = ConversationContext()
+            
+            logger.info(f"LLM extracted {len(facts)} facts via schema")
+            
+            # Debug: Show detailed extracted facts
+            for i, fact in enumerate(facts, 1):
+                logger.debug(
+                    f"Extracted Fact #{i}:\n"
+                    f"  Content: {fact.content}\n"
+                    f"  Category: {fact.category}\n"
+                    f"  Importance: {fact.importance}\n"
+                    f"  Tags: {fact.tags}\n"
+                    f"  Context: intent={fact.conversation_context.user_intent if fact.conversation_context else 'N/A'}, "
+                    f"outcome={fact.conversation_context.outcome if fact.conversation_context else 'N/A'}"
+                )
+            
             return facts
 
         except Exception as e:
-            logger.error(f"LLM fact extraction failed")
-            return []
+            logger.warning(f"Schema-based extraction failed, trying fallback: {e}")
+            
+            # Fallback to basic JSON extraction
+            try:
+                response = await self.llm_client.extract_structured(
+                    prompt=user_prompt,
+                    system=system_prompt,
+                    temperature=LLM_EXTRACTION_TEMPERATURE
+                )
+
+                raw_facts = response.get("facts", [])
+                
+                # Convert to Pydantic models with defaults
+                facts = []
+                for f in raw_facts:
+                    # Build conversation context if present
+                    ctx_data = f.get("conversation_context")
+                    conversation_context = None
+                    if ctx_data:
+                        conversation_context = ConversationContext(
+                            user_intent=ctx_data.get("user_intent", "inferred from conversation"),
+                            agent_actions_summary=ctx_data.get("agent_actions_summary"),
+                            outcome=ctx_data.get("outcome", "extracted from conversation turn")
+                        )
+                    else:
+                        # Provide default context for new facts
+                        conversation_context = ConversationContext()
+
+                    facts.append(ExtractedFact(
+                        content=f.get("content", ""),
+                        category=f.get("category"),
+                        importance=f.get("importance", DEFAULT_IMPORTANCE),
+                        tags=f.get("tags", []),
+                        conversation_context=conversation_context
+                    ))
+                
+                logger.info(f"LLM extracted {len(facts)} facts via fallback")
+                return facts
+
+            except Exception as fallback_error:
+                logger.error(f"LLM fact extraction failed completely: {fallback_error}")
+                return []
+
 
     async def _add_memory_internal(
         self,
