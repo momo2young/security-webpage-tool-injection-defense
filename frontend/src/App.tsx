@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { ChatWindow } from './components/ChatWindow';
+
 import { ConfigView } from './components/sidebar/ConfigView';
 import { ChatList } from './components/ChatList';
 import { MemoryView } from './components/memory/MemoryView';

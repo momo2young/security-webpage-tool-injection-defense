@@ -43,6 +43,7 @@ from suzent.routes.memory_routes import (
     delete_archival_memory,
     get_memory_stats,
 )
+from suzent.routes.sandbox_routes import list_sandbox_files, read_sandbox_file
 
 # Load environment variables
 load_dotenv()
@@ -104,7 +105,12 @@ app = Starlette(
         Route("/mcp_servers", list_mcp_servers, methods=["GET"]),
         Route("/mcp_servers", add_mcp_server, methods=["POST"]),
         Route("/mcp_servers/remove", remove_mcp_server, methods=["POST"]),
+
         Route("/mcp_servers/enabled", set_mcp_server_enabled, methods=["POST"]),
+        # Sandbox endpoints
+
+        Route("/sandbox/files", list_sandbox_files, methods=["GET"]),
+        Route("/sandbox/read_file", read_sandbox_file, methods=["GET"]),
         # Memory endpoints
         Route("/memory/core", get_core_memory, methods=["GET"]),
         Route("/memory/core", update_core_memory_block, methods=["PUT"]),

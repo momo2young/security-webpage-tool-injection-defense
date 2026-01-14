@@ -14,6 +14,7 @@ import { useStatusStore } from '../hooks/useStatusStore';
 import { PlanProgress } from './PlanProgress';
 import { NewChatView } from './NewChatView';
 import { ChatInputPanel } from './ChatInputPanel';
+import { SandboxFiles } from './sidebar/SandboxFiles';
 import { useTypewriter } from '../hooks/useTypewriter';
 
 
@@ -401,6 +402,7 @@ export const ChatWindow: React.FC = () => {
   const [input, setInput] = useState('');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [isPlanDocked, setIsPlanDocked] = useState(false);
+  const [rightSidebarTab, setRightSidebarTab] = useState<'plan' | 'files'>('plan');
   const [isPlanExpanded, setIsPlanExpanded] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -904,11 +906,26 @@ export const ChatWindow: React.FC = () => {
       {/* Right Sidebar - Plan Docked */}
       {isPlanDocked && (
         <div className="w-96 bg-white border-l-3 border-brutal-black z-10 flex flex-col shrink-0 transition-all duration-300">
-          <div className="h-14 bg-brutal-yellow border-b-3 border-brutal-black flex items-center justify-between px-4 shrink-0">
-            <span className="font-brutal font-bold text-sm tracking-wider uppercase">PLAN DETAILS</span>
+          <div className="h-14 bg-white border-b-3 border-brutal-black flex items-center justify-between px-0 shrink-0">
+            {/* Tab Buttons */}
+            <div className="flex h-full">
+              <button
+                onClick={() => setRightSidebarTab('plan')}
+                className={`px-4 font-brutal font-bold text-sm tracking-wider uppercase h-full border-r-3 border-brutal-black transition-colors ${rightSidebarTab === 'plan' ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100 text-brutal-black'}`}
+              >
+                PLAN
+              </button>
+              <button
+                onClick={() => setRightSidebarTab('files')}
+                className={`px-4 font-brutal font-bold text-sm tracking-wider uppercase h-full border-r-3 border-brutal-black transition-colors ${rightSidebarTab === 'files' ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100 text-brutal-black'}`}
+              >
+                FILES
+              </button>
+            </div>
+
             <button
               onClick={() => setIsPlanDocked(false)}
-              className="w-8 h-8 flex items-center justify-center border-2 border-brutal-black bg-white hover:bg-black hover:text-white transition-colors"
+              className="w-14 h-full flex items-center justify-center border-l-3 border-brutal-black bg-white hover:bg-black hover:text-white transition-colors ml-auto"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -916,14 +933,22 @@ export const ChatWindow: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 bg-neutral-50/50 scrollbar-thin scrollbar-track-neutral-200 scrollbar-thumb-brutal-black">
-            <PlanProgress
-              plan={plan}
-              isDocked={true}
-              onToggleDock={() => setIsPlanDocked(false)}
-              isExpanded={isPlanExpanded}
-              onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
-            />
+          <div className="flex-1 overflow-y-auto bg-neutral-50/50 scrollbar-thin scrollbar-track-neutral-200 scrollbar-thumb-brutal-black flex flex-col">
+            {rightSidebarTab === 'plan' ? (
+              <div className="p-4">
+                <PlanProgress
+                  plan={plan}
+                  isDocked={true}
+                  onToggleDock={() => setIsPlanDocked(false)}
+                  isExpanded={isPlanExpanded}
+                  onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
+                />
+              </div>
+            ) : (
+              <div className="flex-1 h-full">
+                <SandboxFiles />
+              </div>
+            )}
           </div>
         </div>
       )}
