@@ -177,6 +177,7 @@ def create_agent(config: Dict[str, Any], memory_context: Optional[str] = None) -
     agent_name = config.get("agent") or (CONFIG.agent_options[0] if CONFIG.agent_options else "CodeAgent")
     tool_names = (config.get("tools") or CONFIG.default_tools).copy()
     memory_enabled = config.get("memory_enabled", CONFIG.memory_enabled)
+    sandbox_enabled = config.get("sandbox_enabled", CONFIG.sandbox_enabled)
     additional_authorized_imports = config.get("additional_authorized_imports") or CONFIG.additional_authorized_imports
     model = LiteLLMModel(model_id=model_id)
 
@@ -197,8 +198,8 @@ def create_agent(config: Dict[str, Any], memory_context: Optional[str] = None) -
 
     for tool_name in custom_tool_names:
         try:
-            # Skip memory tools - they are handled separately
-            if tool_name in ["MemorySearchTool", "MemoryBlockUpdateTool"]:
+            # Skip memory and sandbox tools - they are handled separately
+            if tool_name in ["MemorySearchTool", "MemoryBlockUpdateTool", "SandboxTool"]:
                 continue
 
             module_file_name = tool_module_map.get(tool_name)
@@ -221,6 +222,17 @@ def create_agent(config: Dict[str, Any], memory_context: Optional[str] = None) -
     if memory_enabled and CONFIG.memory_enabled:
         memory_tools = _create_memory_tools()
         tools.extend(memory_tools)
+
+    # Equip sandbox tool if enabled
+    if sandbox_enabled:
+        try:
+            # We can use the mapping if available, or just import directly
+            tool_module = importlib.import_module("suzent.tools.sandbox_tool")
+            tool_class = getattr(tool_module, "SandboxTool")
+            tools.append(tool_class())
+            logger.info("Sandbox tool equipped")
+        except Exception as e:
+            logger.error(f"Failed to equip sandbox tool: {e}")
 
 
     # --- Filter MCP servers by enabled state if provided ---
