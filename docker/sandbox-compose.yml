@@ -15,8 +15,9 @@ services:
     volumes:
       - microsandbox-data:/root/.local/share/microsandbox
       - microsandbox-config:/root/.config/microsandbox
-      - C:/Users/cyzus/OneDrive/data:/mnt/c/Users/cyzus/OneDrive/data
       - ..:/workspace  # Mount suzent root for session persistence
+      # mount custom volumes here e.g.:
+      # - D:/data:/mnt/d/data
     working_dir: /workspace
     environment:
       - RUST_LOG=${RUST_LOG:-info}
