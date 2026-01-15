@@ -24,17 +24,40 @@ docker compose -f docker/docker-compose.yml up -d
 
 ## Sandbox (Optional)
 
-The sandbox provides isolated Python code execution for the agent. It requires:
+The sandbox provides isolated Python code execution for the agent. 
+
+### Windows
+
+It requires:
 - WSL2 with nested virtualization enabled
 - KVM support (`/dev/kvm`)
 
+**Optimized Startup**: The first run will build a custom image with pre-installed dependencies and kernels (Python/Node.js). usage:
+
 ```bash
 # Start sandbox server (separate from main services)
-docker compose -f docker/sandbox-compose.yml up -d
+# docker compose -f docker/sandbox-compose.yml up -d 
+# or if you have an override file:
+docker compose -f docker/sandbox-compose.yml -f docker/sandbox-compose.override.yml up -d
 
 # Check logs
 docker logs suzent-microsandbox --tail 50
 ```
+
+### Linux / MacOS
+
+
+```bash
+curl -sSL https://get.microsandbox.dev | sh
+
+msb server start --dev
+
+msb pull microsandbox/python
+```
+
+
+### Config
+
 
 Enable sandbox in `config/default.yaml`:
 ```yaml

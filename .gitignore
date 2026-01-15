@@ -59,3 +59,6 @@ config/default.yaml
 
 # Sandbox session data
 sandbox-data/
+
+# Docker compose overrides
+*.override.yml
