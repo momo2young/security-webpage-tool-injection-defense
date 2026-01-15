@@ -10,7 +10,7 @@ This module handles all chat endpoints including:
 import json
 import traceback
 import uuid
-import io
+import asyncio
 from typing import Optional, List, Dict, Any
 
 from PIL import Image

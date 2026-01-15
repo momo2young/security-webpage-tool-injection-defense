@@ -43,7 +43,12 @@ from suzent.routes.memory_routes import (
     delete_archival_memory,
     get_memory_stats,
 )
-from suzent.routes.sandbox_routes import list_sandbox_files, read_sandbox_file
+from suzent.routes.sandbox_routes import (
+    list_sandbox_files,
+    read_sandbox_file,
+    write_sandbox_file,
+    delete_sandbox_file,
+)
 
 # Load environment variables
 load_dotenv()
@@ -111,6 +116,8 @@ app = Starlette(
 
         Route("/sandbox/files", list_sandbox_files, methods=["GET"]),
         Route("/sandbox/read_file", read_sandbox_file, methods=["GET"]),
+        Route("/sandbox/file", write_sandbox_file, methods=["POST", "PUT"]), # Support both for convenience
+        Route("/sandbox/file", delete_sandbox_file, methods=["DELETE"]),
         # Memory endpoints
         Route("/memory/core", get_core_memory, methods=["GET"]),
         Route("/memory/core", update_core_memory_block, methods=["PUT"]),

@@ -203,3 +203,92 @@ async def read_sandbox_file(request: Request) -> JSONResponse:
     except Exception as e:
         logger.error(f"Error reading file: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
+
+async def write_sandbox_file(request: Request) -> JSONResponse:
+    """Write content to a sandbox file."""
+    try:
+        body = await request.json()
+        chat_id = request.query_params.get("chat_id")
+        raw_path = body.get("path", "").strip()
+        content = body.get("content", "")
+        
+        if not chat_id:
+            return JSONResponse({"error": "chat_id is required"}, status_code=400)
+        if not raw_path:
+            return JSONResponse({"error": "path is required"}, status_code=400)
+
+        request_path, mounts, matched_mount_point = _resolve_host_path(chat_id, raw_path)
+        
+        if not matched_mount_point:
+            return JSONResponse({"error": "Invalid path (not in any mount)"}, status_code=400)
+            
+        host_root = mounts[matched_mount_point]
+        rel_path = request_path[len(matched_mount_point):].lstrip("/")
+        target_host_path = (host_root / rel_path).resolve()
+        
+        # Security Check
+        try:
+           target_host_path.relative_to(host_root)
+        except ValueError:
+            return JSONResponse({"error": "Access denied: Path traversal detected"}, status_code=403)
+            
+        # Ensure parent directory exists
+        target_host_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Write content
+        target_host_path.write_text(content, encoding="utf-8")
+        
+        size = len(content)
+        return JSONResponse({
+            "path": request_path,
+            "size": size,
+            "status": "written"
+        })
+
+    except Exception as e:
+        logger.error(f"Error writing file: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+async def delete_sandbox_file(request: Request) -> JSONResponse:
+    """Delete a file or directory in sandbox."""
+    chat_id = request.query_params.get("chat_id")
+    raw_path = request.query_params.get("path", "").strip()
+    
+    if not chat_id:
+        return JSONResponse({"error": "chat_id is required"}, status_code=400)
+    if not raw_path:
+        return JSONResponse({"error": "path is required"}, status_code=400)
+
+    try:
+        request_path, mounts, matched_mount_point = _resolve_host_path(chat_id, raw_path)
+        
+        if not matched_mount_point:
+            return JSONResponse({"error": "File not found (not in any mount)"}, status_code=404)
+            
+        host_root = mounts[matched_mount_point]
+        rel_path = request_path[len(matched_mount_point):].lstrip("/")
+        target_host_path = (host_root / rel_path).resolve()
+        
+        # Security Check
+        try:
+           target_host_path.relative_to(host_root)
+        except ValueError:
+            return JSONResponse({"error": "Access denied"}, status_code=403)
+            
+        if not target_host_path.exists():
+             return JSONResponse({"error": "File not found"}, status_code=404)
+        
+        if target_host_path.is_dir():
+            # Only allow deleting empty directories for now, or use shutil.rmtree for recursive
+            # Let's use rmtree for convenience but be careful
+            import shutil
+            shutil.rmtree(target_host_path)
+            return JSONResponse({"path": request_path, "status": "directory deleted"})
+        else:
+            target_host_path.unlink()
+            return JSONResponse({"path": request_path, "status": "file deleted"})
+
+    except Exception as e:
+        logger.error(f"Error deleting file: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)

@@ -10,7 +10,8 @@ import {
     DocumentTextIcon,
     CodeBracketIcon,
     PhotoIcon,
-    ArrowUturnLeftIcon
+    ArrowUturnLeftIcon,
+    ArrowUpTrayIcon
 } from '@heroicons/react/24/outline';
 
 interface FileItem {
@@ -84,6 +85,55 @@ export const SandboxFiles: React.FC = () => {
             setLoadingFile(false);
         }
     }, [currentChatId, config.sandbox_enabled]);
+
+    const handleUploadClick = () => {
+        document.getElementById('sandbox-file-upload')?.click();
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files || files.length === 0 || !currentChatId) return;
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                // Construct target path (handle root vs subdir)
+                const targetPath = currentPath === '/'
+                    ? `/${cleanName}`
+                    : `${currentPath}/${cleanName}`;
+
+                // Read file as text
+                const text = await file.text();
+
+                // Upload
+                const res = await fetch(`/api/sandbox/file?chat_id=${currentChatId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        path: targetPath,
+                        content: text
+                    })
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || `Failed to upload ${file.name}`);
+                }
+            }
+            // Refresh list
+            fetchFiles(currentPath);
+        } catch (err) {
+            setError(String(err));
+            setLoading(false); // Only set false if error, otherwise fetchFiles handles it
+        } finally {
+            // Reset input
+            event.target.value = '';
+        }
+    };
 
     const handleItemClick = (item: FileItem) => {
         const newPath = currentPath === '/' ? `/${item.name}` : `${currentPath}/${item.name}`;
@@ -200,9 +250,24 @@ export const SandboxFiles: React.FC = () => {
                 <button
                     onClick={() => fetchFiles(currentPath)}
                     className={`p-1.5 bg-white border-2 border-brutal-black hover:bg-neutral-100 transition-colors ${loading ? 'animate-spin' : ''}`}
+                    title="Refresh"
                 >
                     <ArrowPathIcon className="w-4 h-4 stroke-2" />
                 </button>
+                <button
+                    onClick={handleUploadClick}
+                    className="p-1.5 bg-white border-2 border-brutal-black hover:bg-neutral-100 transition-colors"
+                    title="Upload File"
+                >
+                    <ArrowUpTrayIcon className="w-4 h-4 stroke-2" />
+                </button>
+                <input
+                    type="file"
+                    id="sandbox-file-upload"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    multiple
+                />
                 <div className="flex-1 overflow-hidden">
                     <div className="text-xs font-mono font-bold truncate py-1.5 px-2 bg-neutral-100 border-2 border-brutal-black text-brutal-black shadow-[2px_2px_0_0_#000]" title={currentPath}>
                         {currentPath === '/' ? 'ROOT://' : currentPath}

@@ -13,7 +13,7 @@ import asyncio
 import importlib
 import pickle
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from mcp import StdioServerParameters
 
 from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel, MCPClient
@@ -22,6 +22,10 @@ from smolagents.tools import Tool
 from suzent.config import CONFIG
 from suzent.logger import get_logger
 from suzent.prompts import format_instructions
+# Late imports for tools to avoid circular deps during init if needed, 
+# but imported at scope where used is generally cleaner if conditional. 
+# However, for this refactor, we'll import PathResolver inside the helper.
+
 
 # Suppress LiteLLM's verbose logging
 os.environ["LITELLM_LOG"] = "ERROR"
@@ -188,9 +192,12 @@ def create_agent(config: Dict[str, Any], memory_context: Optional[str] = None) -
         "WebSearchTool": "websearch_tool",
         "PlanningTool": "planning_tool",
         "WebpageTool": "webpage_tool",
-        "FileTool": "file_tool",
-        "SandboxTool": "sandbox_tool",
-        # Add other custom tools here as needed
+        "ReadFileTool": "read_file_tool",
+        "WriteFileTool": "write_file_tool",
+        "EditFileTool": "edit_file_tool",
+        "GlobTool": "glob_tool",
+        "GrepTool": "grep_tool",
+        "BashTool": "bash_tool",
     }
 
     # Load regular tools (excluding memory tools)
@@ -199,7 +206,7 @@ def create_agent(config: Dict[str, Any], memory_context: Optional[str] = None) -
     for tool_name in custom_tool_names:
         try:
             # Skip memory and sandbox tools - they are handled separately
-            if tool_name in ["MemorySearchTool", "MemoryBlockUpdateTool", "SandboxTool"]:
+            if tool_name in ["MemorySearchTool", "MemoryBlockUpdateTool", "SandboxTool", "BashTool"]:
                 continue
 
             module_file_name = tool_module_map.get(tool_name)
@@ -227,12 +234,14 @@ def create_agent(config: Dict[str, Any], memory_context: Optional[str] = None) -
     if sandbox_enabled:
         try:
             # We can use the mapping if available, or just import directly
-            tool_module = importlib.import_module("suzent.tools.sandbox_tool")
-            tool_class = getattr(tool_module, "SandboxTool")
-            tools.append(tool_class())
-            logger.info("Sandbox tool equipped")
+            tool_module = importlib.import_module("suzent.tools.bash_tool")
+            tool_class = getattr(tool_module, "BashTool")
+            # Check if not already added to avoid duplicates
+            if not any(isinstance(t, tool_class) for t in tools):
+                tools.append(tool_class())
+                logger.info("BashTool equipped (Sandbox enabled)")
         except Exception as e:
-            logger.error(f"Failed to equip sandbox tool: {e}")
+            logger.error(f"Failed to equip BashTool: {e}")
 
 
     # --- Filter MCP servers by enabled state if provided ---
@@ -463,8 +472,11 @@ def deserialize_agent(agent_data: bytes, config: Dict[str, Any]) -> Optional[Cod
             agent.step_number = state['step_number']
         if 'max_steps' in state:
             agent.max_steps = state['max_steps']
-        if 'instructions' in state and state['instructions']:
-            agent.instructions = state['instructions']
+        # We deliberately do NOT restore 'instructions' from state, as they might contain
+        # outdated tool definitions or stale system prompts. We rely on create_agent(config)
+        # to generate the correct fresh prompt based on current config/tools.
+        # if 'instructions' in state and state['instructions']:
+        #     agent.instructions = state['instructions']
 
         return agent
 
@@ -532,11 +544,45 @@ def inject_chat_context(agent: CodeAgent, chat_id: str, user_id: str = None, con
     if not chat_id or not hasattr(agent, '_tool_instances'):
         return
 
+    from suzent.config import CONFIG
+
     # Use configured user_id if not provided
     if user_id is None:
-        from suzent.config import CONFIG
         user_id = CONFIG.user_id
 
+    # --- Dynamic Sandbox Tool Management ---
+    # Determine effective sandbox status
+    sandbox_enabled = config.get('sandbox_enabled', CONFIG.sandbox_enabled) if config else CONFIG.sandbox_enabled
+    
+    if not sandbox_enabled:
+        # Remove BashTool if present
+        # Update agent.tools dictionary if it exists
+        if hasattr(agent, 'tools') and isinstance(agent.tools, dict):
+            if 'BashTool' in agent.tools:
+                del agent.tools['BashTool']
+        
+        # Update _tool_instances list
+        agent._tool_instances = [t for t in agent._tool_instances if t.__class__.__name__ != 'BashTool']
+
+        # Also check agent.toolbox if it exists (smolagents structure)
+        if hasattr(agent, 'toolbox') and hasattr(agent.toolbox, 'tools') and isinstance(agent.toolbox.tools, dict):
+             if 'BashTool' in agent.toolbox.tools:
+                 del agent.toolbox.tools['BashTool']
+        
+    else:
+        # Add BashTool if missing
+        has_bash = any(t.__class__.__name__ == 'BashTool' for t in agent._tool_instances)
+        if not has_bash:
+            try:
+                from suzent.tools.bash_tool import BashTool
+                bash_tool = BashTool()
+                agent._tool_instances.append(bash_tool)
+                if hasattr(agent, 'tools') and isinstance(agent.tools, dict):
+                    agent.tools['BashTool'] = bash_tool
+            except Exception as e:
+                logger.error(f"Failed to dynamically equip BashTool: {e}")
+
+    # --- Tool Context Injection ---
     for tool_instance in agent._tool_instances:
         # Inject chat_id for tools like PlanningTool
         if hasattr(tool_instance, 'set_chat_context'):
@@ -547,11 +593,52 @@ def inject_chat_context(agent: CodeAgent, chat_id: str, user_id: str = None, con
             if hasattr(tool_instance, 'set_context'):
                 tool_instance.set_context(chat_id=chat_id, user_id=user_id)
 
-        # Inject chat_id and custom volumes for SandboxTool
-        if tool_instance.__class__.__name__ == 'SandboxTool':
+        # Inject chat_id and custom volumes for BashTool
+        if tool_instance.__class__.__name__ == 'BashTool':
             tool_instance.chat_id = chat_id
             # Inject per-chat sandbox volumes if configured
-            if config and 'sandbox_volumes' in config:
-                volumes = config.get('sandbox_volumes', [])
-                if volumes and hasattr(tool_instance, 'set_custom_volumes'):
-                    tool_instance.set_custom_volumes(volumes)
+            # Use same fallback logic as PathResolver
+            volumes = config.get('sandbox_volumes') if config else None
+            if not volumes:
+                volumes = CONFIG.sandbox_volumes
+                
+            if volumes and hasattr(tool_instance, 'set_custom_volumes'):
+                 tool_instance.set_custom_volumes(volumes)
+
+        # Inject PathResolver into file tools
+        file_tool_names = ['ReadFileTool', 'WriteFileTool', 'EditFileTool', 'GlobTool', 'GrepTool']
+        if tool_instance.__class__.__name__ in file_tool_names:
+            if hasattr(tool_instance, 'set_context'):
+                resolver = _create_path_resolver(chat_id, config)
+                tool_instance.set_context(resolver)
+
+
+def _create_path_resolver(chat_id: str, config: Optional[dict]) -> Any:
+    """
+    Create a PathResolver instance with configuration overrides.
+    
+    Args:
+        chat_id: Chat session ID
+        config: Optional chat configuration overriding globals
+        
+    Returns:
+        PathResolver instance
+    """
+    from suzent.tools.path_resolver import PathResolver
+    
+    # 1. Determine sandbox_enabled (Chat Config > Global Config)
+    sandbox_enabled = config.get('sandbox_enabled', CONFIG.sandbox_enabled) if config else CONFIG.sandbox_enabled
+    
+    # 2. Determine sandbox_volumes (Chat Config > Global Config)
+    # Note: If chat has empty list [], it overrides global. If None/missing, use global.
+    # Wait, previous fix was: if empty list, use global.
+    # Logic: config.get('sandbox_volumes') returns None if missing. 
+    # If key exists and is [], truthiness check fails.
+    # Our requirement: "Robust fallback... if chat config has empty list/None, use global defaults"
+    custom_volumes = config.get('sandbox_volumes') if config else None
+    if not custom_volumes:
+        custom_volumes = CONFIG.sandbox_volumes
+        
+    # logger.debug(f"Creating PathResolver for {chat_id} with volumes: {custom_volumes}")
+    return PathResolver(chat_id, sandbox_enabled, custom_volumes=custom_volumes)
+

@@ -16,7 +16,6 @@ DEFAULT_TOOLS:
   - "WebSearchTool"
   - "PlanningTool"
   - "WebpageTool"
-  - "FileTool"
 
 MCP_URLS:
   "HF Space MCP": "https://evalstate-hf-mcp-server.hf.space/mcp"

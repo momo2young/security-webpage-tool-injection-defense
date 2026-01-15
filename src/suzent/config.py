@@ -66,7 +66,15 @@ class ConfigModel(BaseModel):
     agent_options: List[str] = ["CodeAgent", "ToolcallingAgent"]
 
     # Default tools available; discovery will merge with these if tool_options not set
-    default_tools: List[str] = ["WebSearchTool", "PlanningTool"]
+    default_tools: List[str] = [
+        "WebSearchTool",
+        "PlanningTool",
+        "ReadFileTool",
+        "WriteFileTool",
+        "EditFileTool",
+        "GlobTool",
+        "GrepTool"
+    ]
     tool_options: Optional[List[str]] = None
 
     # No MCP endpoints by default; provide via YAML when needed
@@ -120,7 +128,7 @@ class ConfigModel(BaseModel):
                     with p.open("r", encoding="utf-8") as fh:
                         return json.load(fh)
             except Exception as exc:
-                logger.debug("Failed to parse config file %s: %s", p, exc)
+                logger.debug("Failed to parse config file {}: {}", p, exc)
                 return {}
 
         if example_path.exists():
@@ -145,7 +153,7 @@ class ConfigModel(BaseModel):
             else:
                 cfg = cls()
         except ValidationError as ve:
-            logger.error("Config validation error: %s", ve)
+            logger.error("Config validation error: {}", ve)
             raise
 
         # If tool_options missing or falsy, discover tools from disk and combine with defaults
@@ -158,7 +166,7 @@ class ConfigModel(BaseModel):
             cfg.tool_options = combined
 
         if loaded_path is not None:
-            logger.info("Loaded configuration overrides from %s", loaded_path)
+            logger.info("Loaded configuration overrides from {}", loaded_path)
 
         return cfg
 

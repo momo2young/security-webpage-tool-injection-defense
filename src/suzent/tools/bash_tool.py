@@ -16,7 +16,7 @@ from suzent.logger import get_logger
 logger = get_logger(__name__)
 
 
-class SandboxTool(Tool):
+class BashTool(Tool):
     """
     Execute code in an isolated sandbox environment.
     
@@ -27,7 +27,7 @@ class SandboxTool(Tool):
     - Internet access for package installation and API calls
     """
     
-    name = "SandboxTool"
+    name = "BashTool"
     description = """Execute code in a secure, isolated sandbox environment.
 
 Supported languages:

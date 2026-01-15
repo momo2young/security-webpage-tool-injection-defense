@@ -169,7 +169,7 @@ export const ConfigView: React.FC = () => {
           {backendConfig.tools.map((tool: string) => {
             // Skip memory tools in the main tools list - they're controlled by the memory toggle
             // Also skip SandboxTool as it's controlled by the sandbox toggle
-            if (tool === 'MemorySearchTool' || tool === 'MemoryBlockUpdateTool' || tool === 'SandboxTool') {
+            if (tool === 'MemorySearchTool' || tool === 'MemoryBlockUpdateTool' || tool === 'BashTool') {
               return null;
             }
             const active = (config.tools || []).includes(tool);

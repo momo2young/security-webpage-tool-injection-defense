@@ -42,7 +42,8 @@ const defaultConfig: ChatConfig = {
   model: '',
   agent: '',
   tools: [],
-  mcp_urls: []
+  mcp_urls: [],
+  sandbox_enabled: true // Default to true to match backend
 };
 
 const UNSAVED_CHAT_KEY = '__unsaved__';
@@ -136,7 +137,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         agent: prefs.agent || backendConfig.agents[0] || '',
         tools: prefs.tools || backendConfig.defaultTools || [],
         memory_enabled: prefs.memory_enabled,
-        sandbox_enabled: prefs.sandbox_enabled,
+        sandbox_enabled: prefs.sandbox_enabled ?? backendConfig.sandboxEnabled ?? true,
         sandbox_volumes: prefs.sandbox_volumes || [],
         mcp_urls: []
       };
@@ -166,6 +167,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         model: backendConfig.models[0] || '',
         agent: backendConfig.agents[0] || '',
         tools: backendConfig.defaultTools || [],
+        sandbox_enabled: backendConfig.sandboxEnabled ?? true,
         mcp_urls: []
       };
     }
@@ -249,7 +251,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             agent: (data as any).userPreferences.agent || data.agents[0] || '',
             tools: (data as any).userPreferences.tools || data.defaultTools || [],
             memory_enabled: (data as any).userPreferences.memory_enabled,
-            sandbox_enabled: (data as any).userPreferences.sandbox_enabled,
+            sandbox_enabled: (data as any).userPreferences.sandbox_enabled ?? data.sandboxEnabled ?? true,
             sandbox_volumes: (data as any).userPreferences.sandbox_volumes || [],
             mcp_urls: []
           } : {
