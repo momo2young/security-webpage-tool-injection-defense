@@ -1,0 +1,46 @@
+# Use python 3.12 slim image
+FROM python:3.12-slim-bookworm
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+# - curl: for installing uv
+# - git: for installing dependencies from git
+# - build-essential: for compiling extensions
+# - libpq-dev: for psycopg2/asyncpg
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv for fast package management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_SYSTEM_PYTHON=1
+
+# Copy dependency files first
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies (including 'memory' extra)
+RUN uv sync --frozen --extra memory
+
+# Install playwright browsers (for WebpageTool)
+RUN uv run playwright install --with-deps chromium
+
+# Copy application code
+COPY src/ src/
+COPY config/ config/
+COPY scripts/ scripts/
+COPY .env.example .env
+
+# Expose port
+EXPOSE 8000
+
+# Start command
+CMD ["uv", "run", "python", "src/suzent/server.py"]

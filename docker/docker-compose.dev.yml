@@ -1,40 +1,4 @@
 services:
-  # Python Backend
-  backend:
-    container_name: suzent-backend
-    build:
-      context: ..
-      dockerfile: docker/backend.Dockerfile
-    ports:
-      - "8000:8000"
-    env_file:
-      - ../.env
-    environment:
-      # Overrides for Docker networking
-      - POSTGRES_HOST=postgres
-      - SEARXNG_BASE_URL=http://searxng:8080
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      # Mount data volume for local files/sandboxes if needed
-      - ../data:/app/data
-      - ../config:/app/config
-      - ../chats.db:/app/chats.db
-
-  # React Frontend (Nginx)
-  frontend:
-    container_name: suzent-frontend
-    build:
-      context: ..
-      dockerfile: docker/frontend.Dockerfile
-    ports:
-      - "5173:80"
-    depends_on:
-      - backend
 
   # PostgreSQL with pgvector for memory system
   postgres:

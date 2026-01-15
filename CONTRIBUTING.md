@@ -53,10 +53,13 @@ npm run dev
 ```
 
 ### Running with Docker (Services)
+For development, you likely only need the infrastructure services (Postgres, Redis), while running the app code locally for hot-reloading.
+
 ```bash
-# Start PostgreSQL, Redis, and SearXNG
-docker compose -f docker/docker-compose.yml up -d
+# Start ONLY infrastructure (DB, Redis, Search)
+docker compose -f docker/docker-compose.dev.yml up -d
 ```
+
 
 ## 📝 Code Style
 
