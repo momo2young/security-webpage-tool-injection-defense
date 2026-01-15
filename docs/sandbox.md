@@ -2,13 +2,20 @@
 
 The Sandbox module provides secure, isolated code execution environments using **Microsandbox** (Firecracker MicroVMs). It allows agents to execute Python, Node.js, and shell commands safely with persistent storage.
 
+When creating an agent conversation, you can toggle **Sandbox Execution**. 
+
+- **Enabled**: The agent is equipped with a `BashTool` that executes commands *inside* the secure microVM. File operations (`ReadFileTool`, `WriteFileTool`, etc.) will also target the sandbox filesystem.
+- **Disabled**: The `BashTool` is removed. File operations target the host's local filesystem (restricted to the workspace).
+
 ## Features
 
+- **Dynamic Integration**: The `BashTool` is automatically added/removed based on the chat's sandbox setting.
 - **Isolation**: Each session runs in its own Firecracker MicroVM.
 - **Persistence**: Per-chat storage at `/persistence` is preserved across restarts.
 - **Shared Storage**: Global storage at `/shared` accessible by all sessions.
 - **Auto-Healing**: Automatically detects crashes/timeouts and restarts sessions.
 - **Custom Volumes**: Mount host directories for access to local files (e.g., datasets).
+- **File Uploads**: Drag-and-drop file support directly into the sandbox via the frontend sidebar.
 
 ## Prerequisites
 

@@ -80,13 +80,6 @@ Helps agents create and manage structured plans for complex tasks.
 - Track plan progress
 - Store and retrieve plans from the database
 
-**Usage:**
-```python
-from suzent.tools.planning_tool import PlanningTool
-
-tool = PlanningTool()
-plan = tool.forward("Create a plan for building a web application")
-```
 
 **Context Injection:**
 
@@ -117,6 +110,41 @@ tool = WebpageTool()
 content = tool.forward("https://example.com")
 ```
 
+### 4. File Tools
+
+Foundational tools for filesystem interaction. These operate on the local filesystem by default, or inside the secure sandbox if **Sandbox Execution** is enabled.
+
+- **`ReadFileTool`**: Reads content from a file.
+- **`WriteFileTool`**: Creates or overwrites a file.
+- **`EditFileTool`**: Replaces specific chunks of text in a file (powered by unified diffs).
+- **`GlobTool`**: Finds files matching a pattern (e.g., `src/**/*.py`).
+- **`GrepTool`**: Searches regular expressions within files.
+
+**Usage:**
+```python
+from suzent.tools.read_file_tool import ReadFileTool
+content = ReadFileTool().forward("/path/to/file.txt")
+```
+
+---
+
+### 5. BashTool (Sandbox)
+
+Executes bash commands safely. This tool is **only** available when the agent is running in Sandbox mode. It runs commands inside the isolated Firecracker MicroVM, ensuring no harm to the host system.
+
+**Features:**
+- Persistent session state (current working directory, variables)
+- Access to mounted volumes and persisted data
+- Timeout and output truncation safety
+
+**Usage:**
+```python
+from suzent.tools.bash_tool import BashTool
+# Initialize (typically done by agent manager)
+tool = BashTool()
+result = tool.forward("ls -la /workspace")
+```
+
 ---
 
 ## Configuring Tools
@@ -132,7 +160,8 @@ config = {
     "tools": [
         "WebSearchTool",
         "PlanningTool",
-        "WebpageTool"
+        "ReadFileTool", 
+        "EditFileTool"
     ]
 }
 ```
@@ -146,6 +175,11 @@ DEFAULT_TOOLS = [
     "WebSearchTool",
     "PlanningTool",
     "WebpageTool",
+    "ReadFileTool",
+    "WriteFileTool",
+    "EditFileTool",
+    "GlobTool",
+    "GrepTool"
 ]
 ```
 
@@ -257,4 +291,3 @@ class MyCustomTool(Tool):
 
 - [smolagents Documentation](https://github.com/huggingface/smolagents)
 - [SearXNG Documentation](https://docs.searxng.org/)
-- [Tool Design Best Practices](development.md#tool-design)

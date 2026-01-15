@@ -74,10 +74,11 @@ Open `http://localhost:5173`
 - **WebSearchTool** - SearXNG or default web search with markdown formatting
 - **PlanningTool** - Task planning with status tracking (pending → in_progress → completed/failed)
 - **WebpageTool** - Fetch and extract web page content
-- **FileTool** - File read/write operations
+- **File Tools** - `ReadFileTool`, `WriteFileTool`, `EditFileTool`, `GlobTool`, `GrepTool` for filesystem manipulation
+- **BashTool** (Sandbox) - Execute shell commands in a secure environment (only when Sandbox is enabled)
 - **Memory Tools** (optional) - Semantic search and core memory updates
 
-See [docs/tools.md](./docs/tools.md) for details and [docs/searxng-setup.md](./docs/searxng-setup.md) for SearXNG setup.
+See [docs/tools/tools.md](./docs/tools/tools.md) for details.
 
 ## Storage
 
@@ -136,19 +137,5 @@ frontend/src/
 
 **Key Patterns**: Agent state persistence, tool context injection, hybrid threading for SSE, semantic memory search
 
-## Documentation
 
-- [AGENTS.md](./AGENTS.md) - Developer guide
-- [docs/tools.md](./docs/tools.md) - Tool documentation
-- [docs/searxng-setup.md](./docs/searxng-setup.md) - SearXNG setup
-- [docs/MEMORY_SYSTEM_DESIGN.md](./docs/MEMORY_SYSTEM_DESIGN.md) - Memory specs
-- [MEMORY_POC_SUMMARY.md](./MEMORY_POC_SUMMARY.md) - Memory implementation
-
-## Adding Tools
-
-1. Create `src/suzent/tools/yourtool_tool.py` inheriting `smolagents.tools.Tool`
-2. Define `name`, `description`, `inputs`, `output_type`, `forward()` method
-3. Register in `agent_manager.py` → `tool_module_map`
-
-See [AGENTS.md](./AGENTS.md) for full details.
 
