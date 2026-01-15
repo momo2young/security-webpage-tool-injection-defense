@@ -1,141 +1,112 @@
-# Suzent
 
-An AI agent chat application with persistent conversations, task planning, web search, and optional long-term memory.
+<div align="center">
 
-**Stack**: Python (Starlette + smolagents) backend, React (TypeScript + Vite) frontend
+![Suzent Banner](docs/assets/banner.svg)
 
-## Features
-
-- **Persistent Chats** - Auto-saved conversations in SQLite
-- **Task Planning** - Real-time task tracking and status management
-- **Long-Term Memory** - Optional PostgreSQL + pgvector with semantic search
-- **Multi-Model Support** - OpenAI, Anthropic, DeepSeek, Qwen, Gemini
-- **Web Search** - Privacy-focused SearXNG integration or default search
-- **Streaming Responses** - Real-time SSE updates
-- **MCP Support** - Model Context Protocol server integration
-- **Extensible** - Easy to add custom tools
+# **SUZENT: YOUR SOVEREIGN DIGITAL CO-WORKER**
+**[ LICENSE :: APACHE 2.0 ] • [ STATUS :: READY ] • [ SYSTEM :: AGENTIC ]**
 
 
-## Quick Start
+**[QUICKSTART](./QUICKSTART.md)** • **[DOCS](./docs/)** • **[CONTRIBUTING](./CONTRIBUTING.md)**
 
-**Prerequisites**: Python 3.10+, Node.js 18+, PostgreSQL (optional)
+</div>
 
-### 1. Configure Environment
+---
 
-Create `.env` file with at least one API key:
+## **THE PHILOSOPHY**
+
+SUZENT [soo-zuh-nt] combines SUZERAIN (sovereign) + AGENT (executor)—an automated system that answers to one authority: you. Built on the principles of digital sovereignty and open inspiration.
+
+
+```markdown
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   YOUR DATA. YOUR MACHINE. YOUR RULES.                       ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+---
+
+## **WHY SUZENT?**
+
+SUZENT is an open-source deep research and co-worker agent that synthesizes ideas from leading AI products and projects—designed both as a fully functional tool you can use immediately and as inspiration for developers building their own agents. It demonstrates production-ready patterns for workspace management, local-first architecture, memory system, and agentic workflows, giving you a working reference implementation to learn from or extend.
+
+
+## **FEATURES**
+
+### **MODEL AGNOSTIC**
+
+**SUZENT** is model agnostic. It can use any model (GPT, Claude, Gemini, DeepSeek,etc.) you want.
+
+### **AGENTIC WORKFLOW**
+
+**SUZENT** is a functionally rich agent that provides an experience comparable to OpenAI/Google Deep Research, Manus, and Claude Cowork — but fully open-source and locally runnable.
+
+### **TOOLS**
+
+**SUZENT** provides simple but powerful tools for you to get started. It includes `bash`, `web search`, `web fetch`, and a series of file operations tools. These tools could guarantee you a competitive enough performance on GAIA benchmark.
+
+You can create your custom tools and further connect to Google Drive, GitHub, or Slack via standard MCP protocol.
+
+### **WORKSPACE**
+
+Unlike most agents, **SUZENT** features dual workspaces: a cross-session workspace shared across all chats for persistent knowledge, and per-session workspaces for individual conversations. This enables both continuity and isolation. You can also mount local folders (like your Obsidian vault) directly into the system.
+
+(Agent Skills is work in progress)
+
+### **MEMORY**
+
+**SUZENT** implements a MemGPT-like global memory system that persists across sessions. This allows you to accumulate knowledge and context across conversations, making it easier to maintain a consistent and coherent conversation history.
+
+### **PRIVATE & LOCAL**
+SUZENT runs entirely on your device with built-in SearXNG for ad-free, tracking-free web search, PostgreSQL + pgvector for local vector storage, and MicroSandbox isolation for safe code execution. Your data never leaves your machine.
+
+
+### **UI READY**
+
+**SUZENT** features a NeoBrutalist web interface that transforms terminal-based agent interactions into a modern, aesthetically distinct experience—combining powerful functionality with bold visual design for your digital sovereign co-worker.
+
+---
+
+## **QUICK START**
+
+### **THE "ONE-MINUTE" SETUP (DOCKER)**
 
 ```bash
-# At least one AI API key required
-OPENAI_API_KEY=sk-xxx
-ANTHROPIC_API_KEY=sk-xxx
-DEEPSEEK_API_KEY=sk-xxx
-QWEN_API_KEY=xxx
-GEMINI_API_KEY=xxx
+# 1. CLONE YOUR NEW CO-WORKER
+git clone https://github.com/cyzus/suzent.git
+cd suzent
 
-# Optional: SearXNG for privacy-focused search
-SEARXNG_BASE_URL=http://localhost:8080
+# 2. CONFIGURE (ADD KEYS)
+cp .env.example .env
+# Edit .env with your favorite API key
 
-# Optional: Memory system (requires PostgreSQL + pgvector)
-POSTGRES_HOST=localhost
-POSTGRES_USER=suzent
-POSTGRES_PASSWORD=your_password
-POSTGRES_DB=suzent
+# 3. WAKE UP SUZENT
+docker compose -f docker/docker-compose.yml up -d
 ```
 
-### 2. Install Dependencies
+▶ **OPEN: [LOCALHOST:5173](http://localhost:5173)**
 
-```bash
-# Activate environment
-.venv/Scripts/activate  # Windows
-source .venv/bin/activate  # Linux/Mac
+---
 
-# Install
-uv sync  # Base install
-uv sync --extra memory  # With memory system
-playwright install  # For WebpageTool
-```
+## **TECH STACK**
 
-### 3. Run
+*   **BACKEND**: Python 3.12, `smolagents`, `litellm`, Starlette, SQLite.
+*   **FRONTEND**: React, TypeScript, Tailwind, Vite.
+*   **MEMORY**: PostgreSQL + `pgvector`.
+*   **SANDBOX**: MicroSandbox.
 
-```bash
-# Backend (terminal 1)
-python src/suzent/server.py  # Runs on :8000
+---
 
-# Frontend (terminal 2)
-cd frontend
-npm install  # First time only
-npm run dev  # Runs on :5173
-```
+## **ACKNOWLEDGEMENTS**
 
-Open `http://localhost:5173`
+SUZENT is built upon the collective intelligence and innovation of the open-source community. We are deeply grateful to the projects and contributors who make digital sovereignty possible.
 
-## Tools
+---
 
-- **WebSearchTool** - SearXNG or default web search with markdown formatting
-- **PlanningTool** - Task planning with status tracking (pending → in_progress → completed/failed)
-- **WebpageTool** - Fetch and extract web page content
-- **File Tools** - `ReadFileTool`, `WriteFileTool`, `EditFileTool`, `GlobTool`, `GrepTool` for filesystem manipulation
-- **BashTool** (Sandbox) - Execute shell commands in a secure environment (only when Sandbox is enabled)
-- **Memory Tools** (optional) - Semantic search and core memory updates
+## **LICENSE**
 
-See [docs/tools/tools.md](./docs/tools/tools.md) for details.
+**[APACHE 2.0](LICENSE)** © 2026 Yizhou Chi.
 
-## Storage
-
-### SQLite (chats.db)
-- Auto-saved conversations with agent state
-- Plans and tasks tracking
-- Browse, continue, or delete chats from sidebar
-
-### PostgreSQL Memory (Optional)
-Letta-style long-term memory with:
-- **Core Memory**: 4 blocks (persona, user, facts, context) always in agent context
-- **Archival Memory**: Unlimited semantic search with hybrid scoring
-- **Auto Fact Extraction**: Automatic deduplication from conversations
-
-## API Endpoints
-
-```
-POST   /chat                Stream agent response (SSE)
-POST   /chat/stop           Stop active stream
-GET    /chats               List all chats
-POST   /chats               Create new chat
-GET    /chats/{id}          Get chat with messages
-PUT    /chats/{id}          Update chat
-DELETE /chats/{id}          Delete chat
-GET    /plan                Get current plan
-GET    /plans               Get plan history
-GET    /config              Get configuration
-POST   /config              Update configuration
-GET    /mcp_servers         List MCP servers
-POST   /mcp_servers         Add MCP server
-```
-
-See [API Reference](./docs/api-reference.md) for details.
-
-## Architecture
-
-**Backend**: Starlette ASGI + smolagents + LiteLLM
-**Frontend**: React + TypeScript + Vite + Tailwind
-**Database**: SQLite (chats), PostgreSQL + pgvector (memory)
-
-```
-src/suzent/
-├── server.py         # ASGI app entry point
-├── agent_manager.py  # Agent lifecycle & serialization
-├── streaming.py      # SSE streaming
-├── database.py       # SQLite operations
-├── routes/           # API endpoints
-├── tools/            # Custom tools
-└── memory/           # Memory system
-
-frontend/src/
-├── lib/              # API & streaming clients
-├── hooks/            # React Context stores
-└── components/       # UI components
-```
-
-**Key Patterns**: Agent state persistence, tool context injection, hybrid threading for SSE, semantic memory search
-
-
-
+**RECLAIM YOUR DIGITAL SOVEREIGNTY.**
