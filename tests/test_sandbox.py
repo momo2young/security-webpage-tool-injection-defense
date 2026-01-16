@@ -18,8 +18,6 @@ import concurrent.futures
 from typing import Tuple
 import pytest
 
-pytestmark = pytest.mark.sandbox
-
 from suzent.sandbox import (
     SandboxManager,
     ExecutionResult,
@@ -29,6 +27,7 @@ from suzent.sandbox import (
     check_server_status,
 )
 
+pytestmark = pytest.mark.sandbox
 
 # =============================================================================
 # Fixtures
