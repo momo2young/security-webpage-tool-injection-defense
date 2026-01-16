@@ -9,13 +9,6 @@
 
 **[QUICKSTART](./QUICKSTART.md)** • **[DOCS](./docs/)** • **[CONTRIBUTING](./CONTRIBUTING.md)**
 
-</div>
-
----
-
-## **THE PHILOSOPHY**
-
-SUZENT [soo-zuh-nt] combines SUZERAIN (sovereign) + AGENT (executor)—an automated system that answers to one authority: you. Built on the principles of digital sovereignty and open inspiration.
 
 
 ```markdown
@@ -25,6 +18,16 @@ SUZENT [soo-zuh-nt] combines SUZERAIN (sovereign) + AGENT (executor)—an automa
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
+
+
+</div>
+
+---
+
+## **THE PHILOSOPHY**
+
+SUZENT [soo-zuh-nt] combines SUZERAIN (sovereign) + AGENT (executor)—an automated system that answers to one authority: you. Built on the principles of digital sovereignty and open inspiration.
+
 
 ---
 
