@@ -68,59 +68,26 @@ Examples:
             return "Error: GlobTool not initialized. No resolver context."
 
         try:
+            # Use unified finder from resolver
+            # pattern in GlobTool is the glob pattern itself
+            # path is the starting directory
+            
+            # Special case: if path is not provided but pattern is absolute (starts with /),
+            # we treat pattern as relative to root and path as root.
+            search_path = path
+            search_pattern = pattern
+            
+            if search_path is None and search_pattern.startswith("/"):
+                 # This mimics the logic we had: searching from root/virtual roots
+                 # But standard glob pattern "/**/foo" from a root usually implies root search.
+                 pass
+
+            found_files = self._resolver.find_files(search_pattern, search_path)
+            
+            # Format results for GlobTool (needs host path for is_dir check)
             results = []
-            
-            # Case A: Searching from Root (/) - Virtual Union Search
-            if path == "/" or (path is None and pattern.startswith("/")):
-                # If pattern is absolute like "/mnt/**/*.py", we can try to resolve the base 
-                # but standard glob doesn't support that well.
-                # For simplified UX: If path="/" or None, we search ALL virtual roots.
-                
-                roots = self._resolver.get_virtual_roots()
-                seen_virtual_paths = set()
-                
-                for v_root, h_root in roots:
-                    if not h_root.exists(): 
-                        continue
-                        
-                    # Glob relative to this host root
-                    # Handle recursive pattern from root:
-                    # If pattern is "**/*.py", we run it on h_root
-                    matches = list(h_root.glob(pattern))
-                    
-                    for match in matches:
-                        if self._resolver.is_path_allowed(match):
-                            v_path = self._resolver.to_virtual_path(match)
-                            if v_path and v_path not in seen_virtual_paths:
-                                results.append((v_path, match.is_dir()))
-                                seen_virtual_paths.add(v_path)
-            
-            # Case B: Standard Directory Search
-            else:
-                # Resolve base path
-                if path:
-                    base_path = self._resolver.resolve(path)
-                else:
-                    base_path = self._resolver.get_working_dir()
-
-                # Check if base path exists
-                if not base_path.exists():
-                    return f"Error: Directory not found: {path or 'working directory'}"
-
-                if not base_path.is_dir():
-                    return f"Error: Path is not a directory: {path}"
-
-                # Find matching files
-                matches: List[Path] = list(base_path.glob(pattern))
-
-                for match in matches:
-                    if self._resolver.is_path_allowed(match):
-                        # Convert to virtual path for display
-                        virtual = self._resolver.to_virtual_path(match)
-                        if virtual:
-                            results.append((virtual, match.is_dir()))
-                        else:
-                            results.append((str(match.name), match.is_dir()))
+            for host_path, virtual_path in found_files:
+                results.append((virtual_path, host_path.is_dir()))
 
             # Sort results: Files first, then alphabetical
             results.sort(key=lambda x: (not x[1], x[0].lower()))

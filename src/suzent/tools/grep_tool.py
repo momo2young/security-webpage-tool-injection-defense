@@ -94,59 +94,29 @@ Examples:
                 return f"Error: Invalid regex pattern: {e}"
 
             # Collect files to search
-            files_to_search: List[Path] = []
+            glob_pattern = include or "**/*"
             
-            # Case A: Searching from Root (/) - Virtual Union Search
-            if path == "/":
-                roots = self._resolver.get_virtual_roots()
-                glob_pattern = include or "**/*"
-                
-                for v_root, h_root in roots:
-                    if not h_root.exists():
-                        continue
-                        
-                    # Recursively find text files in this root
-                    for f in h_root.glob(glob_pattern):
-                        if f.is_file() and self._is_text_file(f):
-                            if self._resolver.is_path_allowed(f):
-                                files_to_search.append(f)
+            # Use unified finder
+            found_files = self._resolver.find_files(glob_pattern, path)
             
-            # Case B: Standard Path Search
-            else:
-                # Resolve path
-                if path:
-                    search_path = self._resolver.resolve(path)
-                else:
-                    search_path = self._resolver.get_working_dir()
-
-                if not search_path.exists():
-                    return f"Error: Path not found: {path or 'working directory'}"
-
-                if search_path.is_file():
-                    files_to_search = [search_path]
-                else:
-                    # Use include pattern or search all text files
-                    glob_pattern = include or "**/*"
-                    for f in search_path.glob(glob_pattern):
-                        if f.is_file() and self._is_text_file(f):
-                            if self._resolver.is_path_allowed(f):
-                                files_to_search.append(f)
-
             # Search files
             results: List[Tuple[str, int, str]] = []  # (file, line_num, content)
             files_with_matches = 0
             ctx = context_lines or 0
 
-            for file_path in files_to_search[:100]:  # Limit files searched
+            for file_path, v_path in found_files:
+                if len(results) >= 1000: # Global safety limit
+                    break
+                    
+                if not file_path.is_file() or not self._is_text_file(file_path):
+                    continue
+                    
                 try:
                     matches = self._search_file(file_path, regex, ctx)
                     if matches:
                         files_with_matches += 1
-                        vpath = (
-                            self._resolver.to_virtual_path(file_path) or file_path.name
-                        )
                         for line_num, content in matches:
-                            results.append((vpath, line_num, content))
+                            results.append((v_path, line_num, content))
                 except Exception as e:
                     logger.debug(f"Could not search {file_path}: {e}")
 

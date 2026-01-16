@@ -396,3 +396,68 @@ class PathResolver:
                 continue
                 
         return best_candidate
+
+    def find_files(self, pattern: str, search_path: Optional[str] = "/") -> List[Tuple[Path, str]]:
+        """
+        Find files matching a glob pattern, handling virtual roots transparently.
+        
+        Args:
+            pattern: Glob pattern (e.g. "**/*.py")
+            search_path: Virtual path to start search from (default: "/")
+            
+        Returns:
+            List of (host_path, virtual_path) tuples
+        """
+        results = []
+        seen_virtual_paths = set()
+        
+        # Determine roots to search
+        search_roots = []
+        
+        if search_path == "/" or (search_path is None and pattern.startswith("/")):
+             # Search all virtual roots
+             search_roots = self.get_virtual_roots()
+        else:
+             # Search specific path
+             resolved = self.resolve(search_path or "/")
+             if resolved.exists() and resolved.is_dir():
+                 # For specific path, we simulate a single root 
+                 # We don't have the virtual prefix easily handy without reverse, 
+                 # but we can resolve it later.
+                 # Actually, better to just use the resolved path.
+                 # We dummy the virtual_root part as we will calculate v_paths per file anyway.
+                 search_roots = [(None, resolved)]
+        
+        for v_root_prefix, h_root in search_roots:
+            if not h_root.exists():
+                continue
+                
+            # Run glob
+            try:
+                matches = list(h_root.glob(pattern))
+            except Exception as e:
+                # logger.warning(f"Glob error on {h_root}: {e}")
+                continue
+                
+            for match in matches:
+                # Security check
+                if not self.is_path_allowed(match):
+                    continue
+                    
+                # Get virtual path
+                v_path = self.to_virtual_path(match)
+                
+                # If we couldn't resolve virtual path, perform fallback if we know the root prefix
+                if not v_path and v_root_prefix and h_root in match.parents:
+                     rel = match.relative_to(h_root)
+                     v_path = f"{v_root_prefix}/{rel}".replace("\\", "/")
+                
+                # Fallback for simple resolved path case without prefix
+                if not v_path:
+                    v_path = match.name 
+                    
+                if v_path not in seen_virtual_paths:
+                    seen_virtual_paths.add(v_path)
+                    results.append((match, v_path))
+                    
+        return results
