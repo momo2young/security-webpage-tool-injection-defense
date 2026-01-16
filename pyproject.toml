@@ -43,4 +43,9 @@ all = [
     "suzent[memory,dev]",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+    "sandbox: marks tests that require microsandbox server (deselect with '-m \"not sandbox\"')",
+]
+
 

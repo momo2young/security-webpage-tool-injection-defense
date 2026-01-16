@@ -18,6 +18,8 @@ import concurrent.futures
 from typing import Tuple
 import pytest
 
+pytestmark = pytest.mark.sandbox
+
 from suzent.sandbox import (
     SandboxManager,
     ExecutionResult,
