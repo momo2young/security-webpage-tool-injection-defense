@@ -6,6 +6,7 @@ export interface Skill {
     name: string;
     description: string;
     path: string;
+    enabled: boolean;
 }
 
 const API_BASE = '/api/skills';
@@ -32,4 +33,15 @@ export const skillsApi = {
         }
         return await response.json();
     },
+
+    /**
+     * Toggle a skill's enabled state
+     */
+    async toggleSkill(name: string): Promise<{ name: string; enabled: boolean }> {
+        const response = await fetch(`${API_BASE}/${name}/toggle`, { method: 'POST' });
+        if (!response.ok) {
+            throw new Error(`Failed to toggle skill: ${response.statusText}`);
+        }
+        return await response.json();
+    }
 };

@@ -13,6 +13,7 @@ interface SkillsState {
     // Actions
     loadSkills: () => Promise<void>;
     reload: () => Promise<void>;
+    toggle: (name: string) => Promise<void>;
 }
 
 export const useSkills = create<SkillsState>((set) => ({
@@ -43,6 +44,33 @@ export const useSkills = create<SkillsState>((set) => ({
                 error: error instanceof Error ? error.message : 'Failed to reload skills',
                 loading: false
             });
+        }
+    },
+
+    toggle: async (name: string) => {
+        // Optimistic update
+        set((state) => ({
+            skills: state.skills.map((s) =>
+                s.name === name ? { ...s, enabled: !s.enabled } : s
+            ),
+        }));
+
+        try {
+            const result = await skillsApi.toggleSkill(name);
+            // Confirm state matches server
+            set((state) => ({
+                skills: state.skills.map((s) =>
+                    s.name === result.name ? { ...s, enabled: result.enabled } : s
+                ),
+            }));
+        } catch (error) {
+            // Revert on error
+            set((state) => ({
+                skills: state.skills.map((s) =>
+                    s.name === name ? { ...s, enabled: !s.enabled } : s
+                ),
+                error: error instanceof Error ? error.message : 'Failed to toggle skill'
+            }));
         }
     }
 }));

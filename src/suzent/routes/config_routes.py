@@ -34,8 +34,8 @@ async def get_config(request: Request) -> JSONResponse:
         "title": CONFIG.title,
         "models": CONFIG.model_options,
         "agents": CONFIG.agent_options,
-        "tools": CONFIG.tool_options,
-        "defaultTools": CONFIG.default_tools,
+        "tools": [t for t in CONFIG.tool_options if t != "SkillTool"],
+        "defaultTools": [t for t in CONFIG.default_tools if t != "SkillTool"],
         "codeTag": CONFIG.code_tag,
         "userId": CONFIG.user_id,
         # Include global sandbox configuration

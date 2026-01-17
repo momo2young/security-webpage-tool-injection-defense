@@ -18,12 +18,28 @@ async def get_skills(request):
         {
             "name": skill.metadata.name,
             "description": skill.metadata.description,
-            "path": PathResolver.get_skill_virtual_path(skill.metadata.name)
+            "path": PathResolver.get_skill_virtual_path(skill.metadata.name),
+            "enabled": manager.is_skill_enabled(skill.metadata.name)
         }
         for skill in skills
     ]
 
     return JSONResponse(response_data)
+
+async def toggle_skill(request):
+    """
+    Toggle a skill's enabled state.
+    """
+    skill_name = request.path_params["skill_name"]
+    manager = get_skill_manager()
+    
+    # Check if skill exists
+    skill = manager.loader.get_skill(skill_name)
+    if not skill:
+        return JSONResponse({"error": "Skill not found"}, status_code=404)
+        
+    new_state = manager.toggle_skill(skill_name)
+    return JSONResponse({"name": skill_name, "enabled": new_state})
 
 async def reload_skills(request):
     """

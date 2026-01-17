@@ -52,7 +52,7 @@ from suzent.routes.sandbox_routes import (
     write_sandbox_file,
     delete_sandbox_file,
 )
-from suzent.routes.skill_routes import get_skills, reload_skills
+from suzent.routes.skill_routes import get_skills, reload_skills, toggle_skill
 
 # Load environment variables
 load_dotenv()
@@ -135,6 +135,7 @@ app = Starlette(
         # Skill endpoints
         Route("/skills", get_skills, methods=["GET"]),
         Route("/skills/reload", reload_skills, methods=["POST"]),
+        Route("/skills/{skill_name}/toggle", toggle_skill, methods=["POST"]),
     ],
     middleware=[
         Middleware(

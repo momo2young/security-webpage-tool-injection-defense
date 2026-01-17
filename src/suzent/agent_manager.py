@@ -22,6 +22,7 @@ from smolagents.tools import Tool
 from suzent.config import CONFIG, PROJECT_DIR
 from suzent.logger import get_logger
 from suzent.prompts import format_instructions
+from suzent.skills import get_skill_manager
 # Late imports for tools to avoid circular deps during init if needed,
 # but imported at scope where used is generally cleaner if conditional.
 # However, for this refactor, we'll import PathResolver inside the helper.
@@ -222,8 +223,8 @@ def create_agent(
             if tool_name in [
                 "MemorySearchTool",
                 "MemoryBlockUpdateTool",
-                "SandboxTool",
                 "BashTool",
+                "SkillTool",
             ]:
                 continue
 
@@ -260,6 +261,19 @@ def create_agent(
                 logger.info("BashTool equipped (Sandbox enabled)")
         except Exception as e:
             logger.error(f"Failed to equip BashTool: {e}")
+
+    # Auto-equip SkillTool if any skills are enabled
+    skill_manager = get_skill_manager()
+    if skill_manager.enabled_skills:
+        try:
+            tool_module = importlib.import_module("suzent.tools.skill_tool")
+            tool_class = getattr(tool_module, "SkillTool")
+            # Check if not already added (though we removed it from defaults, user config might still have it)
+            if not any(isinstance(t, tool_class) for t in tools):
+                tools.append(tool_class())
+                logger.info(f"SkillTool equipped ({len(skill_manager.enabled_skills)} skills enabled)")
+        except Exception as e:
+            logger.error(f"Failed to equip SkillTool: {e}")
 
     # --- Filter MCP servers by enabled state if provided ---
     # Accepts: config['mcp_enabled'] = {name: bool, ...}, config['mcp_urls'], config['mcp_stdio_params']

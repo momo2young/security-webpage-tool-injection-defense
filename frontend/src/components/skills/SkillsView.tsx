@@ -3,7 +3,7 @@ import { useSkills } from '../../hooks/useSkills';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 
 export const SkillsView: React.FC = () => {
-    const { skills, loading, error, loadSkills, reload } = useSkills();
+    const { skills, loading, error, loadSkills, reload, toggle } = useSkills();
 
     useEffect(() => {
         loadSkills();
@@ -56,9 +56,16 @@ export const SkillsView: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {skills.map(skill => (
-                    <div key={skill.name} className="bg-white border-3 border-brutal-black p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)] transition-all">
+                    <div key={skill.name} className={`bg-white border-3 border-brutal-black p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all ${!skill.enabled ? 'opacity-75 bg-neutral-50' : ''}`}>
                         <div className="flex justify-between items-start mb-2">
                             <h3 className="font-brutal text-xl uppercase break-all">{skill.name}</h3>
+                            <button
+                                onClick={() => toggle(skill.name)}
+                                className={`w-12 h-6 flex items-center border-2 border-brutal-black p-0.5 transition-colors ${skill.enabled ? 'bg-brutal-black justify-end' : 'bg-white justify-start'}`}
+                                title={skill.enabled ? "Disable Skill" : "Enable Skill"}
+                            >
+                                <div className={`w-4 h-4 border-2 border-brutal-black ${skill.enabled ? 'bg-white' : 'bg-neutral-300'}`} />
+                            </button>
                         </div>
                         <div className="mb-4 overflow-hidden text-ellipsis">
                             <p className="font-mono text-[10px] text-neutral-500 bg-neutral-100 p-1 inline-block truncate max-w-full" title={skill.path}>
