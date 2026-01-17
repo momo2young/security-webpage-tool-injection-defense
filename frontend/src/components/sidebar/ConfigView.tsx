@@ -4,6 +4,7 @@ import { flushSync } from 'react-dom';
 import { useChatStore } from '../../hooks/useChatStore';
 import { fetchMcpServers, addMcpServer, removeMcpServer, setMcpServerEnabled } from '../../lib/api';
 import { BrutalSelect } from '../BrutalSelect';
+
 import { FilePicker } from '../FilePicker';
 
 type MCPServer =
@@ -189,27 +190,35 @@ export const ConfigView: React.FC = () => {
       <div className="space-y-2">
         <label className="block font-bold tracking-wide text-brutal-black uppercase">Tools</label>
         <div className="flex flex-wrap gap-2">
-          {backendConfig.tools.map((tool: string) => {
-            // Skip memory tools in the main tools list - they're controlled by the memory toggle
-            // Also skip SandboxTool as it's controlled by the sandbox toggle
-            if (tool === 'MemorySearchTool' || tool === 'MemoryBlockUpdateTool' || tool === 'BashTool') {
-              return null;
-            }
-            const active = (config.tools || []).includes(tool);
-            return (
-              <button
-                key={tool}
-                type="button"
-                onClick={() => toggleTool(tool)}
-                className={`px-2.5 py-1 border-3 text-xs font-bold uppercase transition-all duration-200 ${active
-                  ? 'bg-brutal-green text-brutal-black border-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] translate-x-[-1px] translate-y-[-1px]'
-                  : 'border-brutal-black text-brutal-black bg-white hover:bg-brutal-yellow hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                  }`}
-              >
-                {tool}
-              </button>
-            );
-          })}
+          <div className="flex flex-col gap-2 w-full bg-neutral-50 border-2 border-brutal-black p-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-track-neutral-200 scrollbar-thumb-brutal-black">
+            {backendConfig.tools
+              .filter((t: string) => !['MemorySearchTool', 'MemoryBlockUpdateTool', 'BashTool'].includes(t))
+              .map((tool: string) => {
+                const active = (config.tools || []).includes(tool);
+                // Format name: EditFileTool -> EDIT FILE
+                const displayName = tool.replace(/Tool$/, '').replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase();
+
+                return (
+                  <button
+                    key={tool}
+                    type="button"
+                    onClick={() => toggleTool(tool)}
+                    className={`flex items-center gap-3 px-3 py-2 border-2 text-xs font-bold uppercase transition-all duration-100 w-full text-left group ${active
+                      ? 'bg-brutal-green text-brutal-black border-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] translate-x-[-1px] translate-y-[-1px]'
+                      : 'border-brutal-black text-brutal-black bg-white hover:bg-neutral-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
+                      }`}
+                  >
+                    <div className={`w-4 h-4 border-2 border-brutal-black flex items-center justify-center transition-colors ${active ? 'bg-brutal-black' : 'bg-white'}`}>
+                      {active && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                    </div>
+                    <span>{displayName}</span>
+                  </button>
+                );
+              })}
+            {(backendConfig.tools || []).length === 0 && (
+              <div className="text-center py-4 text-gray-500 font-bold uppercase text-xs">No tools available</div>
+            )}
+          </div>
         </div>
       </div>
       <div className="space-y-2">
