@@ -44,7 +44,7 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
     return (
         <form
             onSubmit={(e) => { e.preventDefault(); send(); }}
-            className="bg-white border-3 border-brutal-black shadow-brutal-lg p-4 flex flex-col gap-3 relative group focus-within:shadow-brutal-xl focus-within:-translate-y-1 transition-all duration-200"
+            className="bg-white border-2 border-brutal-black shadow-brutal-sm p-2 flex flex-col gap-2 relative group focus-within:shadow-brutal focus-within:-translate-y-[1px] transition-all duration-200"
         >
             {/* Image preview section */}
             {selectedImages.length > 0 && (
@@ -72,7 +72,7 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
             <textarea
                 autoFocus
                 ref={textareaRef}
-                className="w-full resize-none overflow-y-auto min-h-[60px] max-h-[200px] bg-transparent focus:outline-none text-lg text-brutal-black placeholder-neutral-400 font-medium placeholder:font-bold border-none p-2"
+                className="w-full resize-none overflow-y-auto min-h-[44px] max-h-[200px] bg-transparent focus:outline-none text-lg text-brutal-black placeholder-neutral-400 font-medium placeholder:font-bold border-none p-2"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -88,7 +88,7 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
             />
 
             {/* Button row */}
-            <div className="flex flex-wrap gap-2 items-center justify-between pt-2">
+            <div className="flex flex-wrap gap-2 items-center justify-between pt-1">
                 <div className="flex gap-4 items-center pl-2">
                     <input
                         ref={fileInputRef}
@@ -146,7 +146,7 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
 
                     <button
                         type="submit"
-                        className="h-10 bg-brutal-blue border-3 border-brutal-black shadow-brutal hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all duration-100 px-6 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white uppercase ml-1"
+                        className="h-9 bg-brutal-blue border-2 border-brutal-black shadow-brutal hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all duration-100 px-4 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white uppercase ml-1"
                         disabled={isStreaming || !configReady}
                         title="Send Message"
                     >

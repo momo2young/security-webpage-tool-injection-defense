@@ -28,7 +28,12 @@ import { SkillsView } from './components/skills/SkillsView';
 const AppInner: React.FC = () => {
   const [sidebarTab, setSidebarTab] = useState<'chats' | 'config'>('chats');
   const [mainView, setMainView] = useState<'chat' | 'memory' | 'skills'>('chat');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Sidebar State Management
+  // Default to open on larger screens, closed on mobile
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(window.innerWidth >= 768);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+
   const { refresh } = usePlan();
   const { currentChatId, setViewSwitcher } = useChatStore();
   const chatIdRef = React.useRef<string | null>(null);
@@ -36,6 +41,16 @@ const AppInner: React.FC = () => {
   const handlePlanRefresh = React.useCallback(() => {
     refresh(currentChatId);
   }, [refresh, currentChatId]);
+
+  // Logic: When Right Sidebar Opens, Auto-Collapse Left Sidebar
+  const handleRightSidebarToggle = (isOpen: boolean) => {
+    setIsRightSidebarOpen(isOpen);
+    if (isOpen && window.innerWidth >= 768) {
+      setIsLeftSidebarOpen(false);
+    }
+  };
+
+  const toggleLeftSidebar = () => setIsLeftSidebarOpen(!isLeftSidebarOpen);
 
   // Set view switcher in context so child components can switch views
   // Note: setViewSwitcher type in ChatStore likely expects dispatching to 'chat' | 'memory'.
@@ -53,7 +68,7 @@ const AppInner: React.FC = () => {
     chatIdRef.current = currentChatId;
     // Close sidebar on mobile when chat changes (user selected a chat)
     if (window.innerWidth < 768) {
-      setIsSidebarOpen(false);
+      setIsLeftSidebarOpen(false);
     }
   }, [currentChatId, refresh]);
 
@@ -73,21 +88,25 @@ const AppInner: React.FC = () => {
           onTabChange={setSidebarTab}
           chatsContent={<ChatList />}
           configContent={<ConfigView />}
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
+          isOpen={isLeftSidebarOpen}
+          onClose={() => setIsLeftSidebarOpen(false)}
         />
         <div className="flex-1 flex flex-col overflow-hidden w-full">
           <header className="border-b-3 border-brutal-black px-4 md:px-6 py-3 md:py-5 flex items-center justify-between bg-brutal-white flex-shrink-0 h-16 md:h-auto">
             <div className="flex items-center gap-2 md:gap-0">
-              <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="md:hidden p-2 -ml-2 mr-1 hover:bg-neutral-100 active:bg-neutral-200 transition-colors"
-                aria-label="Open Menu"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="square" strokeLinejoin="miter" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
+              {!isLeftSidebarOpen && (
+                <button
+                  onClick={toggleLeftSidebar}
+                  className="p-2 -ml-2 mr-1 hover:bg-neutral-100 active:bg-neutral-200 transition-colors"
+                  aria-label="Expand Sidebar"
+                  title="Expand Sidebar"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                    <line x1="9" y1="4" x2="9" y2="20" />
+                  </svg>
+                </button>
+              )}
               <HeaderTitle text={getTitle()} />
             </div>
 
@@ -120,7 +139,10 @@ const AppInner: React.FC = () => {
 
           {mainView === 'chat' && (
             <div key="chat" className="flex-1 flex flex-col min-h-0 animate-view-fade">
-              <ChatWindow />
+              <ChatWindow
+                isRightSidebarOpen={isRightSidebarOpen}
+                onRightSidebarToggle={handleRightSidebarToggle}
+              />
             </div>
           )}
           {mainView === 'memory' && (

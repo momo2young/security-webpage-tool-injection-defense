@@ -376,7 +376,16 @@ const StreamingMessageContent: React.FC<{
   return <>{onBlockRender(blocks)}</>;
 };
 
-export const ChatWindow: React.FC = () => {
+
+interface ChatWindowProps {
+  isRightSidebarOpen?: boolean;
+  onRightSidebarToggle?: (isOpen: boolean) => void;
+}
+
+export const ChatWindow: React.FC<ChatWindowProps> = ({
+  isRightSidebarOpen = false,
+  onRightSidebarToggle = () => { }
+}) => {
   const {
     messages,
     addMessage,
@@ -401,9 +410,10 @@ export const ChatWindow: React.FC = () => {
   const { loadCoreMemory, loadStats } = useMemory();
   const [input, setInput] = useState('');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [isPlanDocked, setIsPlanDocked] = useState(false);
+  // isPlanDocked state moved to parent as isRightSidebarOpen
   const [rightSidebarTab, setRightSidebarTab] = useState<'plan' | 'files'>('plan');
   const [isPlanExpanded, setIsPlanExpanded] = useState(true);
+
   const [isFileExpanded, setIsFileExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -477,7 +487,7 @@ export const ChatWindow: React.FC = () => {
       textarea.style.height = 'auto';
       textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
     }
-  }, [input, isPlanDocked, isPlanExpanded, isFileExpanded, rightSidebarTab]);
+  }, [input, isRightSidebarOpen, isPlanExpanded, isFileExpanded, rightSidebarTab]);
 
   const configReady = !!(safeBackendConfig && safeConfig.model && safeConfig.agent);
 
@@ -871,11 +881,11 @@ export const ChatWindow: React.FC = () => {
         {safeMessages.length > 0 && (
           <div className="border-t-4 border-brutal-black p-4 flex flex-col gap-3 bg-neutral-100">
             {/* Plan Progress (Inline) */}
-            {!isPlanDocked && (
+            {!isRightSidebarOpen && (
               <PlanProgress
                 plan={plan}
                 isDocked={false}
-                onToggleDock={() => setIsPlanDocked(true)}
+                onToggleDock={() => onRightSidebarToggle(true)}
                 isExpanded={isPlanExpanded}
                 onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
               />
@@ -905,13 +915,13 @@ export const ChatWindow: React.FC = () => {
       </div>
 
       {/* Right Sidebar - Plan Docked */}
-      {isPlanDocked && (
+      {isRightSidebarOpen && (
         <div
           className={`
             border-l-3 border-brutal-black z-30 flex flex-col shrink-0 
             absolute inset-0 xl:static xl:inset-auto
             transition-all duration-300 ease-in-out bg-white
-            ${rightSidebarTab === 'files' && isFileExpanded ? 'w-full xl:w-[800px] xl:max-w-[70vw]' : 'w-full xl:w-96'}
+            ${rightSidebarTab === 'files' && isFileExpanded ? 'w-full xl:w-[50vw]' : 'w-full xl:w-96'}
           `}
         >
           <div className="h-14 bg-white border-b-3 border-brutal-black flex items-center justify-between px-0 shrink-0">
@@ -932,7 +942,7 @@ export const ChatWindow: React.FC = () => {
             </div>
 
             <button
-              onClick={() => setIsPlanDocked(false)}
+              onClick={() => onRightSidebarToggle(false)}
               className="w-14 h-full flex items-center justify-center border-l-3 border-brutal-black bg-white hover:bg-black hover:text-white transition-colors ml-auto"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -947,7 +957,7 @@ export const ChatWindow: React.FC = () => {
                 <PlanProgress
                   plan={plan}
                   isDocked={true}
-                  onToggleDock={() => setIsPlanDocked(false)}
+                  onToggleDock={() => onRightSidebarToggle(false)}
                   isExpanded={isPlanExpanded}
                   onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
                 />

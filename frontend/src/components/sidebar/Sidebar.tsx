@@ -58,12 +58,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside className={`
-        fixed md:relative z-50 h-full
+        fixed md:relative z-50 h-full shrink-0
         w-80 border-r-3 border-brutal-black flex flex-col bg-neutral-50
-        transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        transition-all duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0 md:ml-0' : '-translate-x-full md:translate-x-0 md:-ml-80'}
       `}>
-        <nav className="flex border-b-3 border-brutal-black">
+        <nav className="flex border-b-3 border-brutal-black relative pr-10">
+          <button
+            onClick={onClose}
+            className="absolute right-0 top-0 bottom-0 w-10 flex items-center justify-center hover:bg-brutal-red hover:text-white border-l-3 border-brutal-black transition-colors z-10"
+            title="Collapse Sidebar"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
           {['chats', 'config'].map(tab => {
             const active = activeTab === tab;
             return (
