@@ -30,7 +30,7 @@ MCP_STDIO_PARAMS:
       - "./data/papers"
 
 INSTRUCTIONS: ""
-ADDITIONAL_AUTHORIZED_IMPORTS: ["*"]
+ADDITIONAL_AUTHORIZED_IMPORTS: []
 
 # Memory System (requires PostgreSQL with pgvector - see .env for connection)
 MEMORY_ENABLED: false
