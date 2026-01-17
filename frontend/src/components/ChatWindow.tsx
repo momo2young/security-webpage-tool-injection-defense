@@ -879,17 +879,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           )}
         </div>
         {safeMessages.length > 0 && (
-          <div className="border-t-4 border-brutal-black p-4 flex flex-col gap-3 bg-neutral-100">
+          <div className="p-4 flex flex-col gap-3 bg-neutral-100">
             {/* Plan Progress (Inline) */}
-            {!isRightSidebarOpen && (
-              <PlanProgress
-                plan={plan}
-                isDocked={false}
-                onToggleDock={() => onRightSidebarToggle(true)}
-                isExpanded={isPlanExpanded}
-                onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
-              />
-            )}
+            <PlanProgress
+              plan={plan}
+              isDocked={false}
+              onToggleDock={() => onRightSidebarToggle(true)}
+              isExpanded={isPlanExpanded}
+              onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
+            />
 
             <ChatInputPanel
               input={input}
@@ -941,14 +939,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               </button>
             </div>
 
-            <button
-              onClick={() => onRightSidebarToggle(false)}
-              className="w-14 h-full flex items-center justify-center border-l-3 border-brutal-black bg-white hover:bg-black hover:text-white transition-colors ml-auto"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto bg-neutral-50/50 scrollbar-thin scrollbar-track-neutral-200 scrollbar-thumb-brutal-black flex flex-col">

@@ -63,17 +63,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
         transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0 md:ml-0' : '-translate-x-full md:translate-x-0 md:-ml-80'}
       `}>
-        <div className="flex items-center justify-between p-3 border-b-3 border-brutal-black bg-white sticky top-0 z-10">
-          <span className="font-brutal font-bold text-lg tracking-wider">MENU</span>
+        <div className="h-14 flex items-center justify-start px-4 border-b-3 border-brutal-black bg-white sticky top-0 z-10 shrink-0">
+          {/* Toggle Button (Close) */}
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center hover:bg-brutal-red hover:text-white border-2 border-brutal-black transition-colors shadow-brutal-sm active:translate-y-[1px] active:shadow-none"
-            title="Collapse Sidebar"
+            className="h-10 w-10 flex items-center justify-center rounded-md hover:bg-neutral-200 transition-colors text-brutal-black"
+            aria-label="Close Sidebar"
+            title="Close Sidebar"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <line x1="9" y1="4" x2="9" y2="20" />
             </svg>
           </button>
+
+          {/* Vertical Separator */}
+          <div className="h-6 w-[2px] bg-neutral-300 mx-2 rounded-full" />
+
+          {/* Logo (Static) */}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Suzent Logo" className="h-10 w-10">
+            <rect x="1.5" y="1.5" width="21" height="21" rx="3" fill="#FFFFFF" />
+            <rect x="3.5" y="3.5" width="17" height="17" rx="3" fill="#000000" />
+            <rect x="5.5" y="7" width="5" height="5" rx="1.5" fill="#FFFFFF" />
+            <rect x="13.5" y="7" width="5" height="5" rx="1.5" fill="#FFFFFF" />
+          </svg>
         </div>
         <nav className="flex border-b-3 border-brutal-black">
           {['chats', 'config'].map(tab => {

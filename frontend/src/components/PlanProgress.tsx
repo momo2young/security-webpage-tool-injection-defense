@@ -14,20 +14,7 @@ const getPlanKey = (plan: Plan) => (plan.id != null ? `plan:${plan.id}` : plan.v
 export const PlanProgress: React.FC<PlanProgressProps> = ({ plan, isDocked, onToggleDock, isExpanded, onToggleExpand }) => {
 
     if (!plan && !isDocked) {
-        // Minimal render for when there is no plan but we need the dock button (for Files tab)
-        return (
-            <div className="flex justify-end mb-2">
-                <button
-                    onClick={onToggleDock}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white border-2 border-brutal-black hover:bg-brutal-yellow transition-colors text-xs font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-                >
-                    <span>Open Sidebar</span>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                    </svg>
-                </button>
-            </div>
-        );
+        return null;
     }
 
     if (!plan) {
