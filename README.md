@@ -46,23 +46,24 @@ SUZENT is an open-source deep research and co-worker agent that synthesizes idea
 
 **SUZENT** is a functionally rich agent that provides an experience comparable to OpenAI/Google Deep Research, Manus, and Claude Cowork — but fully open-source and locally runnable.
 
-### **TOOLS**
+### **TOOLS & SKILLS**
 
 **SUZENT** provides simple but powerful tools for you to get started. It includes `bash`, `web search`, `web fetch`, and a series of file operations tools. These tools could guarantee you a competitive enough performance on GAIA benchmark.
 
 You can create your custom tools and further connect to Google Drive, GitHub, or Slack via standard MCP protocol.
 
+Agent skills are fully supported. Load your favorite skills to `./skills` folder to make **SUZENT** even more powerful.  
+
 ### **WORKSPACE**
 
 Unlike most agents, **SUZENT** features dual workspaces: a cross-session workspace shared across all chats for persistent knowledge, and per-session workspaces for individual conversations. This enables both continuity and isolation. You can also mount local folders (like your Obsidian vault) directly into the system.
-
-(Agent Skills is work in progress)
 
 ### **MEMORY**
 
 **SUZENT** implements a MemGPT-like global memory system that persists across sessions. This allows you to accumulate knowledge and context across conversations, making it easier to maintain a consistent and coherent conversation history.
 
 ### **PRIVATE & LOCAL**
+
 **SUZENT** runs entirely on your device with built-in SearXNG for ad-free, tracking-free web search, PostgreSQL + pgvector for local vector storage, and MicroSandbox isolation for safe code execution. Your data never leaves your machine.
 
 
