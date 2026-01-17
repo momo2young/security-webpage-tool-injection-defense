@@ -94,6 +94,14 @@ class PathResolver:
             drive, rest = path.split(":", 1)
             return f"/mnt/{drive.lower()}{rest}"
         return path
+    
+    @staticmethod
+    def get_skill_virtual_path(skill_name: str) -> str:
+        """
+        Get the virtual path for a skill's definition file.
+        e.g. /mnt/skills/{name}/SKILL.md
+        """
+        return f"/mnt/skills/{skill_name}/SKILL.md"
 
     def _parse_custom_volumes(self, volumes: List[str]) -> None:
         """Parse list of 'host:container' strings into a mapping."""

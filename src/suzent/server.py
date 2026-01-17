@@ -52,6 +52,7 @@ from suzent.routes.sandbox_routes import (
     write_sandbox_file,
     delete_sandbox_file,
 )
+from suzent.routes.skill_routes import get_skills, reload_skills
 
 # Load environment variables
 load_dotenv()
@@ -131,6 +132,9 @@ app = Starlette(
             "/memory/archival/{memory_id}", delete_archival_memory, methods=["DELETE"]
         ),
         Route("/memory/stats", get_memory_stats, methods=["GET"]),
+        # Skill endpoints
+        Route("/skills", get_skills, methods=["GET"]),
+        Route("/skills/reload", reload_skills, methods=["POST"]),
     ],
     middleware=[
         Middleware(

@@ -21,7 +21,7 @@ class SkillTool(Tool):
         self.description = f"""Load a skill to gain specialized knowledge for a task.
 
 Available skills:
-{self.skill_manager.get_skill_descriptions()}
+{self.skill_manager.get_skills_xml()}
 
 When to use:
 - IMMEDIATELY when user task matches a skill description

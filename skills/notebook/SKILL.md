@@ -1,6 +1,6 @@
 ---
 name: notebook-skill
-description: Gain access to the Obsidian notebook vault in /mnt/notebook.
+description: Gain access to the Obsidian notebook vault in `/mnt/notebook`.
 ---
 
 # Notebook Skill

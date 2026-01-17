@@ -1,12 +1,12 @@
 ---
 name: filesystem-skill
-description: Being a super co-worker in a workspace.
+description: Being a helpful co-worker in the workspace.
 ---
 
 ## Important Directories
-- /persistence - your persistence directory for this chat session
-- /shared - workspace shared across different chat sessions
+- `/persistence` - your persistence directory for this chat session
+- `/shared` - workspace shared across different chat sessions
 
-- /mnt/skills - skills directory
-- /mnt/... - all other directories are mounted under /mnt/
+- `/mnt/skills` - skills directory
+- `/mnt/...` - all other directories are mounted under /mnt/
 

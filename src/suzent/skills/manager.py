@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import Optional
 from suzent.config import PROJECT_DIR
 from suzent.logger import get_logger
+from suzent.logger import get_logger
+from suzent.tools.path_resolver import PathResolver
 from .loader import SkillLoader
 
 logger = get_logger(__name__)
@@ -46,6 +48,28 @@ class SkillManager:
             f"- {skill.metadata.name}: {skill.metadata.description}"
             for skill in skills
         )
+
+    def get_skills_xml(self) -> str:
+        """
+        Generate skills XML for context injection (Layer 1).
+        Adheres to agentskills.io standard.
+        """
+        skills = self.loader.list_skills()
+        if not skills:
+            return "<available_skills></available_skills>"
+
+        xml_lines = ["<available_skills>"]
+        for skill in skills:
+            xml_lines.append(f"  <skill>")
+            xml_lines.append(f"    <name>{skill.metadata.name}</name>")
+            xml_lines.append(f"    <description>{skill.metadata.description}</description>")
+
+            # Virtual path in sandbox
+            virtual_path = PathResolver.get_skill_virtual_path(skill.metadata.name)
+            xml_lines.append(f"    <location>{virtual_path}</location>")
+            xml_lines.append(f"  </skill>")
+        xml_lines.append("</available_skills>")
+        return "\n".join(xml_lines)
 
     def get_skill_content(self, name: str) -> Optional[str]:
         """
