@@ -884,9 +884,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             <PlanProgress
               plan={plan}
               isDocked={false}
-              onToggleDock={() => onRightSidebarToggle(true)}
+              onToggleDock={() => onRightSidebarToggle(!isRightSidebarOpen)}
               isExpanded={isPlanExpanded}
               onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
+              isSidebarOpen={isRightSidebarOpen}
             />
 
             <ChatInputPanel
@@ -913,53 +914,56 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* Right Sidebar - Plan Docked */}
-      {isRightSidebarOpen && (
-        <div
-          className={`
-            border-l-3 border-brutal-black z-30 flex flex-col shrink-0 
-            absolute inset-0 lg:static lg:inset-auto
-            transition-all duration-300 ease-in-out bg-white
-            ${rightSidebarTab === 'files' && isFileExpanded ? 'w-full lg:w-[50vw]' : 'w-full lg:w-96'}
-          `}
-        >
-          <div className="h-14 bg-white border-b-3 border-brutal-black flex items-center justify-between px-0 shrink-0">
-            {/* Tab Buttons */}
-            <div className="flex h-full">
-              <button
-                onClick={() => setRightSidebarTab('plan')}
-                className={`px-4 font-brutal font-bold text-sm tracking-wider uppercase h-full border-r-3 border-brutal-black transition-colors ${rightSidebarTab === 'plan' ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100 text-brutal-black'}`}
-              >
-                PLAN
-              </button>
-              <button
-                onClick={() => setRightSidebarTab('files')}
-                className={`px-4 font-brutal font-bold text-sm tracking-wider uppercase h-full border-r-3 border-brutal-black transition-colors ${rightSidebarTab === 'files' ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100 text-brutal-black'}`}
-              >
-                FILES
-              </button>
-            </div>
-
+      <div
+        className={`
+          border-l-3 border-brutal-black z-30 flex flex-col shrink-0 
+          absolute inset-y-0 right-0 lg:static lg:inset-auto h-full
+          bg-white transition-all duration-300 ease-in-out
+          ${rightSidebarTab === 'files' && isFileExpanded ? 'w-full lg:w-[50vw]' : 'w-full lg:w-96'}
+          ${isRightSidebarOpen
+            ? 'translate-x-0 lg:mr-0'
+            : `translate-x-full lg:translate-x-0 ${rightSidebarTab === 'files' && isFileExpanded ? 'lg:-mr-[50vw]' : 'lg:-mr-96'}`
+          }
+        `}
+      >
+        <div className="h-14 bg-white border-b-3 border-brutal-black flex items-center justify-between px-0 shrink-0">
+          {/* Tab Buttons */}
+          <div className="flex h-full">
+            <button
+              onClick={() => setRightSidebarTab('plan')}
+              className={`px-4 font-brutal font-bold text-sm tracking-wider uppercase h-full border-r-3 border-brutal-black transition-colors ${rightSidebarTab === 'plan' ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100 text-brutal-black'}`}
+            >
+              PLAN
+            </button>
+            <button
+              onClick={() => setRightSidebarTab('files')}
+              className={`px-4 font-brutal font-bold text-sm tracking-wider uppercase h-full border-r-3 border-brutal-black transition-colors ${rightSidebarTab === 'files' ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100 text-brutal-black'}`}
+            >
+              FILES
+            </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto bg-neutral-50/50 scrollbar-thin scrollbar-track-neutral-200 scrollbar-thumb-brutal-black flex flex-col">
-            {rightSidebarTab === 'plan' ? (
-              <div className="p-4">
-                <PlanProgress
-                  plan={plan}
-                  isDocked={true}
-                  onToggleDock={() => onRightSidebarToggle(false)}
-                  isExpanded={isPlanExpanded}
-                  onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
-                />
-              </div>
-            ) : (
-              <div className="flex-1 h-full">
-                <SandboxFiles onViewModeChange={(isViewing) => setIsFileExpanded(isViewing)} />
-              </div>
-            )}
-          </div>
         </div>
-      )}
+
+        <div className="flex-1 overflow-y-auto bg-neutral-50/50 scrollbar-thin scrollbar-track-neutral-200 scrollbar-thumb-brutal-black flex flex-col">
+          {rightSidebarTab === 'plan' ? (
+            <div className="p-4">
+              <PlanProgress
+                plan={plan}
+                isDocked={true}
+                onToggleDock={() => onRightSidebarToggle(false)}
+                isExpanded={isPlanExpanded}
+                onToggleExpand={() => setIsPlanExpanded(!isPlanExpanded)}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 h-full">
+              <SandboxFiles onViewModeChange={(isViewing) => setIsFileExpanded(isViewing)} />
+            </div>
+          )}
+        </div>
+      </div>
+
 
     </div>
   );

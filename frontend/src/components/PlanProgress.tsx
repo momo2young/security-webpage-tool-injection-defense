@@ -7,11 +7,12 @@ interface PlanProgressProps {
     onToggleDock?: () => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
+    isSidebarOpen?: boolean;
 }
 
 const getPlanKey = (plan: Plan) => (plan.id != null ? `plan:${plan.id}` : plan.versionKey);
 
-export const PlanProgress: React.FC<PlanProgressProps> = ({ plan, isDocked, onToggleDock, isExpanded, onToggleExpand }) => {
+export const PlanProgress: React.FC<PlanProgressProps> = ({ plan, isDocked, onToggleDock, isExpanded, onToggleExpand, isSidebarOpen }) => {
 
     if (!plan && !isDocked) {
         return null;
@@ -164,18 +165,18 @@ export const PlanProgress: React.FC<PlanProgressProps> = ({ plan, isDocked, onTo
                 <div className="flex items-center gap-2 shrink-0">
                     <button
                         onClick={onToggleDock}
-                        className={`w-6 h-6 flex items-center justify-center border-2 border-brutal-black hover:bg-neutral-200 transition-colors ${isDocked ? 'bg-brutal-black text-white' : ''}`}
-                        title={isDocked ? "Undock from Sidebar" : "Dock to Right Sidebar"}
+                        className="w-6 h-6 flex items-center justify-center border-2 border-brutal-black hover:bg-neutral-200 transition-colors bg-white text-brutal-black"
+                        title={isDocked || isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
                     >
-                        {isDocked ? (
-                            /* Point Left (Back) */
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                            </svg>
-                        ) : (
-                            /* Point Right (To Sidebar) */
+                        {isDocked || isSidebarOpen ? (
+                            /* Point Right (Close/Push Right) */
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                            </svg>
+                        ) : (
+                            /* Point Left (Open/Pull Left) */
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                             </svg>
                         )}
                     </button>
