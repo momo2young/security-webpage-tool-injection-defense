@@ -63,16 +63,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0 md:ml-0' : '-translate-x-full md:translate-x-0 md:-ml-80'}
       `}>
-        <nav className="flex border-b-3 border-brutal-black relative pr-10">
+        <div className="flex items-center justify-between p-3 border-b-3 border-brutal-black bg-white sticky top-0 z-10">
+          <span className="font-brutal font-bold text-lg tracking-wider">MENU</span>
           <button
             onClick={onClose}
-            className="absolute right-0 top-0 bottom-0 w-10 flex items-center justify-center hover:bg-brutal-red hover:text-white border-l-3 border-brutal-black transition-colors z-10"
+            className="w-8 h-8 flex items-center justify-center hover:bg-brutal-red hover:text-white border-2 border-brutal-black transition-colors shadow-brutal-sm active:translate-y-[1px] active:shadow-none"
             title="Collapse Sidebar"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
+        </div>
+        <nav className="flex border-b-3 border-brutal-black">
           {['chats', 'config'].map(tab => {
             const active = activeTab === tab;
             return (
@@ -87,13 +90,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
         <div
-          className={`flex-1 overflow-y-auto scrollbar-thin ${animateContent ? 'animate-brutal-drop' : ''
+          className={`flex-1 flex flex-col overflow-hidden relative ${animateContent ? 'animate-brutal-drop' : ''
             }`}
         >
-          <div className={activeTab === 'chats' ? '' : 'hidden'} aria-hidden={activeTab !== 'chats'}>
+          <div className={activeTab === 'chats' ? 'h-full' : 'hidden'} aria-hidden={activeTab !== 'chats'}>
             {mountedTabs.has('chats') ? chatsContent : null}
           </div>
-          <div className={`${activeTab === 'config' ? '' : 'hidden'} p-4 space-y-4`} aria-hidden={activeTab !== 'config'}>
+          <div className={`${activeTab === 'config' ? '' : 'hidden'} h-full overflow-y-auto scrollbar-thin p-4 space-y-4`} aria-hidden={activeTab !== 'config'}>
             {mountedTabs.has('config') ? configContent : null}
           </div>
         </div>
