@@ -919,9 +919,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         <div
           className={`
             border-l-3 border-brutal-black z-30 flex flex-col shrink-0 
-            absolute inset-0 xl:static xl:inset-auto
+            absolute inset-0 lg:static lg:inset-auto
             transition-all duration-300 ease-in-out bg-white
-            ${rightSidebarTab === 'files' && isFileExpanded ? 'w-full xl:w-[50vw]' : 'w-full xl:w-96'}
+            ${rightSidebarTab === 'files' && isFileExpanded ? 'w-full lg:w-[50vw]' : 'w-full lg:w-96'}
           `}
         >
           <div className="h-14 bg-white border-b-3 border-brutal-black flex items-center justify-between px-0 shrink-0">

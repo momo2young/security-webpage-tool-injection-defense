@@ -72,7 +72,7 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({ onViewModeChange }) 
     }, [currentChatId, currentPath, fetchFiles, config]);
 
     const fetchFileContent = useCallback(async (path: string) => {
-        if (!currentChatId || !config.sandbox_enabled) return;
+        if (!currentChatId) return;
 
         setLoadingFile(true);
         setError(null);
