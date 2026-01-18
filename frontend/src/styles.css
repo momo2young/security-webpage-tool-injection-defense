@@ -467,3 +467,22 @@ code {
 .animate-progress-line {
   animation: progressLine 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+
+/* Robot showcase slide animation */
+@keyframes robotSlideIn {
+  0% {
+    transform: translateY(100%) scale(0.8);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-robot-slide-in {
+  animation: robotSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}

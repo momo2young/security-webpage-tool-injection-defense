@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { RobotAvatar } from './RobotAvatar';
+import React, { useMemo, useState, useEffect } from 'react';
+import { RobotAvatar, RobotVariant } from './RobotAvatar';
 
 interface ThinkingAnimationProps {
   isThinking: boolean;
@@ -77,24 +77,39 @@ interface AgentBadgeProps {
   rightEyeStyle?: React.CSSProperties;
 }
 
+// All robot variants for showcase
+const SHOWCASE_VARIANTS: RobotVariant[] = [
+  'idle', 'observer', 'jumper', 'snoozer', 'peeker', 'shaker', 'skeptic',
+  'love', 'rage', 'party', 'eater', 'dj', 'ghost', 'workout', 'portal', 'scanner'
+];
+
 export const AgentBadge: React.FC<AgentBadgeProps> = ({
   isThinking,
   isStreaming,
 }) => {
-  // Determine variant based on state (simple mapping for now)
-  // Logic mostly moved to AssistantMessage, but kept here for backward compat/transition
-  const variant = isStreaming ? 'observer' : 'idle';
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % SHOWCASE_VARIANTS.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentVariant = SHOWCASE_VARIANTS[currentIndex];
 
   return (
     <div className={`
-      absolute inset-0 flex items-center justify-center gap-1.5 text-black font-bold text-xs tracking-wider uppercase
+      absolute inset-0 flex items-center justify-center text-white
       transition-opacity duration-500 delay-200
       ${isThinking ? 'opacity-0 pointer-events-none' : 'opacity-100'}
     `}>
-      <div className="w-5 h-5 relative text-white">
-        <RobotAvatar variant={variant} />
+      <div
+        key={currentIndex}
+        className="w-8 h-8 animate-robot-slide-in"
+      >
+        <RobotAvatar variant={currentVariant} />
       </div>
-      <span>AGENT</span>
     </div>
   );
 };
