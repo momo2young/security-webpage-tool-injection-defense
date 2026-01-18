@@ -614,13 +614,7 @@
     }
 }
 
-@keyframes robot-hole-pulse {
 
-    0%,
-    100% {
-        opacity: 0;
-    }
-}
 
 @keyframes robot-hole-pulse {
 

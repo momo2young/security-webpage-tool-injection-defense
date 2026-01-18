@@ -32,8 +32,8 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
     // Tightened margins: 1px padding instead of 2px
     const BaseRobot = ({ children, eyesClass = '', eyeStyle = {}, bodyStyle = {} }: any) => (
         <svg className="w-full h-full overflow-visible" viewBox="0 0 24 24" style={bodyStyle}>
-            <rect x="0.5" y="0.5" width="23" height="23" rx="4" fill="currentColor" stroke="none" />
-            <rect x="2.5" y="2.5" width="19" height="19" rx="3" fill="#000000" />
+            <rect x="0" y="0" width="24" height="24" rx="4" fill="currentColor" stroke="none" />
+            <rect x="2" y="2" width="20" height="20" rx="3" fill="#000000" />
             {children}
             {/* Eyes positioned to match new scale */}
             <rect className={`eye left ${eyesClass}`} style={eyeStyle} x="5" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
@@ -48,8 +48,8 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
         return (
             <div className={`relative w-full h-full flex items-center justify-center ${className}`}>
                 <svg className="w-full h-full overflow-visible" viewBox="0 0 24 24">
-                    <rect x="0.5" y="0.5" width="23" height="23" rx="4" fill="currentColor" />
-                    <rect x="2.5" y="2.5" width="19" height="19" rx="3" fill="#000000" />
+                    <rect x="0" y="0" width="24" height="24" rx="4" fill="currentColor" />
+                    <rect x="2" y="2" width="20" height="20" rx="3" fill="#000000" />
                     <g style={{ animation: 'robot-look-around 4s infinite step-end' }}>
                         <rect className="eye" x="5" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
                         <rect className="eye" x="14" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
@@ -70,14 +70,15 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
         );
     }
 
-    // V16: Snoozer (Idle/Sleep)
+    // V16: Snoozer (Idle/Sleep) -> More Zzzs
     if (variant === 'snoozer') {
         return (
             <div className={`relative w-full h-full ${className}`}>
-                {/* Zzz closer */}
-                <div className="absolute top-0 right-1 flex flex-col text-[8px] font-bold text-brutal-black opacity-60">
+                {/* Zzz starting closer to head */}
+                <div className="absolute top-1 right-2 flex flex-col text-[8px] font-bold text-brutal-black opacity-60 leading-none z-20">
                     <span style={{ animation: 'robot-float-z 3s infinite linear', animationDelay: '0s' }}>Z</span>
                     <span style={{ animation: 'robot-float-z 3s infinite linear', animationDelay: '1s' }}>z</span>
+                    <span style={{ animation: 'robot-float-z 3s infinite linear', animationDelay: '2s' }}>.</span>
                 </div>
                 <div style={{ animation: 'robot-breathe-body 4s infinite ease-in-out', width: '100%', height: '100%' }}>
                     <BaseRobot eyeStyle={{ animation: 'robot-breathe-eyes 4s infinite ease-in-out', transformOrigin: 'center' }} />
@@ -101,9 +102,11 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
     if (variant === 'shaker') {
         return (
             <div className={`relative w-full h-full flex flex-col items-center ${className}`}>
-                {/* Sweat closer */}
-                <div className="absolute top-1 left-0 w-1.5 h-2 bg-brutal-black rounded-full opacity-0" style={{ animation: 'robot-sweat-drop 0.8s infinite' }} />
-                <div className="absolute top-1 right-0 w-1.5 h-2 bg-brutal-black rounded-full opacity-0" style={{ animation: 'robot-sweat-drop 0.8s infinite 0.4s' }} />
+                {/* Sweat closer - touching head */}
+                <div className="absolute top-2 left-1 w-1.5 h-2 bg-brutal-black rounded-full opacity-0" style={{ animation: 'robot-sweat-drop 0.8s infinite' }} />
+                <div className="absolute top-3 left-0 w-1 h-1.5 bg-brutal-black rounded-full opacity-0" style={{ animation: 'robot-sweat-drop 0.7s infinite 0.2s' }} />
+                <div className="absolute top-2 right-1 w-1.5 h-2 bg-brutal-black rounded-full opacity-0" style={{ animation: 'robot-sweat-drop 0.8s infinite 0.4s' }} />
+                <div className="absolute top-3 right-0 w-1 h-1.5 bg-brutal-black rounded-full opacity-0" style={{ animation: 'robot-sweat-drop 0.7s infinite 0.1s' }} />
                 <div style={{ animation: 'robot-shake-hard 0.2s infinite', width: '100%', height: '100%' }}>
                     <BaseRobot eyeStyle={{ animation: 'robot-dilate 2s infinite alternate', transformOrigin: 'center' }} />
                 </div>
@@ -115,12 +118,12 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
     if (variant === 'skeptic') {
         return (
             <div className={`relative w-full h-full ${className}`}>
-                {/* Question mark closer */}
-                <div className="absolute -top-3 right-0 text-lg font-bold text-brutal-black" style={{ animation: 'robot-float-q 3s infinite ease-in-out' }}>?</div>
+                {/* Question mark closer - overlapping corner */}
+                <div className="absolute -top-1 right-0 text-lg font-bold text-brutal-black z-20" style={{ animation: 'robot-float-q 3s infinite ease-in-out' }}>?</div>
                 <div style={{ animation: 'robot-ponder-tilt 3s infinite ease-in-out', transformOrigin: 'bottom center', width: '100%', height: '100%' }}>
                     <svg className="w-full h-full" viewBox="0 0 24 24">
-                        <rect x="0.5" y="0.5" width="23" height="23" rx="4" fill="currentColor" />
-                        <rect x="2.5" y="2.5" width="19" height="19" rx="3" fill="#000000" />
+                        <rect x="0" y="0" width="24" height="24" rx="4" fill="currentColor" />
+                        <rect x="2" y="2" width="20" height="20" rx="3" fill="#000000" />
                         <rect className="eye" x="5" y="7" width="5" height="5" rx="1.5" fill="currentColor" style={{ transformOrigin: 'center', animation: 'robot-squint 3s infinite ease-in-out' }} />
                         <rect className="eye" x="14" y="7" width="5" height="5" rx="1.5" fill="currentColor" style={{ animation: 'robot-raise-brow 3s infinite ease-in-out' }} />
                     </svg>
@@ -133,16 +136,18 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
     if (variant === 'love') {
         return (
             <div className={`relative w-full h-full ${className}`}>
-                {/* Hearts closer */}
-                <div className="absolute -top-1 left-2 text-xs text-brutal-black" style={{ animation: 'robot-float-up 2s infinite linear' }}>♥</div>
-                <div className="absolute -top-1 right-2 text-xs text-brutal-black" style={{ animation: 'robot-float-up 2s infinite linear 1s' }}>♥</div>
+                {/* Hearts starting from eyes/face */}
+                <div className="absolute top-2 left-2 text-[10px] text-brutal-black z-20" style={{ animation: 'robot-float-up 2s infinite linear' }}>♥</div>
+                <div className="absolute top-1 left-4 text-[8px] text-brutal-black z-20" style={{ animation: 'robot-float-up 2s infinite linear 0.5s' }}>♥</div>
+                <div className="absolute top-3 right-1 text-[10px] text-brutal-black z-20" style={{ animation: 'robot-float-up 2s infinite linear 1s' }}>♥</div>
+                <div className="absolute top-0 right-3 text-[8px] text-brutal-black z-20" style={{ animation: 'robot-float-up 2s infinite linear 1.5s' }}>♥</div>
                 <div style={{ animation: 'robot-heartbeat 1s infinite', width: '100%', height: '100%' }}>
                     <svg className="w-full h-full" viewBox="0 0 24 24">
-                        <rect x="0.5" y="0.5" width="23" height="23" rx="4" fill="currentColor" />
-                        <rect x="2.5" y="2.5" width="19" height="19" rx="3" fill="#000000" />
+                        <rect x="0" y="0" width="24" height="24" rx="4" fill="currentColor" />
+                        <rect x="2" y="2" width="20" height="20" rx="3" fill="#000000" />
                         {/* Smaller Heart Eyes 6px instead of 8px */}
-                        <text x="5" y="11.5" fontSize="6.5" fill="currentColor" style={{ animation: 'robot-pulse-eye 1s infinite alternate', transformOrigin: 'center' }}>♥</text>
-                        <text x="14" y="11.5" fontSize="6.5" fill="currentColor" style={{ animation: 'robot-pulse-eye 1s infinite alternate', transformOrigin: 'center' }}>♥</text>
+                        <text x="5.5" y="11" fontSize="5" fill="currentColor" style={{ animation: 'robot-pulse-eye 1s infinite alternate', transformOrigin: 'center' }}>♥</text>
+                        <text x="14.5" y="11" fontSize="5" fill="currentColor" style={{ animation: 'robot-pulse-eye 1s infinite alternate', transformOrigin: 'center' }}>♥</text>
                     </svg>
                 </div>
             </div>
@@ -153,14 +158,16 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
     if (variant === 'rage') {
         return (
             <div className={`relative w-full h-full ${className}`}>
-                {/* Steam closer */}
-                <div className="absolute -top-1 left-2 w-1.5 h-1.5 bg-neutral-600 rounded-full opacity-0" style={{ animation: 'robot-steam-rise 0.5s infinite linear' }} />
-                <div className="absolute -top-1 right-2 w-1.5 h-1.5 bg-neutral-600 rounded-full opacity-0" style={{ animation: 'robot-steam-rise 0.5s infinite linear 0.2s' }} />
+                {/* Steam overlapping head */}
+                <div className="absolute top-1 left-2 w-1.5 h-1.5 bg-neutral-600 rounded-full opacity-0" style={{ animation: 'robot-steam-rise 0.5s infinite linear' }} />
+                <div className="absolute top-1 right-2 w-1.5 h-1.5 bg-neutral-600 rounded-full opacity-0" style={{ animation: 'robot-steam-rise 0.5s infinite linear 0.2s' }} />
                 <div style={{ animation: 'robot-vibrate 0.1s infinite', width: '100%', height: '100%' }}>
-                    {/* Eyebrows Overlay - Lower and tighter */}
-                    <div className="absolute z-10 w-3 h-1 bg-neutral-800 top-[7px] left-[5px] rotate-[25deg]" />
-                    <div className="absolute z-10 w-3 h-1 bg-neutral-800 top-[7px] right-[5px] -rotate-[25deg]" />
-                    <BaseRobot />
+                    <svg className="w-full h-full" viewBox="0 0 24 24">
+                        <BaseRobot />
+                        {/* Eyebrows inside SVG */}
+                        <rect x="5" y="6" width="5" height="2" fill="#333" transform="rotate(20, 7.5, 7)" />
+                        <rect x="14" y="6" width="5" height="2" fill="#333" transform="rotate(-20, 16.5, 7)" />
+                    </svg>
                 </div>
             </div>
         );
@@ -192,8 +199,8 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
                 <div className="absolute top-1/2 right-0 -translate-y-1/2 text-[8px] font-bold text-brutal-black opacity-0" style={{ animation: 'robot-feed 1.5s infinite linear' }}>01</div>
                 <div style={{ animation: 'robot-chomp 0.4s infinite alternate', width: '100%', height: '100%', transformOrigin: 'center' }}>
                     <svg className="w-full h-full" viewBox="0 0 24 24">
-                        <rect x="0.5" y="0.5" width="23" height="23" rx="4" fill="currentColor" />
-                        <rect x="2.5" y="2.5" width="19" height="19" rx="3" fill="#000000" />
+                        <rect x="0" y="0" width="24" height="24" rx="4" fill="currentColor" />
+                        <rect x="2" y="2" width="20" height="20" rx="3" fill="#000000" />
                         <rect x="6" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
                         <rect x="15" y="7" width="5" height="5" rx="1.5" fill="currentColor" />
                     </svg>
@@ -207,13 +214,13 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
         return (
             <div className="relative w-full h-full flex flex-col items-center justify-end">
                 <div style={{ animation: 'robot-head-bop 0.5s infinite alternate ease-in-out', width: '100%', height: '100%' }}>
-                    {/* Headphones container */}
-                    <div className="absolute -top-1 inset-x-0 h-full pointer-events-none z-20">
-                        {/* Band */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[26px] h-[10px] border-[3px] border-b-0 border-neutral-800 rounded-t-xl" />
-                        {/* Ear muffs */}
-                        <div className="absolute top-[8px] -left-1 w-[6px] h-[10px] bg-neutral-800 rounded-sm" />
-                        <div className="absolute top-[8px] -right-1 w-[6px] h-[10px] bg-neutral-800 rounded-sm" />
+                    {/* Headphones container - Tight & Thick */}
+                    <div className="absolute top-0 inset-x-0 h-full pointer-events-none z-20">
+                        {/* Band - Thicker, closer to head */}
+                        <div className="absolute top-[1px] left-1/2 -translate-x-1/2 w-[22px] h-[10px] border-[4px] border-b-0 border-neutral-800 rounded-t-xl" />
+                        {/* Ear muffs - Overlap head */}
+                        <div className="absolute top-[7px] left-[1px] w-[5px] h-[10px] bg-neutral-800 rounded-md" />
+                        <div className="absolute top-[7px] right-[1px] w-[5px] h-[10px] bg-neutral-800 rounded-md" />
                     </div>
                     <BaseRobot />
                 </div>
@@ -221,17 +228,17 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
         );
     }
 
-    // V25: Ghost -> Ghost Shape body
+    // V25: Ghost -> Smoother Shape
     if (variant === 'ghost') {
         return (
             <div className={`relative w-full h-full ${className}`}>
                 <div className="absolute -top-1 -right-1 text-[8px] font-bold text-neutral-400" style={{ animation: 'robot-boo-fade 2s infinite' }}>?</div>
                 <div style={{ animation: 'robot-float-ghost 3s infinite ease-in-out', width: '100%', height: '100%' }}>
                     <svg className="w-full h-full overflow-visible" viewBox="0 0 24 24">
-                        {/* Ghost Shape */}
-                        <path d="M2,12 V6 A10,10 0 0,1 22,6 V12 L22,22 L18,18 L14,22 L10,18 L6,22 L2,18 Z"
+                        {/* Ghost Shape - Cuter, smoother waves */}
+                        <path d="M4,22 L2,20 L2,10 A10,10 0 0,1 22,10 L22,20 L20,22 L17,19 L14,22 L11,19 L8,22 L4,19 Z"
                             fill="currentColor" stroke="none" />
-                        <path d="M4,12 V6 A8,8 0 0,1 20,6 V12 L20,18 L18,16 L14,20 L10,16 L6,20 L4,16 Z"
+                        <path d="M4.5,10 A7.5,7.5 0 0,1 19.5,10 L19.5,18 L17,16 L14,19 L11,16 L8,19 L4.5,16 Z"
                             fill="#000000" />
                         <rect className="eye" x="7" y="9" width="4" height="4" rx="1" fill="currentColor" />
                         <rect className="eye" x="13" y="9" width="4" height="4" rx="1" fill="currentColor" />
@@ -241,19 +248,22 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
         );
     }
 
-    // V26: Workout (Training) -> Better aligned
+    // V26: Workout (Training) -> Chunkier Dumbbell
     if (variant === 'workout') {
         return (
             <div className={`relative w-full h-full ${className}`}>
-                <div className="absolute -top-4 w-full h-1 bg-black z-20" style={{ animation: 'robot-lift 1.5s infinite' }}>
-                    <div className="absolute -top-1 left-[2px] w-1 h-3 bg-black border border-black" />
-                    <div className="absolute -top-1 right-[2px] w-1 h-3 bg-black border border-black" />
+                {/* Dumbbell centered - Thicker bar & weights */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-full h-2 z-20 flex items-center justify-center" style={{ animation: 'robot-lift 1.5s infinite' }}>
+                    <div className="w-[28px] h-[3px] bg-black rounded-full box-border border-black" />
+                    {/* Weights */}
+                    <div className="absolute left-[1px] w-[4px] h-[10px] bg-black rounded-sm" />
+                    <div className="absolute right-[1px] w-[4px] h-[10px] bg-black rounded-sm" />
                 </div>
                 <div className="absolute top-2 -right-1 w-1 h-1 bg-black rounded-full opacity-0" style={{ animation: 'robot-sweat-fall 1.5s infinite 0.5s' }} />
                 <div style={{ animation: 'robot-squat 1.5s infinite', width: '100%', height: '100%' }}>
                     <svg className="w-full h-full" viewBox="0 0 24 24">
-                        <rect x="0.5" y="0.5" width="23" height="23" rx="4" fill="currentColor" />
-                        <rect x="2.5" y="2.5" width="19" height="19" rx="3" fill="#000000" />
+                        <rect x="0" y="0" width="24" height="24" rx="4" fill="currentColor" />
+                        <rect x="2" y="2" width="20" height="20" rx="3" fill="#000000" />
                         <rect x="5" y="9" width="5" height="2" fill="currentColor" /> {/* Squint eyes */}
                         <rect x="14" y="9" width="5" height="2" fill="currentColor" />
                     </svg>

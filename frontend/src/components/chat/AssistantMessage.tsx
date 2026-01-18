@@ -129,16 +129,17 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
           : 'w-full h-auto bg-white px-6 py-5 opacity-100'
         }
       `}>
+        {/* Copy button positioned relative to white box */}
+        {showCopyButton && !isThinking && (
+          <CopyButton
+            text={cleanContent}
+            className="absolute top-2 right-2 z-10"
+          />
+        )}
         <div className={`
           transition-opacity duration-500 delay-200 space-y-4
-          ${isThinking ? 'opacity-0 invisible absolute' : 'opacity-100 visible relative'}
+          ${isThinking ? 'opacity-0 invisible absolute' : 'opacity-100 visible'}
         `}>
-          {showCopyButton && (
-            <CopyButton
-              text={cleanContent}
-              className="absolute top-2 right-2 z-10"
-            />
-          )}
           {isStreamingThis ? (
             <StreamingContent content={message.content} messageIndex={messageIndex} />
           ) : (
