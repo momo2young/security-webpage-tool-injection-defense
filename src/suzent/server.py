@@ -128,7 +128,11 @@ app = Starlette(
         ),  # Support both for convenience
         Route("/sandbox/file", delete_sandbox_file, methods=["DELETE"]),
         Route("/sandbox/serve", serve_sandbox_file, methods=["GET"]),
-        Route("/sandbox/serve/{chat_id}/{file_path:path}", serve_sandbox_file_wildcard, methods=["GET"]),
+        Route(
+            "/sandbox/serve/{chat_id}/{file_path:path}",
+            serve_sandbox_file_wildcard,
+            methods=["GET"],
+        ),
         # System endpoints
         Route("/system/files", list_host_files, methods=["GET"]),
         # Memory endpoints

@@ -22,14 +22,17 @@ async def list_host_files(request: Request) -> JSONResponse:
             # List drives on Windows
             if sys.platform == "win32":
                 import string
+
                 drives = []
                 for letter in string.ascii_uppercase:
                     if os.path.exists(f"{letter}:\\"):
                         drives.append(f"{letter}:\\")
-                
-                items = [{"name": d, "is_dir": True, "size": 0, "mtime": 0} for d in drives]
+
+                items = [
+                    {"name": d, "is_dir": True, "size": 0, "mtime": 0} for d in drives
+                ]
                 return JSONResponse({"path": "", "items": items})
-            
+
             # Root for Linux/Mac
             raw_path = "/"
 
@@ -37,7 +40,7 @@ async def list_host_files(request: Request) -> JSONResponse:
 
         if not path.exists():
             return JSONResponse({"error": "Path does not exist"}, status_code=404)
-        
+
         if not path.is_dir():
             return JSONResponse({"error": "Not a directory"}, status_code=400)
 
@@ -47,20 +50,22 @@ async def list_host_files(request: Request) -> JSONResponse:
                 try:
                     # Skip hidden/system files if needed, but for now show all
                     stat = entry.stat()
-                    items.append({
-                        "name": entry.name,
-                        "is_dir": entry.is_dir(),
-                        "size": stat.st_size,
-                        "mtime": stat.st_mtime
-                    })
+                    items.append(
+                        {
+                            "name": entry.name,
+                            "is_dir": entry.is_dir(),
+                            "size": stat.st_size,
+                            "mtime": stat.st_mtime,
+                        }
+                    )
                 except Exception:
                     continue
         except PermissionError:
-             return JSONResponse({"error": "Permission denied"}, status_code=403)
+            return JSONResponse({"error": "Permission denied"}, status_code=403)
 
         # Sort: directories first, then files
         items.sort(key=lambda x: (not x["is_dir"], x["name"].lower()))
-        
+
         return JSONResponse({"path": str(path), "items": items})
 
     except Exception as e:

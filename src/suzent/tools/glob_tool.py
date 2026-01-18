@@ -2,8 +2,7 @@
 GlobTool - Find files matching a pattern.
 """
 
-from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 
 from smolagents.tools import Tool
 
@@ -71,24 +70,24 @@ Examples:
             # Use unified finder from resolver
             # pattern in GlobTool is the glob pattern itself
             # path is the starting directory
-            
+
             # Merge path and pattern for unified root-relative search
             search_path = path
             search_pattern = pattern
-            
+
             if search_path:
                 # Normalize path
                 search_path = search_path.replace("\\", "/").rstrip("/")
                 if not search_path.startswith("/"):
                     search_path = "/" + search_path
-                
+
                 # Combine
                 search_pattern = f"{search_path}/{search_pattern}"
                 # Reset search_path to None (or "/" to trigger root search in find_files)
                 search_path = None
 
             found_files = self._resolver.find_files(search_pattern, search_path)
-            
+
             # Format results for GlobTool (needs host path for is_dir check)
             results = []
             for host_path, virtual_path in found_files:

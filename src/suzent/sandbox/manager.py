@@ -375,7 +375,7 @@ class SandboxSession:
         for vol in self.custom_volumes:
             # Parse using shared logic
             parsed = PathResolver.parse_volume_string(vol)
-            
+
             if parsed:
                 host, container = parsed
 
@@ -388,7 +388,7 @@ class SandboxSession:
 
                 # Check if host path is absolute (supports Linux '/' and Windows 'C:')
                 is_absolute = host.startswith("/") or (len(host) > 1 and host[1] == ":")
-                
+
                 if not is_absolute:
                     host = f"{self.container_workspace}/{host}"
                 else:
@@ -398,7 +398,7 @@ class SandboxSession:
                 # Ensure container path is absolute
                 if not container.startswith("/"):
                     container = f"{self.container_workspace}/{container}"
-                    
+
                 volumes.append(f"{host}:{container}")
             else:
                 logger.warning(
@@ -633,6 +633,7 @@ class SandboxManager:
 
         # Combine volumes using shared logic
         from suzent.config import get_effective_volumes
+
         self.custom_volumes = get_effective_volumes(custom_volumes)
 
         self.image = Defaults.IMAGE

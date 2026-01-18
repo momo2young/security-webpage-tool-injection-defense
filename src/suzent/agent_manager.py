@@ -13,13 +13,13 @@ import asyncio
 import importlib
 import pickle
 import os
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from mcp import StdioServerParameters
 
 from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel, MCPClient
 from smolagents.tools import Tool
 
-from suzent.config import CONFIG, PROJECT_DIR
+from suzent.config import CONFIG
 from suzent.logger import get_logger
 from suzent.prompts import format_instructions
 from suzent.skills import get_skill_manager
@@ -272,7 +272,9 @@ def create_agent(
             # Check if not already added (though we removed it from defaults, user config might still have it)
             if not any(isinstance(t, tool_class) for t in tools):
                 tools.append(tool_class())
-                logger.info(f"SkillTool equipped ({len(skill_manager.enabled_skills)} skills enabled)")
+                logger.info(
+                    f"SkillTool equipped ({len(skill_manager.enabled_skills)} skills enabled)"
+                )
         except Exception as e:
             logger.error(f"Failed to equip SkillTool: {e}")
 
@@ -657,7 +659,9 @@ def inject_chat_context(
             tool_instance.chat_id = chat_id
             tool_instance.chat_id = chat_id
             # Inject per-chat sandbox volumes if configured
-            volumes = get_effective_volumes(config.get("sandbox_volumes") if config else None)
+            volumes = get_effective_volumes(
+                config.get("sandbox_volumes") if config else None
+            )
 
             if volumes and hasattr(tool_instance, "set_custom_volumes"):
                 tool_instance.set_custom_volumes(volumes)
@@ -697,11 +701,9 @@ def _create_path_resolver(chat_id: str, config: Optional[dict]) -> Any:
     )
 
     # 2. Determine sandbox_volumes (Chat Config > Global Config) and auto-mounts
-    custom_volumes = get_effective_volumes(config.get("sandbox_volumes") if config else None)
+    custom_volumes = get_effective_volumes(
+        config.get("sandbox_volumes") if config else None
+    )
 
     # logger.debug(f"Creating PathResolver for {chat_id} with volumes: {custom_volumes}")
     return PathResolver(chat_id, sandbox_enabled, custom_volumes=custom_volumes)
-
-
-
-

@@ -6,6 +6,7 @@ from .models import Skill, SkillMetadata
 
 logger = get_logger(__name__)
 
+
 class SkillLoader:
     def __init__(self, skills_dir: Path):
         self.skills_dir = skills_dir
@@ -16,12 +17,14 @@ class SkillLoader:
     def parse_skill_md(self, path: Path) -> Optional[Skill]:
         """Parse a SKILL.md file into a Skill object."""
         try:
-            content = path.read_text(encoding='utf-8')
-            
+            content = path.read_text(encoding="utf-8")
+
             # Match YAML frontmatter
             match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", content, re.DOTALL)
             if not match:
-                logger.warning(f"Invalid SKILL.md format in {path}: Missing frontmatter")
+                logger.warning(
+                    f"Invalid SKILL.md format in {path}: Missing frontmatter"
+                )
                 return None
 
             frontmatter, body = match.groups()
@@ -34,19 +37,17 @@ class SkillLoader:
                     metadata_dict[key.strip()] = value.strip().strip("\"'")
 
             if "name" not in metadata_dict or "description" not in metadata_dict:
-                logger.warning(f"Invalid SKILL.md in {path}: Missing name or description")
+                logger.warning(
+                    f"Invalid SKILL.md in {path}: Missing name or description"
+                )
                 return None
 
             metadata = SkillMetadata(
-                name=metadata_dict["name"],
-                description=metadata_dict["description"]
+                name=metadata_dict["name"], description=metadata_dict["description"]
             )
-            
+
             return Skill(
-                metadata=metadata,
-                body=body.strip(),
-                path=path,
-                dir=path.parent
+                metadata=metadata, body=body.strip(), path=path, dir=path.parent
             )
         except Exception as e:
             logger.error(f"Error parsing SKILL.md at {path}: {e}")
@@ -56,7 +57,9 @@ class SkillLoader:
         """Scan skills directory and load all valid SKILL.md files."""
         self.skills.clear()
         if not self.skills_dir.exists():
-            logger.debug(f"Skills directory {self.skills_dir} does not exist. No skills loaded.")
+            logger.debug(
+                f"Skills directory {self.skills_dir} does not exist. No skills loaded."
+            )
             # We don't necessarily create it here, let manager or setup handle creation if needed
             return
 

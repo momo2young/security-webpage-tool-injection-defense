@@ -1,15 +1,15 @@
-from typing import Optional, Type
 from smolagents.tools import Tool
 from suzent.skills import get_skill_manager
+
 
 class SkillTool(Tool):
     name = "skill_tool"
     description = "Load a skill to gain specialized knowledge for a task."
-    
+
     inputs = {
         "skill_name": {
             "type": "string",
-            "description": "The name of the skill to load. Check 'Available skills' in the tool description."
+            "description": "The name of the skill to load. Check 'Available skills' in the tool description.",
         }
     }
     output_type = "string"

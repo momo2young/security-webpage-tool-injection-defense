@@ -86,15 +86,16 @@ class PathResolver:
         E.g. D:\\workspace -> /mnt/d/workspace
         """
         import os
-        if os.name != 'nt':
+
+        if os.name != "nt":
             return path
-            
+
         path = path.replace("\\", "/")
         if ":" in path:
             drive, rest = path.split(":", 1)
             return f"/mnt/{drive.lower()}{rest}"
         return path
-    
+
     @staticmethod
     def get_skill_virtual_path(skill_name: str) -> str:
         """
@@ -110,7 +111,7 @@ class PathResolver:
                 parsed = self.parse_volume_string(vol)
                 if not parsed:
                     continue
-                
+
                 host_part, container_part = parsed
 
                 # Handle WSL-style mounts (/mnt/c/...) -> drive letter
@@ -145,7 +146,7 @@ class PathResolver:
                 parents=True, exist_ok=True
             )
             (self.sandbox_data_path / "shared").mkdir(parents=True, exist_ok=True)
-            
+
             # In legacy mode, we might still want to ensure uploads path exists if used,
             # but for unification we prefer the sandbox structure.
             # We'll leave uploads_path unused to enforce the new standard.
@@ -293,69 +294,75 @@ class PathResolver:
     def get_virtual_roots(self) -> List[Tuple[str, Path]]:
         """
         Get all top-level virtual roots and their host paths.
-        
+
         Returns:
             List of (virtual_path, host_path) tuples.
             e.g. [("/persistence", D:/.../sessions/123), ("/mnt/skills", D:/skills), ...]
         """
         roots = []
-        
+
         # 1. Standard Roots
-        roots.append(("/persistence", self.sandbox_data_path / "sessions" / self.chat_id))
+        roots.append(
+            ("/persistence", self.sandbox_data_path / "sessions" / self.chat_id)
+        )
         roots.append(("/shared", self.sandbox_data_path / "shared"))
-        
+
         # 2. Custom Mounts
         # Sort by length descending to handle nested mounts correctly
-        sorted_mounts = sorted(self.custom_mounts.items(), key=lambda x: len(x[0]), reverse=True)
+        sorted_mounts = sorted(
+            self.custom_mounts.items(), key=lambda x: len(x[0]), reverse=True
+        )
         for v_path, h_path in sorted_mounts:
             roots.append((v_path, h_path))
-            
+
         return roots
 
     def is_shadowed(self, virtual_path: str) -> bool:
         """
         Check if a file at this virtual path would be hidden by a mount.
-        
+
         Example: if /persistence/data is a mount point, then a file at
         host path .../persistence/data/file.txt (from base layer) is shadowed.
         """
         # Ensure consistent separator
         virtual_path = virtual_path.replace("\\", "/")
-        
+
         for mount_point in self.custom_mounts.keys():
             # If the path equals a mount point, it's the mount itself (not shadowed)
             if virtual_path == mount_point:
                 continue
-                
+
             # If path is inside a mount point, it belongs to that mount
             if virtual_path.startswith(f"{mount_point}/"):
                 continue
-                
+
             # If we are here, the path is NOT inside this mount.
             # But we need to check if this mount sits ON TOP of our path.
             # In a flat virtual root list this is subtle, but primarily we care about
             # base persistence vs custom mounts.
-            
-            # Implementation for now: 
+
+            # Implementation for now:
             # If we are scanning a base root (like /persistence) and encounter a directory
             # that is ALSO a mount point, we should stop descending into it if we are
             # representing the base layer.
             # However, `is_shadowed` is asked about a specific FILE.
-            
+
             # The tool logic will generally be:
             # 1. List files in /persistence (Host: .../sessions/123)
             # 2. If we find .../sessions/123/mnt/data/file.txt
             #    Virtual Path: /persistence/mnt/data/file.txt
             # 3. BUT if /persistence/mnt/data IS a custom mount point,
             #    then that file.txt is physically shadowed by the mount in the container.
-            
-            if mount_point == virtual_path or mount_point.startswith(f"{virtual_path}/"):
-                 # This logic is for avoiding traversal INTO a mount point from below, 
-                 # not exactly shadowing.
-                 pass
 
-        return False # TODO: Implement robust shadowing check if complex nesting is needed.
-                     # For now, strict mount lists in get_virtual_roots + standard resolution is safe.
+            if mount_point == virtual_path or mount_point.startswith(
+                f"{virtual_path}/"
+            ):
+                # This logic is for avoiding traversal INTO a mount point from below,
+                # not exactly shadowing.
+                pass
+
+        return False  # TODO: Implement robust shadowing check if complex nesting is needed.
+        # For now, strict mount lists in get_virtual_roots + standard resolution is safe.
 
     def to_virtual_path(self, host_path: Path) -> Optional[str]:
         """
@@ -372,130 +379,140 @@ class PathResolver:
         # 1. Check custom mounts (reverse lookup)
         # Prioritize longest match to handle nesting correctly
         # e.g. /mnt/data vs /mnt/data/nested
-        
+
         # Invert map: host_path -> virtual_path (careful of duplicates?)
         # Better: iterate and find best match.
-        
+
         best_candidate = None
         best_candidate_len = 0
-        
+
         # Check all potential parents
         potential_parents = [
             (path, v_path) for v_path, path in self.custom_mounts.items()
         ]
-        
+
         # Add standard roots
-        potential_parents.append(((self.sandbox_data_path / "sessions" / self.chat_id).resolve(), "/persistence"))
-        potential_parents.append(((self.sandbox_data_path / "shared").resolve(), "/shared"))
-        
+        potential_parents.append(
+            (
+                (self.sandbox_data_path / "sessions" / self.chat_id).resolve(),
+                "/persistence",
+            )
+        )
+        potential_parents.append(
+            ((self.sandbox_data_path / "shared").resolve(), "/shared")
+        )
+
         for root_path, v_prefix in potential_parents:
             try:
                 # check if host_path is relative to this root
                 if host_path == root_path or root_path in host_path.parents:
                     rel = host_path.relative_to(root_path)
                     v_path = f"{v_prefix}/{rel}".replace("\\", "/").rstrip("/.")
-                    if v_path.endswith("/."): v_path = v_path[:-2]
-                    
+                    if v_path.endswith("/."):
+                        v_path = v_path[:-2]
+
                     # Store the one with the longest prefix (most specific mount)
                     if len(v_prefix) > best_candidate_len:
                         best_candidate = v_path
                         best_candidate_len = len(v_prefix)
             except ValueError:
                 continue
-                
+
         return best_candidate
 
-    def find_files(self, pattern: str, search_path: Optional[str] = "/") -> List[Tuple[Path, str]]:
+    def find_files(
+        self, pattern: str, search_path: Optional[str] = "/"
+    ) -> List[Tuple[Path, str]]:
         """
         Find files matching a glob pattern, handling virtual roots transparently.
         """
         import fnmatch
-        
+
         results = []
         seen_virtual_paths = set()
-        
+
         # Determine roots to search
         search_roots = []
-        
+
         if search_path == "/" or (search_path is None and pattern.startswith("/")):
-             # Search all virtual roots
-             search_roots = self.get_virtual_roots()
+            # Search all virtual roots
+            search_roots = self.get_virtual_roots()
         else:
-             # Search specific path
-             resolved = self.resolve(search_path or "/")
-             if resolved.exists() and resolved.is_dir():
-                 search_roots = [(None, resolved)]
-                 
-                 # Also include custom mounts that are children of this path
-                 # to allow globbing into them
-                 # e.g. search_path="/mnt", mount="/mnt/saipre"
-                 search_path_clean = (search_path or "/").rstrip("/")
-                 for v_mount, h_mount in self.custom_mounts.items():
-                      if v_mount.startswith(f"{search_path_clean}/"):
-                           search_roots.append((v_mount, h_mount))
-        
+            # Search specific path
+            resolved = self.resolve(search_path or "/")
+            if resolved.exists() and resolved.is_dir():
+                search_roots = [(None, resolved)]
+
+                # Also include custom mounts that are children of this path
+                # to allow globbing into them
+                # e.g. search_path="/mnt", mount="/mnt/saipre"
+                search_path_clean = (search_path or "/").rstrip("/")
+                for v_mount, h_mount in self.custom_mounts.items():
+                    if v_mount.startswith(f"{search_path_clean}/"):
+                        search_roots.append((v_mount, h_mount))
+
         for v_root_prefix, h_root in search_roots:
             if not h_root.exists():
                 continue
-            
+
             # Determine effective pattern for this root
             local_pattern = pattern
-            
+
             if pattern.startswith("/"):
-                 # Absolute virtual pattern
-                 if v_root_prefix:
-                      # 1. Check if the root itself matches the pattern (e.g. pattern="/mnt/*", root="/mnt/saipre")
-                      # Normalize pattern to ignore trailing slash for directory matching
-                      check_pattern = pattern.rstrip('/')
-                      if fnmatch.fnmatch(v_root_prefix, check_pattern):
-                           if v_root_prefix not in seen_virtual_paths:
-                                seen_virtual_paths.add(v_root_prefix)
-                                results.append((h_root, v_root_prefix))
-                      
-                      # 2. Check if we should glob INSIDE this root
-                      # We can descend if the pattern starts with the root prefix
-                      if pattern.startswith(v_root_prefix + "/"):
-                           local_pattern = pattern[len(v_root_prefix)+1:]
-                      elif v_root_prefix == pattern:
-                           # Exact match of directory, usually implies listing contents if it was a dir glob?
-                           # But glob("/dir") returns the dir.
-                           local_pattern = None # Already handled by step 1
-                      else:
-                           # Pattern does not start with this root. 
-                           # e.g. pattern="/mnt/*/*", root="/mnt/saipre"
-                           # Do we skip?
-                           # We can try to handle overlap if "mnt/*" matches "mnt/saipre"?
-                           # For now, simplistic prefix check.
-                           local_pattern = None
-                 else:
-                      # v_root_prefix is None or empty (shouldn't happen for roots list)
-                      pass
-            
+                # Absolute virtual pattern
+                if v_root_prefix:
+                    # 1. Check if the root itself matches the pattern (e.g. pattern="/mnt/*", root="/mnt/saipre")
+                    # Normalize pattern to ignore trailing slash for directory matching
+                    check_pattern = pattern.rstrip("/")
+                    if fnmatch.fnmatch(v_root_prefix, check_pattern):
+                        if v_root_prefix not in seen_virtual_paths:
+                            seen_virtual_paths.add(v_root_prefix)
+                            results.append((h_root, v_root_prefix))
+
+                    # 2. Check if we should glob INSIDE this root
+                    # We can descend if the pattern starts with the root prefix
+                    if pattern.startswith(v_root_prefix + "/"):
+                        local_pattern = pattern[len(v_root_prefix) + 1 :]
+                    elif v_root_prefix == pattern:
+                        # Exact match of directory, usually implies listing contents if it was a dir glob?
+                        # But glob("/dir") returns the dir.
+                        local_pattern = None  # Already handled by step 1
+                    else:
+                        # Pattern does not start with this root.
+                        # e.g. pattern="/mnt/*/*", root="/mnt/saipre"
+                        # Do we skip?
+                        # We can try to handle overlap if "mnt/*" matches "mnt/saipre"?
+                        # For now, simplistic prefix check.
+                        local_pattern = None
+                else:
+                    # v_root_prefix is None or empty (shouldn't happen for roots list)
+                    pass
+
             if not local_pattern:
-                 continue
+                continue
 
             # Run glob
             try:
                 matches = list(h_root.glob(local_pattern))
-            except Exception as e:
+            except Exception:
                 continue
-                
+
             for match in matches:
                 if not self.is_path_allowed(match):
                     continue
-                    
+
                 v_path = self.to_virtual_path(match)
-                
+
                 # Fallback path construction
                 if not v_path and v_root_prefix and h_root in match.parents:
-                     rel = match.relative_to(h_root)
-                     v_path = f"{v_root_prefix}/{rel}".replace("\\", "/")
-                
+                    rel = match.relative_to(h_root)
+                    v_path = f"{v_root_prefix}/{rel}".replace("\\", "/")
+
                 if not v_path:
-                    v_path = match.name 
-                    
+                    v_path = match.name
+
                 if v_path not in seen_virtual_paths:
                     seen_virtual_paths.add(v_path)
                     results.append((match, v_path))
-                    
+
         return results

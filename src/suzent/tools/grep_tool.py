@@ -95,22 +95,22 @@ Examples:
 
             # Collect files to search
             glob_pattern = include or "**/*"
-            
+
             # Use unified finder
             found_files = self._resolver.find_files(glob_pattern, path)
-            
+
             # Search files
             results: List[Tuple[str, int, str]] = []  # (file, line_num, content)
             files_with_matches = 0
             ctx = context_lines or 0
 
             for file_path, v_path in found_files:
-                if len(results) >= 1000: # Global safety limit
+                if len(results) >= 1000:  # Global safety limit
                     break
-                    
+
                 if not file_path.is_file() or not self._is_text_file(file_path):
                     continue
-                    
+
                 try:
                     matches = self._search_file(file_path, regex, ctx)
                     if matches:

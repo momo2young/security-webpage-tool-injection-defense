@@ -23,13 +23,13 @@ def _resolve_host_path(
         # Instantiate manager to get config/paths resolved
         # Fetch per-chat config from database
         from suzent.database import get_database
-        
+
         custom_volumes = None
         try:
             db = get_database()
             chat = db.get_chat(chat_id)
             if chat and "config" in chat:
-                 custom_volumes = chat["config"].get("sandbox_volumes")
+                custom_volumes = chat["config"].get("sandbox_volumes")
         except Exception as e:
             logger.warning(f"Failed to fetch chat config for volumes: {e}")
 
@@ -406,7 +406,9 @@ async def serve_sandbox_file_wildcard(request: Request):
             return JSONResponse({"error": "Access denied"}, status_code=403)
 
         if not target_host_path.exists():
-            return JSONResponse({"error": f"File not found: {raw_path}"}, status_code=404)
+            return JSONResponse(
+                {"error": f"File not found: {raw_path}"}, status_code=404
+            )
 
         if not target_host_path.is_file():
             return JSONResponse({"error": "Not a file"}, status_code=400)

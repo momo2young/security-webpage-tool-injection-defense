@@ -26,7 +26,6 @@ Today's date: {current_date}
 """
 
 
-
 def format_instructions(base_instructions: str, memory_context: str = "") -> str:
     """
     Format agent instructions by adding current date and other dynamic context.
@@ -38,5 +37,9 @@ def format_instructions(base_instructions: str, memory_context: str = "") -> str
         Formatted instructions with date appended
     """
     current_date = datetime.now().strftime("%A, %B %d, %Y")
-    suzent_instructions = SUZENT_AGENT_INSTRUCTIONS.format(current_date=current_date, base_instructions=base_instructions, memory_context=memory_context)
+    suzent_instructions = SUZENT_AGENT_INSTRUCTIONS.format(
+        current_date=current_date,
+        base_instructions=base_instructions,
+        memory_context=memory_context,
+    )
     return suzent_instructions

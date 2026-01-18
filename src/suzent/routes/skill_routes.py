@@ -2,10 +2,10 @@
 API routes for skill management.
 """
 
-from typing import List, Dict, Any
 from starlette.responses import JSONResponse
 from suzent.skills import get_skill_manager
 from suzent.tools.path_resolver import PathResolver
+
 
 async def get_skills(request):
     """
@@ -19,12 +19,13 @@ async def get_skills(request):
             "name": skill.metadata.name,
             "description": skill.metadata.description,
             "path": PathResolver.get_skill_virtual_path(skill.metadata.name),
-            "enabled": manager.is_skill_enabled(skill.metadata.name)
+            "enabled": manager.is_skill_enabled(skill.metadata.name),
         }
         for skill in skills
     ]
 
     return JSONResponse(response_data)
+
 
 async def toggle_skill(request):
     """
@@ -32,14 +33,15 @@ async def toggle_skill(request):
     """
     skill_name = request.path_params["skill_name"]
     manager = get_skill_manager()
-    
+
     # Check if skill exists
     skill = manager.loader.get_skill(skill_name)
     if not skill:
         return JSONResponse({"error": "Skill not found"}, status_code=404)
-        
+
     new_state = manager.toggle_skill(skill_name)
     return JSONResponse({"name": skill_name, "enabled": new_state})
+
 
 async def reload_skills(request):
     """
@@ -47,6 +49,6 @@ async def reload_skills(request):
     """
     manager = get_skill_manager()
     manager.reload()
-    
+
     # Return updated list
     return await get_skills(request)
