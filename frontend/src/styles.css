@@ -375,6 +375,7 @@ code {
   height: 40px;
   left: -50px;
   animation: move-belt 2s linear infinite;
+  overflow: hidden;
 }
 
 .scanner-beam {
