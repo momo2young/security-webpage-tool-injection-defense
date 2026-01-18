@@ -176,7 +176,7 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
     if (variant === 'rage') {
         return (
             <div className={`relative w-full h-full ${className}`}>
-                <div className="w-full h-full flex items-center justify-center" style={{ animation: 'robot-vibrate 0.1s infinite' }}>
+                <div className="w-full h-full flex items-center justify-center" style={{ animation: 'robot-seethe 2s infinite ease-in-out' }}>
                     <svg className="w-full h-full" viewBox="0 0 24 24" overflow="visible" style={{ transform: `scale(${ROBOT_SCALE})` }}>
                         <rect x="0" y="0" width="24" height="24" rx="4" fill="#000000" />
                         <rect className="eye left" x="5" y="8" width="5" height="5" rx="1.5" fill="currentColor" />

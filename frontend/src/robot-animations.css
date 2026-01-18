@@ -443,25 +443,15 @@
 }
 
 /* --- V21: RAGE (Error) --- */
-@keyframes robot-vibrate {
-    0% {
-        transform: translate(0, 0);
-    }
+@keyframes robot-seethe {
 
-    25% {
-        transform: translate(-2px, 2px);
+    0%,
+    100% {
+        transform: scale(1);
     }
 
     50% {
-        transform: translate(2px, -2px);
-    }
-
-    75% {
-        transform: translate(-2px, -2px);
-    }
-
-    100% {
-        transform: translate(0, 0);
+        transform: scale(1.05);
     }
 }
 
