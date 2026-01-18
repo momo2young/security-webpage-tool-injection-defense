@@ -11,20 +11,12 @@
 
 
 
-```markdown
-╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
-║   YOUR DATA. YOUR MACHINE. YOUR RULES.                       ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
-```
-
-
 </div>
 
 ---
 
-## **THE PHILOSOPHY**
+## <img src="docs/assets/robot-idle.svg" width="30" style="vertical-align: middle;" /> **THE PHILOSOPHY**
+Your data. Your machine. Your rules.
 
 SUZENT [soo-zuh-nt] combines SUZERAIN (sovereign) + AGENT (executor)—an automated system that answers to one authority: you. Built on the principles of digital sovereignty and open inspiration.
 
@@ -38,36 +30,35 @@ SUZENT is an open-source deep research and co-worker agent that synthesizes idea
 
 ## **FEATURES**
 
-### **MODEL AGNOSTIC**
+### <img src="docs/assets/robot-agnostic.svg" width="28" style="vertical-align: middle;" /> **MODEL AGNOSTIC**
 
-**SUZENT** is model agnostic. It can use any model (GPT, Claude, Gemini, DeepSeek,etc.) you want.
+**SUZENT** is model agnostic. It can use any model (GPT, Claude, Gemini, DeepSeek, etc.) you want.
 
-### **AGENTIC WORKFLOW**
+### <img src="docs/assets/robot-gym.svg" width="28" style="vertical-align: middle;" /> **AGENTIC WORKFLOW**
 
 **SUZENT** is a functionally rich agent that provides an experience comparable to OpenAI/Google Deep Research, Manus, and Claude Cowork — but fully open-source and locally runnable.
 
-### **TOOLS & SKILLS**
+### <img src="docs/assets/robot-reader.svg" width="28" style="vertical-align: middle;" /> **TOOLS & SKILLS**
 
 **SUZENT** provides simple but powerful tools for you to get started. It includes `bash`, `web search`, `web fetch`, and a series of file operations tools. These tools could guarantee you a competitive enough performance on GAIA benchmark.
 
 You can create your custom tools and further connect to Google Drive, GitHub, or Slack via standard MCP protocol.
 
-Agent skills are fully supported. Load your favorite skills to `./skills` folder to make **SUZENT** even more powerful.  
+Agent skills are fully supported. Load your favorite skills to `./skills` folder to make **SUZENT** even more powerful.
 
-### **WORKSPACE**
+### <img src="docs/assets/robot-peeker.svg" width="28" style="vertical-align: middle;" /> **WORKSPACE**
 
 Unlike most agents, **SUZENT** features dual workspaces: a cross-session workspace shared across all chats for persistent knowledge, and per-session workspaces for individual conversations. This enables both continuity and isolation. You can also mount local folders (like your Obsidian vault) directly into the system.
 
-### **MEMORY**
+### <img src="docs/assets/robot-thinking.svg" width="28" style="vertical-align: middle;" /> **MEMORY**
 
 **SUZENT** implements a MemGPT-like global memory system that persists across sessions. This allows you to accumulate knowledge and context across conversations, making it easier to maintain a consistent and coherent conversation history.
 
-### **PRIVATE & LOCAL**
+### <img src="docs/assets/robot-snooze.svg" width="28" style="vertical-align: middle;" /> **PRIVATE & LOCAL**
 
 **SUZENT** runs entirely on your device with built-in SearXNG for ad-free, tracking-free web search, PostgreSQL + pgvector for local vector storage, and MicroSandbox isolation for safe code execution. Your data never leaves your machine.
 
-
-### **UI READY**
+### <img src="docs/assets/robot-party.svg" width="28" style="vertical-align: middle;" /> **UI READY**
 
 **SUZENT** features a NeoBrutalist web interface that transforms terminal-based agent interactions into a modern, aesthetically distinct experience—combining powerful functionality with bold visual design for your digital sovereign co-worker.
 
@@ -103,7 +94,7 @@ docker compose -f docker/docker-compose.yml up -d
 
 ---
 
-## **ACKNOWLEDGEMENTS**
+## <img src="docs/assets/robot-love.svg" width="30" style="vertical-align: middle;" /> **ACKNOWLEDGEMENTS**
 
 SUZENT is built upon the collective intelligence and innovation of the open-source community. We are deeply grateful to the projects and contributors who make digital sovereignty possible.
 
