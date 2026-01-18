@@ -7,6 +7,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { LogBlock } from './LogBlock';
 import { CodeBlockComponent } from './CodeBlockComponent';
 import { CopyButton } from './CopyButton';
+import { RobotAvatar } from './RobotAvatar';
 
 interface AssistantMessageProps {
   message: Message;
@@ -106,13 +107,17 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
           : 'w-[90px] h-[28px] bg-brutal-black'
         }
       `}>
-        <ThinkingAnimation isThinking={isThinking} />
-        <AgentBadge
-          isThinking={isThinking}
-          isStreaming={isStreamingThis}
-          eyeClass={eyeClass}
-          rightEyeStyle={rightEyeStyle}
-        />
+        {isThinking ? (
+          <div className="w-full h-full flex items-center justify-center relative">
+            <ThinkingAnimation isThinking={true} />
+          </div>
+        ) : (
+          <AgentBadge
+            isThinking={false}
+            isStreaming={isStreamingThis}
+            eyeClass="" // Deprecated
+          />
+        )}
       </div>
 
       {/* White Message Box */}

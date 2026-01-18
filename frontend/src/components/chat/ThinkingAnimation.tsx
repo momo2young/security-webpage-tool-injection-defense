@@ -1,4 +1,5 @@
 import React from 'react';
+import { RobotAvatar } from './RobotAvatar';
 
 interface ThinkingAnimationProps {
   isThinking: boolean;
@@ -57,27 +58,27 @@ export const RobotIcon: React.FC<RobotIconProps> = ({
 interface AgentBadgeProps {
   isThinking: boolean;
   isStreaming: boolean;
-  eyeClass: string;
+  eyeClass?: string;
   rightEyeStyle?: React.CSSProperties;
 }
 
 export const AgentBadge: React.FC<AgentBadgeProps> = ({
   isThinking,
   isStreaming,
-  eyeClass,
-  rightEyeStyle
 }) => {
+  // Determine variant based on state (simple mapping for now)
+  // Logic mostly moved to AssistantMessage, but kept here for backward compat/transition
+  const variant = isStreaming ? 'observer' : 'idle';
+
   return (
     <div className={`
       absolute inset-0 flex items-center justify-center gap-1.5 text-brutal-white font-bold text-xs tracking-wider uppercase
       transition-opacity duration-500 delay-200
       ${isThinking ? 'opacity-0 pointer-events-none' : 'opacity-100'}
     `}>
-      <RobotIcon
-        isStreaming={isStreaming}
-        eyeClass={eyeClass}
-        rightEyeStyle={rightEyeStyle}
-      />
+      <div className="w-5 h-5 relative">
+        <RobotAvatar variant={variant} />
+      </div>
       <span>AGENT</span>
     </div>
   );
