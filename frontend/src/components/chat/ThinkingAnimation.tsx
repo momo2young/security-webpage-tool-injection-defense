@@ -31,8 +31,10 @@ export const ThinkingAnimation: React.FC<ThinkingAnimationProps> = ({ isThinking
           className="conveyor-item"
           style={{ animationDelay: `${i * 0.7}s` }}
         >
-          <div className="w-full h-full text-white">
-            <RobotAvatar variant={variant as any} />
+          <div className="w-full h-full flex items-center justify-center text-white">
+            <div className="w-8 h-8">
+              <RobotAvatar variant={variant as any} />
+            </div>
           </div>
         </div>
       ))}
@@ -85,11 +87,11 @@ export const AgentBadge: React.FC<AgentBadgeProps> = ({
 
   return (
     <div className={`
-      absolute inset-0 flex items-center justify-center gap-1.5 text-brutal-white font-bold text-xs tracking-wider uppercase
+      absolute inset-0 flex items-center justify-center gap-1.5 text-black font-bold text-xs tracking-wider uppercase
       transition-opacity duration-500 delay-200
       ${isThinking ? 'opacity-0 pointer-events-none' : 'opacity-100'}
     `}>
-      <div className="w-5 h-5 relative">
+      <div className="w-5 h-5 relative text-white">
         <RobotAvatar variant={variant} />
       </div>
       <span>AGENT</span>

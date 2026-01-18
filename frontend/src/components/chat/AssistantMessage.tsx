@@ -97,14 +97,14 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
   const rightEyeStyle = isStreamingThis ? undefined : { animationDelay: '1.8s' };
 
   return (
-    <div className="group w-full max-w-4xl break-words overflow-visible space-y-0 text-sm leading-relaxed relative pr-4 md:pr-12 animate-brutal-pop">
+    <div className="group w-full max-w-4xl break-words overflow-visible text-sm leading-relaxed relative pr-4 md:pr-12 animate-brutal-pop">
       {/* Badge/Assembly Container */}
       <div className={`
         border-3 border-brutal-black shadow-brutal-lg overflow-hidden relative
         transition-all duration-700 ease-out
         ${isThinking
           ? 'w-[300px] h-[90px] bg-white'
-          : 'w-[90px] h-[28px] bg-brutal-black'
+          : 'w-[90px] h-[40px] bg-white'
         }
       `}>
         {isThinking ? (
@@ -122,7 +122,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
 
       {/* White Message Box */}
       <div className={`
-        border-3 border-brutal-black shadow-brutal-lg overflow-hidden relative -mt-[3px]
+        border-3 border-brutal-black shadow-brutal-lg overflow-hidden relative mt-3
         transition-all duration-700 ease-out
         ${isThinking
           ? 'w-[300px] h-0 opacity-0'
