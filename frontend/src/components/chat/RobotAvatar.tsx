@@ -76,7 +76,17 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
     if (variant === 'jumper') {
         return (
             <div className={`relative w-full h-full ${className}`}>
-                <BaseRobot style={{ animation: 'robot-jump-body 1.2s infinite cubic-bezier(0.28, 0.84, 0.42, 1)' }} />
+                <div className="w-full h-full flex items-center justify-center">
+                    <svg className="w-full h-full" viewBox="0 0 24 24" overflow="visible" style={{ transform: `scale(${ROBOT_SCALE})` }}>
+
+                        {/* Jumping Body */}
+                        <g style={{ animation: 'robot-jump-body 1.2s infinite' }}>
+                            <rect x="0" y="0" width="24" height="24" rx="4" fill="#000000" />
+                            <rect className="eye left" x="5" y="8" width="5" height="5" rx="1.5" fill="currentColor" />
+                            <rect className="eye right" x="14" y="8" width="5" height="5" rx="1.5" fill="currentColor" />
+                        </g>
+                    </svg>
+                </div>
             </div>
         );
     }
@@ -186,10 +196,12 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
     if (variant === 'party') {
         return (
             <div className={`relative w-full h-full ${className}`}>
-                <RobotBody style={{ animation: 'robot-bounce-beat 0.5s infinite' }}>
+                <RobotBody>
                     <rect x="0" y="0" width="24" height="24" rx="4" fill="#000000" />
-                    <rect x="4" y="8" width="16" height="6" rx="1" fill="currentColor" />
-                    <rect x="5" y="9" width="14" height="1" fill="#FFFFFF" opacity="0.5" />
+                    <g style={{ animation: 'robot-glasses-bounce 0.5s infinite ease-in-out' }}>
+                        <rect x="4" y="8" width="16" height="6" rx="1" fill="currentColor" />
+                        <rect x="5" y="9" width="14" height="1" fill="#FFFFFF" opacity="0.5" />
+                    </g>
                 </RobotBody>
             </div>
         );
@@ -278,7 +290,7 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
                         <rect x="13.5" y="9" width="5" height="2" fill="#FFFFFF" />
 
                         {/* Sweat drop */}
-                        <circle cx="28" cy="12" r="1.5" fill="#000000" opacity="0" style={{ animation: 'robot-sweat-fall 1.8s infinite' }} />
+                        <ellipse cx="23" cy="10" rx="0.8" ry="1.5" fill="#666666" opacity="0" style={{ animation: 'robot-sweat-fall 1.8s infinite' }} />
                     </svg>
                 </div>
             </div>

@@ -51,40 +51,67 @@
 /* --- V15: JUMPER (Action) --- */
 @keyframes robot-jump-body {
     0% {
-        transform: translateY(0) scale(1.1, 0.9);
+        transform: translateY(0) scale(1.15, 0.85);
+        transform-origin: 12px 24px;
+        animation-timing-function: ease-out;
     }
 
     10% {
         transform: translateY(0) scale(0.9, 1.1);
+        transform-origin: 12px 24px;
+        animation-timing-function: ease-out;
+        /* Launch */
     }
 
-    50% {
-        transform: translateY(-15%) scale(1, 1);
+    45% {
+        transform: translateY(-25%) scale(1);
+        transform-origin: 12px 24px;
+        animation-timing-function: cubic-bezier(0.2, 0, 0.4, 1);
+        /* Hangtime */
+    }
+
+    55% {
+        transform: translateY(-25%) scale(1);
+        transform-origin: 12px 24px;
+        animation-timing-function: ease-in;
+        /* Fall */
     }
 
     90% {
         transform: translateY(0) scale(0.9, 1.1);
+        transform-origin: 12px 24px;
+        animation-timing-function: ease-out;
+        /* Impact */
     }
 
     100% {
-        transform: translateY(0) scale(1.1, 0.9);
+        transform: translateY(0) scale(1.15, 0.85);
+        transform-origin: 12px 24px;
+        animation-timing-function: ease-out;
+        /* Recover */
     }
 }
 
 @keyframes robot-jump-shadow {
-    0% {
+
+    0%,
+    100% {
+        transform: scale(1.2);
+        opacity: 0.8;
+        transform-origin: center;
+    }
+
+    10%,
+    90% {
         transform: scale(1);
-        opacity: 1;
+        opacity: 0.8;
+        transform-origin: center;
     }
 
     50% {
-        transform: scale(0.5);
+        transform: scale(0.6);
         opacity: 0.3;
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
+        transform-origin: center;
     }
 }
 
@@ -205,18 +232,18 @@
 @keyframes robot-hole-top {
     0% {
         transform: scale(0.8);
-        transform-origin: 12px -4px;
+        transform-origin: 12px -6px;
     }
 
     20% {
         transform: scale(1.1);
-        transform-origin: 12px -4px;
+        transform-origin: 12px -6px;
     }
 
     40%,
     100% {
         transform: scale(0.8);
-        transform-origin: 12px -4px;
+        transform-origin: 12px -6px;
     }
 }
 
@@ -226,17 +253,17 @@
     0%,
     60% {
         transform: scale(0.8);
-        transform-origin: 12px 28px;
+        transform-origin: 12px 30px;
     }
 
     80% {
         transform: scale(1.1);
-        transform-origin: 12px 28px;
+        transform-origin: 12px 30px;
     }
 
     100% {
         transform: scale(0.8);
-        transform-origin: 12px 28px;
+        transform-origin: 12px 30px;
     }
 }
 
@@ -488,6 +515,18 @@
 
     100% {
         filter: brightness(1);
+    }
+}
+
+@keyframes robot-glasses-bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-2px);
     }
 }
 

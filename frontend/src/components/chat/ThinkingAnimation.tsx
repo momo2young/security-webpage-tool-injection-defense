@@ -92,7 +92,7 @@ export const AgentBadge: React.FC<AgentBadgeProps> = ({
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % SHOWCASE_VARIANTS.length);
-    }, 2000);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
