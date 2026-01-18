@@ -234,16 +234,29 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
     if (variant === 'workout') {
         return (
             <div className={`relative w-full h-full ${className}`}>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[75%] h-2 z-20 flex items-center justify-center" style={{ animation: 'robot-lift 1.5s infinite' }}>
-                    <div className="w-full h-[2px] bg-black rounded-full" />
-                    <div className="absolute left-0 w-[3px] h-[8px] bg-black rounded-sm" />
-                    <div className="absolute right-0 w-[3px] h-[8px] bg-black rounded-sm" />
+                {/* Barbell - Uses 'top' animation for positioning */}
+                <div className="absolute left-1/2 -translate-x-1/2 w-[130%] h-2.3 z-20" style={{ animation: 'robot-lift 1.8s infinite ease-in-out', top: '45%' }}>
+                    {/* Bar Line */}
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 bg-black rounded-full" />
+
+                    {/* Weights - Tall Solid Blocks */}
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[10%] h-[30px] bg-black" />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[10%] h-[30px] bg-black" />
                 </div>
-                <div className="absolute top-2 -right-1 w-1 h-1 bg-black rounded-full opacity-0" style={{ animation: 'robot-sweat-fall 1.5s infinite 0.5s' }} />
-                <RobotBody style={{ animation: 'robot-squat 1.5s infinite' }}>
+
+                {/* Arms - Bottom-anchored (shoulders fixed), grow upward */}
+                <div className="absolute left-[15%] w-[5%] bg-gray-500 rounded-sm z-10" style={{ animation: 'robot-lift-arms 1.8s infinite ease-in-out', bottom: '52%', height: '5%', transform: 'rotate(-10deg)' }} />
+                <div className="absolute right-[15%] w-[5%] bg-gray-500 rounded-sm z-10" style={{ animation: 'robot-lift-arms 1.8s infinite ease-in-out', bottom: '52%', height: '5%', transform: 'rotate(10deg)' }} />
+
+                {/* Sweat - appears at peak effort */}
+                <div className="absolute top-[45%] right-[3%] w-2 h-2 bg-black rounded-full opacity-0" style={{ animation: 'robot-sweat-fall 1.8s infinite' }} />
+
+                {/* Body - Standard Black Style, bottom-anchored for squash/stretch */}
+                <RobotBody style={{ animation: 'robot-squat 1.8s infinite ease-in-out', transformOrigin: 'bottom center' }}>
                     <rect x="0" y="0" width="24" height="24" rx="4" fill="#000000" />
-                    <rect x="5" y="10" width="5" height="2" fill="currentColor" />
-                    <rect x="14" y="10" width="5" height="2" fill="currentColor" />
+                    {/* Squinting Eyes (White on Black) */}
+                    <rect x="5.5" y="9" width="5" height="2" fill="#FFFFFF" />
+                    <rect x="13.5" y="9" width="5" height="2" fill="#FFFFFF" />
                 </RobotBody>
             </div>
         );
@@ -267,10 +280,14 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
     // V28: Scanner (OCR/Analyzer)
     if (variant === 'scanner') {
         return (
-            <div className={`relative w-full h-full ${className}`} style={{ perspective: '100px' }}>
+            <div className={`relative w-full h-full ${className}`} style={{ perspective: '150px' }}>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent z-20 pointer-events-none"
                     style={{ animation: 'robot-scan-pass 2s infinite linear' }} />
-                <BaseRobot style={{ transform: 'rotateX(30deg)', transformOrigin: 'center' }} />
+                <div className="absolute inset-0 flex items-center justify-center" style={{ transform: 'rotateX(45deg)', transformOrigin: 'center' }}>
+                    <div className="w-[90%] h-[90%]">
+                        <BaseRobot />
+                    </div>
+                </div>
             </div>
         );
     }
