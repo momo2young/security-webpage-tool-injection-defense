@@ -43,7 +43,7 @@ class Defaults:
 
     SERVER_URL = "http://localhost:7263"
     NAMESPACE = "suzent"
-    DATA_PATH = "sandbox-data"
+    DATA_PATH = "data/sandbox-data"
     IMAGE = "microsandbox/python"
     MEMORY_MB = 512
     CPUS = 1

@@ -18,6 +18,7 @@ services:
       - SEARXNG_BASE_URL=http://searxng:8080
       - REDIS_URL=redis://redis:6379
       - CHATS_DB_PATH=/app/data/chats/chats.db
+      - SANDBOX_DATA_PATH=/app/data/sandbox-data
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,7 +28,6 @@ services:
       # Mount data volume for local files/sandboxes if needed
       - ../data:/app/data
       - ../config:/app/config
-      - chats-data:/app/data/chats  # Use named volume for database persistence
 
   # React Frontend (Nginx)
   frontend:
@@ -142,6 +142,4 @@ volumes:
   redis-data:
     driver: local
   searxng-data:
-    driver: local
-  chats-data:
     driver: local

@@ -128,7 +128,7 @@ class ConfigModel(BaseModel):
     # Sandbox system
     sandbox_enabled: bool = False
     sandbox_server_url: str = "http://localhost:7263"
-    sandbox_data_path: str = "sandbox-data"
+    sandbox_data_path: str = "data/sandbox-data"
     sandbox_volumes: List[
         str
     ] = []  # Additional volume mounts (format: "host_path:container_path")

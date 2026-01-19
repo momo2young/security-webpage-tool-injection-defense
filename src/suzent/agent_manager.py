@@ -706,4 +706,9 @@ def _create_path_resolver(chat_id: str, config: Optional[dict]) -> Any:
     )
 
     # logger.debug(f"Creating PathResolver for {chat_id} with volumes: {custom_volumes}")
-    return PathResolver(chat_id, sandbox_enabled, custom_volumes=custom_volumes)
+    return PathResolver(
+        chat_id,
+        sandbox_enabled,
+        sandbox_data_path=CONFIG.sandbox_data_path,
+        custom_volumes=custom_volumes,
+    )

@@ -18,9 +18,9 @@ class PathResolver:
     Unified path resolution for sandbox and non-sandbox contexts.
 
     In sandbox mode:
-      - /persistence/* → sandbox-data/sessions/{chat_id}/*
-      - /shared/*      → sandbox-data/shared/*
-      - /uploads/*     → sandbox-data/sessions/{chat_id}/uploads/*
+      - /persistence/* → data/sandbox-data/sessions/{chat_id}/*
+      - /shared/*      → data/sandbox-data/shared/*
+      - /uploads/*     → data/sandbox-data/sessions/{chat_id}/uploads/*
       - [Custom Mounts] → mapped host paths
 
     In non-sandbox mode:
@@ -32,7 +32,7 @@ class PathResolver:
         self,
         chat_id: str,
         sandbox_enabled: bool,
-        sandbox_data_path: str = "sandbox-data",
+        sandbox_data_path: str = "data/sandbox-data",
         uploads_path: str = "data/uploads",
         custom_volumes: Optional[List[str]] = None,
     ):
@@ -42,7 +42,7 @@ class PathResolver:
         Args:
             chat_id: The chat session identifier
             sandbox_enabled: Whether sandbox mode is active
-            sandbox_data_path: Base path for sandbox data (default: "sandbox-data")
+            sandbox_data_path: Base path for sandbox data (default: "data/sandbox-data")
             uploads_path: Base path for non-sandbox uploads (default: "data/uploads")
             custom_volumes: List of "host:container" volume mapping strings
         """
