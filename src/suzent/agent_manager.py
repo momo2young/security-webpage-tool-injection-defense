@@ -70,7 +70,9 @@ async def init_memory_system() -> bool:
 
         # Initialize LanceDB store
         # CONFIG.lancedb_uri is now available
-        memory_store = LanceDBMemoryStore(CONFIG.lancedb_uri, embedding_dim=CONFIG.embedding_dimension)
+        memory_store = LanceDBMemoryStore(
+            CONFIG.lancedb_uri, embedding_dim=CONFIG.embedding_dimension
+        )
         await memory_store.connect()
 
         # Initialize memory manager

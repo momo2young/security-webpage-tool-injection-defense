@@ -34,10 +34,14 @@ class WebSearchTool(Tool):
 
     # Constants
     TIME_RANGE_MAPPING = {
-        'day': 'd', 'd': 'd',
-        'week': 'w', 'w': 'w',
-        'month': 'm', 'm': 'm',
-        'year': 'y', 'y': 'y'
+        "day": "d",
+        "d": "d",
+        "week": "w",
+        "w": "w",
+        "month": "m",
+        "m": "m",
+        "year": "y",
+        "y": "y",
     }
 
     inputs = {
@@ -76,14 +80,14 @@ class WebSearchTool(Tool):
 
         if self.use_searxng:
             self._init_searxng_client()
-        
+
         # DDGS is initialized lazily per request
 
     def _validate_searxng_url(self, url: Optional[str]) -> bool:
         """Validate the SearXNG URL."""
         if not url or not url.strip():
             return False
-        
+
         try:
             result = urlparse(url)
             return all([result.scheme, result.netloc])
@@ -127,68 +131,70 @@ class WebSearchTool(Tool):
             )
 
     def _search_with_ddgs(
-        self, 
-        query: str, 
+        self,
+        query: str,
         category: Optional[str] = None,
         max_results: Optional[int] = 10,
         time_range: Optional[str] = None,
-        page: Optional[int] = 1
+        page: Optional[int] = 1,
     ) -> str:
         """Perform search using DuckDuckGo."""
-        timelimit = self.TIME_RANGE_MAPPING.get(time_range.lower()) if time_range else None
-        
+        timelimit = (
+            self.TIME_RANGE_MAPPING.get(time_range.lower()) if time_range else None
+        )
+
         # Max results validation
         max_results = max_results if max_results else 10
-        if max_results > 20: max_results = 20 # Cap to reasonable limit
+
+        if max_results > 20:
+            max_results = 20  # Cap to reasonable limit
 
         try:
             # Lazy import to avoid loading unless needed
             try:
                 from ddgs import DDGS
             except ImportError as e:
-                logger.error(f"Failed to import ddgs: {e}. 'ddgs' library is required for search fallback.")
-                return f"Error: Search configuration failed. 'ddgs' library not installed."
+                logger.error(
+                    f"Failed to import ddgs: {e}. 'ddgs' library is required for search fallback."
+                )
+                return (
+                    "Error: Search configuration failed. 'ddgs' library not installed."
+                )
 
             # Use context manager for better resource management
             with DDGS() as ddgs:
                 results = []
                 source_label = f"DDGS ({category or 'general'})"
 
-                if not category or category == 'general':
-                     # Text Search (supports backend='api', 'html', 'lite') - 'api' is default
-                     # Note: DDGS.text() doesn't strictly support pagination in the API backend consistently across versions,
-                     # but we can simulate or pass parameters if supported. 
-                     # For simplicity, we stick to basic arguments.
-                     results = list(ddgs.text(
-                         query, 
-                         timelimit=timelimit, 
-                         max_results=max_results
-                     ))
-                elif category == 'news':
-                    results = list(ddgs.news(
-                        query, 
-                        timelimit=timelimit, 
-                        max_results=max_results
-                    ))
-                elif category == 'images':
-                    results = list(ddgs.images(
-                        query, 
-                        timelimit=timelimit, 
-                        max_results=max_results
-                    ))
-                elif category == 'videos':
-                    results = list(ddgs.videos(
-                        query, 
-                        timelimit=timelimit, 
-                        max_results=max_results
-                    ))
+                if not category or category == "general":
+                    # Text Search (supports backend='api', 'html', 'lite') - 'api' is default
+                    # Note: DDGS.text() doesn't strictly support pagination in the API backend consistently across versions,
+                    # but we can simulate or pass parameters if supported.
+                    # For simplicity, we stick to basic arguments.
+                    results = list(
+                        ddgs.text(query, timelimit=timelimit, max_results=max_results)
+                    )
+                elif category == "news":
+                    results = list(
+                        ddgs.news(query, timelimit=timelimit, max_results=max_results)
+                    )
+                elif category == "images":
+                    results = list(
+                        ddgs.images(query, timelimit=timelimit, max_results=max_results)
+                    )
+                elif category == "videos":
+                    results = list(
+                        ddgs.videos(query, timelimit=timelimit, max_results=max_results)
+                    )
                 else:
                     return f"Error: Unsupported category '{category}' for DuckDuckGo."
-                
+
                 if not results:
                     return f"No results found for query: '{query}'"
 
-                return self._format_results(results, source=source_label, category=category)
+                return self._format_results(
+                    results, source=source_label, category=category
+                )
 
         except Exception as e:
             logger.error(f"DDGS search failed: {e}")
@@ -210,8 +216,11 @@ class WebSearchTool(Tool):
                 "page": page or 1,
             }
 
-            if categories: params["categories"] = categories
-            if time_range: params["time_range"] = time_range
+            if categories:
+                params["categories"] = categories
+
+            if time_range:
+                params["time_range"] = time_range
 
             response = self.client.get("/search", params=params)
 
@@ -219,83 +228,97 @@ class WebSearchTool(Tool):
                 logger.warning("SearXNG JSON format restricted, falling back to DDGS")
                 # Pass defaults for new params since searxng function signature is older
                 return self._search_with_ddgs(
-                    query, 
-                    category=categories, 
+                    query,
+                    category=categories,
                     max_results=max_results,
                     time_range=time_range,
-                    page=page
+                    page=page,
                 )
 
             response.raise_for_status()
 
             try:
                 data = json.loads(response.text)
-                return self._format_results(data.get("results", []), source="SearXNG", query=data.get("query", query))
+                return self._format_results(
+                    data.get("results", []),
+                    source="SearXNG",
+                    query=data.get("query", query),
+                )
             except json.JSONDecodeError:
                 return response.text
 
         except httpx.HTTPStatusError as e:
-            logger.warning(f"SearXNG failed with {e.response.status_code}. Falling back to DDGS.")
-            return self._search_with_ddgs(
-                query, 
-                category=categories, 
-                max_results=max_results,
-                time_range=time_range,
-                page=page
+            logger.warning(
+                f"SearXNG failed with {e.response.status_code}. Falling back to DDGS."
             )
-            
-        except (httpx.RequestError, Exception) as e:
-            logger.warning(f"SearXNG connection failed: {str(e)}. Falling back to DDGS.")
             return self._search_with_ddgs(
-                query, 
-                category=categories, 
+                query,
+                category=categories,
                 max_results=max_results,
                 time_range=time_range,
-                page=page
+                page=page,
             )
 
-    def _format_results(self, results: List[Dict[str, Any]], source: str, query: str = "", category: Optional[str] = None) -> str:
+        except (httpx.RequestError, Exception) as e:
+            logger.warning(
+                f"SearXNG connection failed: {str(e)}. Falling back to DDGS."
+            )
+            return self._search_with_ddgs(
+                query,
+                category=categories,
+                max_results=max_results,
+                time_range=time_range,
+                page=page,
+            )
+
+    def _format_results(
+        self,
+        results: List[Dict[str, Any]],
+        source: str,
+        query: str = "",
+        category: Optional[str] = None,
+    ) -> str:
         """
         Unified results formatting for both providers.
         """
         if not results:
-            return f"No results found."
+            return "No results found."
 
         output = [f"# Search Results (via {source})\n"]
 
         for i, result in enumerate(results, 1):
             # Normalize fields based on category/source
-            
+
             # Common defaults
             title = result.get("title", "No title")
             url = result.get("url") or result.get("href") or ""
             content = result.get("content") or result.get("body") or ""
-            
+
             # Special handling for Images/Videos/News fields if distinct
-            if category == 'images':
+            if category == "images":
                 # DDGS images: 'title', 'image', 'thumbnail', 'url', 'height', 'width', 'source'
                 image_url = result.get("image", "")
                 thumbnail = result.get("thumbnail", "")
-                url = result.get("url") # Page URL
+                url = result.get("url")  # Page URL
                 content = f"Image: {image_url}\nThumbnail: {thumbnail}"
-            elif category == 'videos':
-                 # DDGS videos: 'title', 'content', 'embed_url', 'deputy_id', 'description', 'images', 'uploader', 'duration', 'published'
-                 description = result.get("description", "")
-                 uploader = result.get("uploader", "")
-                 duration = result.get("duration", "")
-                 content = f"{description}\nUploader: {uploader} | Duration: {duration}"
-            elif category == 'news':
-                 # DDGS news: 'date', 'title', 'body', 'url', 'image', 'source'
-                 date = result.get("date", "")
-                 source_news = result.get("source", "")
-                 content = f"{content}\nDate: {date} | Source: {source_news}"
+            elif category == "videos":
+                # DDGS videos: 'title', 'content', 'embed_url', 'deputy_id', 'description', 'images', 'uploader', 'duration', 'published'
+                description = result.get("description", "")
+                uploader = result.get("uploader", "")
+                duration = result.get("duration", "")
+                content = f"{description}\nUploader: {uploader} | Duration: {duration}"
+            elif category == "news":
+                # DDGS news: 'date', 'title', 'body', 'url', 'image', 'source'
+                date = result.get("date", "")
+                source_news = result.get("source", "")
+                content = f"{content}\nDate: {date} | Source: {source_news}"
 
             engines = result.get("engines", [])
 
             # Clean content if string
             if isinstance(content, str):
                 content = " ".join(content.split())
-                if len(content) > 300: # Allow slightly more context
+                if len(content) > 300:  # Allow slightly more context
                     content = content[:297] + "..."
 
             output.append(f"## {i}. {title}")

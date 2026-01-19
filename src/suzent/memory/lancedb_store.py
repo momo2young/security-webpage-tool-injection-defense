@@ -41,6 +41,7 @@ USER_MATCH_BONUS = 5
 
 # --- Helper Functions ---
 
+
 def _escape_sql(value: Optional[str]) -> str:
     """Escape SQL string literals to prevent injection."""
     if value is None:
@@ -55,25 +56,23 @@ def _utc_now() -> datetime:
 
 # --- Data Classes ---
 
+
 @dataclass
 class ScoredResult:
     """Helper for hybrid search scoring."""
+
     doc: Dict[str, Any]
     sem_score: float = 0.0
     fts_score: float = 0.0
 
     def calculate_final_score(
-        self,
-        sem_weight: float,
-        fts_weight: float,
-        imp_boost: float,
-        rec_boost: float
+        self, sem_weight: float, fts_weight: float, imp_boost: float, rec_boost: float
     ) -> float:
         """Calculate weighted final score."""
-        imp = self.doc['importance']
+        imp = self.doc["importance"]
 
         # Handle both timezone-aware and timezone-naive datetimes
-        created_at = self.doc['created_at']
+        created_at = self.doc["created_at"]
         if created_at.tzinfo is None:
             # Make naive datetime UTC-aware
             created_at = created_at.replace(tzinfo=timezone.utc)
@@ -82,16 +81,17 @@ class ScoredResult:
         recency = 1.0 / (1.0 + age_days)
 
         return (
-            self.sem_score * sem_weight +
-            self.fts_score * fts_weight +
-            imp * imp_boost +
-            recency * rec_boost
+            self.sem_score * sem_weight
+            + self.fts_score * fts_weight
+            + imp * imp_boost
+            + recency * rec_boost
         )
 
 
 @dataclass
 class HybridSearchParams:
     """Parameters for hybrid search configuration."""
+
     semantic_weight: float = 0.7
     fts_weight: float = 0.3
     recency_boost: float = 0.1
@@ -100,8 +100,10 @@ class HybridSearchParams:
 
 # --- LanceDB Models ---
 
+
 class MemoryBlockModel(LanceModel):
     """Schema for core memory blocks (key-value)."""
+
     label: str
     content: str
     chat_id: Optional[str] = None
@@ -112,6 +114,7 @@ class MemoryBlockModel(LanceModel):
 
 class ArchivalMemoryModel(LanceModel):
     """Schema for archival memories with embeddings."""
+
     id: str
     content: str
     vector: Vector(CONFIG.embedding_dimension)
@@ -126,6 +129,7 @@ class ArchivalMemoryModel(LanceModel):
 
 
 # --- Main Store Class ---
+
 
 class LanceDBMemoryStore:
     """
@@ -146,7 +150,7 @@ class LanceDBMemoryStore:
     def __init__(
         self,
         uri: str = ".suzent/data/memory",
-        embedding_dim: int = CONFIG.embedding_dimension
+        embedding_dim: int = CONFIG.embedding_dimension,
     ):
         self.uri: str = uri
         self.embedding_dim: int = embedding_dim
@@ -172,9 +176,7 @@ class LanceDBMemoryStore:
         # Memory Blocks
         if "memory_blocks" not in table_names:
             self.blocks_table = await self.db.create_table(
-                "memory_blocks",
-                schema=MemoryBlockModel,
-                exist_ok=True
+                "memory_blocks", schema=MemoryBlockModel, exist_ok=True
             )
             logger.info("Created memory_blocks table")
         else:
@@ -183,20 +185,14 @@ class LanceDBMemoryStore:
         # Archival Memories
         if "archival_memories" not in table_names:
             self.archival_table = await self.db.create_table(
-                "archival_memories",
-                schema=ArchivalMemoryModel,
-                exist_ok=True
+                "archival_memories", schema=ArchivalMemoryModel, exist_ok=True
             )
             logger.info("Created archival_memories table")
 
             try:
                 await self.archival_table.create_index(
                     "content",
-                    config=FTS(
-                        language="English",
-                        stem=True,
-                        remove_stop_words=True
-                    )
+                    config=FTS(language="English", stem=True, remove_stop_words=True),
                 )
                 logger.info("Created FTS index on archival_memories.content")
             except Exception as e:
@@ -241,27 +237,22 @@ class LanceDBMemoryStore:
 
     @staticmethod
     def _calculate_block_priority(
-        row: Dict[str, Any],
-        chat_id: Optional[str],
-        user_id: Optional[str]
+        row: Dict[str, Any], chat_id: Optional[str], user_id: Optional[str]
     ) -> int:
         """Calculate priority score for a memory block."""
         score = 0
-        if chat_id and row.get('chat_id') == chat_id:
+        if chat_id and row.get("chat_id") == chat_id:
             score += CHAT_MATCH_BONUS
-        if user_id and row.get('user_id') == user_id:
+        if user_id and row.get("user_id") == user_id:
             score += USER_MATCH_BONUS
         return score
 
     def _score_memory_block(
-        self,
-        row: Dict[str, Any],
-        chat_id: Optional[str],
-        user_id: Optional[str]
+        self, row: Dict[str, Any], chat_id: Optional[str], user_id: Optional[str]
     ) -> Tuple[int, datetime]:
         """Score a memory block for priority sorting (higher is better)."""
         score = self._calculate_block_priority(row, chat_id, user_id)
-        return (score, row['created_at'])
+        return (score, row["created_at"])
 
     # --- Result Formatting Helpers ---
 
@@ -283,10 +274,7 @@ class LanceDBMemoryStore:
     # --- Core Memory Block Operations ---
 
     async def get_memory_block(
-        self,
-        label: str,
-        chat_id: Optional[str] = None,
-        user_id: Optional[str] = None
+        self, label: str, chat_id: Optional[str] = None, user_id: Optional[str] = None
     ) -> Optional[str]:
         """Get a core memory block with prioritized matching."""
         try:
@@ -299,7 +287,9 @@ class LanceDBMemoryStore:
                 conditions.append("user_id IS NULL")
 
             if chat_id is not None:
-                conditions.append(f"(chat_id = '{_escape_sql(chat_id)}' OR chat_id IS NULL)")
+                conditions.append(
+                    f"(chat_id = '{_escape_sql(chat_id)}' OR chat_id IS NULL)"
+                )
             else:
                 conditions.append("chat_id IS NULL")
 
@@ -312,29 +302,34 @@ class LanceDBMemoryStore:
 
             # Sort by priority: chat match > user match > recency
             rows = results.to_pylist()
-            rows.sort(key=lambda r: self._score_memory_block(r, chat_id, user_id), reverse=True)
-            return rows[0]['content']
+            rows.sort(
+                key=lambda r: self._score_memory_block(r, chat_id, user_id),
+                reverse=True,
+            )
+            return rows[0]["content"]
 
         except Exception as e:
             logger.error(f"Error getting memory block: {e}")
             return None
 
     async def get_all_memory_blocks(
-        self,
-        chat_id: Optional[str] = None,
-        user_id: Optional[str] = None
+        self, chat_id: Optional[str] = None, user_id: Optional[str] = None
     ) -> Dict[str, str]:
         """Get all core memory blocks as a dictionary, with priority matching."""
         try:
             conditions = []
 
             if chat_id:
-                conditions.append(f"(chat_id = '{_escape_sql(chat_id)}' OR chat_id IS NULL)")
+                conditions.append(
+                    f"(chat_id = '{_escape_sql(chat_id)}' OR chat_id IS NULL)"
+                )
             else:
                 conditions.append("chat_id IS NULL")
 
             if user_id:
-                conditions.append(f"(user_id = '{_escape_sql(user_id)}' OR user_id IS NULL)")
+                conditions.append(
+                    f"(user_id = '{_escape_sql(user_id)}' OR user_id IS NULL)"
+                )
             else:
                 conditions.append("user_id IS NULL")
 
@@ -346,7 +341,7 @@ class LanceDBMemoryStore:
             # Group by label and pick the best match for each
             best_blocks = {}
             for row in rows:
-                label = row['label']
+                label = row["label"]
                 score = self._calculate_block_priority(row, chat_id, user_id)
 
                 if label not in best_blocks:
@@ -354,10 +349,12 @@ class LanceDBMemoryStore:
                 else:
                     cur_score, cur_row = best_blocks[label]
                     # Replace if higher score, or same score but newer
-                    if score > cur_score or (score == cur_score and row['created_at'] > cur_row['created_at']):
+                    if score > cur_score or (
+                        score == cur_score and row["created_at"] > cur_row["created_at"]
+                    ):
                         best_blocks[label] = (score, row)
 
-            return {label: row['content'] for label, (_, row) in best_blocks.items()}
+            return {label: row["content"] for label, (_, row) in best_blocks.items()}
 
         except Exception as e:
             logger.error(f"Error fetching memory blocks: {e}")
@@ -395,7 +392,7 @@ class LanceDBMemoryStore:
                 chat_id=chat_id,
                 user_id=user_id,
                 created_at=_utc_now(),
-                updated_at=_utc_now()
+                updated_at=_utc_now(),
             )
 
             await self.blocks_table.add([new_block])
@@ -430,7 +427,7 @@ class LanceDBMemoryStore:
                 created_at=_utc_now(),
                 updated_at=_utc_now(),
                 accessed_at=None,
-                access_count=0
+                access_count=0,
             )
 
             await self.archival_table.add([new_mem])
@@ -454,13 +451,11 @@ class LanceDBMemoryStore:
             if min_importance > 0:
                 where += f" AND importance >= {min_importance}"
 
-            qb = await self.archival_table.search(query_embedding, vector_column_name="vector")
+            qb = await self.archival_table.search(
+                query_embedding, vector_column_name="vector"
+            )
             results = await (
-                qb
-                .distance_type("cosine")
-                .where(where)
-                .limit(limit)
-                .to_list()
+                qb.distance_type("cosine").where(where).limit(limit).to_list()
             )
 
             return [
@@ -475,32 +470,24 @@ class LanceDBMemoryStore:
     # --- Hybrid Search Helpers ---
 
     async def _perform_semantic_search_internal(
-        self,
-        query_embedding: List[float],
-        where: str,
-        limit: int
+        self, query_embedding: List[float], where: str, limit: int
     ) -> List[Dict[str, Any]]:
         """Execute semantic search query."""
-        qb = await self.archival_table.search(query_embedding, vector_column_name="vector")
-        return await (
-            qb
-            .distance_type("cosine")
-            .where(where)
-            .limit(limit)
-            .to_list()
+        qb = await self.archival_table.search(
+            query_embedding, vector_column_name="vector"
         )
+        return await qb.distance_type("cosine").where(where).limit(limit).to_list()
 
     async def _perform_fts_search(
-        self,
-        query_text: str,
-        where: str,
-        limit: int
+        self, query_text: str, where: str, limit: int
     ) -> List[Dict[str, Any]]:
         """Execute full-text search query."""
         try:
             qb = await self.archival_table.search(query_text, query_type="fts")
             results = await qb.where(where).limit(limit).to_list()
-            logger.debug(f"FTS search for '{query_text}' returned {len(results)} results")
+            logger.debug(
+                f"FTS search for '{query_text}' returned {len(results)} results"
+            )
             return results
         except Exception as e:
             logger.warning(f"FTS failed (index might be missing): {e}")
@@ -511,44 +498,38 @@ class LanceDBMemoryStore:
         """Get max FTS score for normalization."""
         if not fts_results:
             return 1.0
-        return max(r.get('_score', 1.0) for r in fts_results)
+        return max(r.get("_score", 1.0) for r in fts_results)
 
     @staticmethod
     def _merge_search_results(
         sem_results: List[Dict[str, Any]],
         fts_results: List[Dict[str, Any]],
-        max_fts_score: float
+        max_fts_score: float,
     ) -> Dict[str, ScoredResult]:
         """Merge semantic and FTS results into combined scored results."""
         combined = {}
 
         for r in sem_results:
-            combined[r['id']] = ScoredResult(
-                doc=r,
-                sem_score=1.0 - r['_distance'],
-                fts_score=0.0
+            combined[r["id"]] = ScoredResult(
+                doc=r, sem_score=1.0 - r["_distance"], fts_score=0.0
             )
 
         for r in fts_results:
             fts_score_normalized = (
-                r.get('_score', 0.0) / max_fts_score if max_fts_score > 0 else 0.0
+                r.get("_score", 0.0) / max_fts_score if max_fts_score > 0 else 0.0
             )
 
-            if r['id'] not in combined:
-                combined[r['id']] = ScoredResult(
-                    doc=r,
-                    sem_score=0.0,
-                    fts_score=fts_score_normalized
+            if r["id"] not in combined:
+                combined[r["id"]] = ScoredResult(
+                    doc=r, sem_score=0.0, fts_score=fts_score_normalized
                 )
             else:
-                combined[r['id']].fts_score = fts_score_normalized
+                combined[r["id"]].fts_score = fts_score_normalized
 
         return combined
 
     def _calculate_final_scores(
-        self,
-        combined: Dict[str, ScoredResult],
-        params: HybridSearchParams
+        self, combined: Dict[str, ScoredResult], params: HybridSearchParams
     ) -> List[Dict[str, Any]]:
         """Calculate final scores and format results."""
         scored_results = []
@@ -558,7 +539,7 @@ class LanceDBMemoryStore:
                 params.semantic_weight,
                 params.fts_weight,
                 params.importance_boost,
-                params.recency_boost
+                params.recency_boost,
             )
 
             result = self._format_memory_result(scored.doc, score=final_score)
@@ -591,17 +572,21 @@ class LanceDBMemoryStore:
 
             # Execute searches in parallel
             sem_results, fts_results = await asyncio.gather(
-                self._perform_semantic_search_internal(query_embedding, where, limit * 2),
-                self._perform_fts_search(query_text, where, limit * 2)
+                self._perform_semantic_search_internal(
+                    query_embedding, where, limit * 2
+                ),
+                self._perform_fts_search(query_text, where, limit * 2),
             )
 
             # Merge and score
             max_fts_score = self._normalize_fts_scores(fts_results)
-            combined = self._merge_search_results(sem_results, fts_results, max_fts_score)
+            combined = self._merge_search_results(
+                sem_results, fts_results, max_fts_score
+            )
             scored_results = self._calculate_final_scores(combined, params)
 
             # Sort and limit
-            scored_results.sort(key=lambda x: x['score'], reverse=True)
+            scored_results.sort(key=lambda x: x["score"], reverse=True)
             return scored_results[:limit]
 
         except Exception as e:
@@ -632,8 +617,7 @@ class LanceDBMemoryStore:
                 vals["importance"] = importance
 
             await self.archival_table.update(
-                where=f"id = '{_escape_sql(memory_id)}'",
-                updates=vals
+                where=f"id = '{_escape_sql(memory_id)}'", updates=vals
             )
             return True
 
@@ -651,9 +635,7 @@ class LanceDBMemoryStore:
             return False
 
     async def delete_all_memories(
-        self,
-        user_id: str,
-        chat_id: Optional[str] = None
+        self, user_id: str, chat_id: Optional[str] = None
     ) -> bool:
         """Delete all archival memories for a user/chat."""
         try:
@@ -668,15 +650,15 @@ class LanceDBMemoryStore:
             return False
 
     async def delete_all_memory_blocks(
-        self,
-        user_id: str,
-        chat_id: Optional[str] = None
+        self, user_id: str, chat_id: Optional[str] = None
     ) -> bool:
         """Delete all memory blocks for a user/chat."""
         try:
             conditions = [f"(user_id = '{_escape_sql(user_id)}' OR user_id IS NULL)"]
             if chat_id:
-                conditions.append(f"(chat_id = '{_escape_sql(chat_id)}' OR chat_id IS NULL)")
+                conditions.append(
+                    f"(chat_id = '{_escape_sql(chat_id)}' OR chat_id IS NULL)"
+                )
 
             clause = " AND ".join(conditions)
             await self.blocks_table.delete(clause)
@@ -688,9 +670,7 @@ class LanceDBMemoryStore:
     # --- Query Operations ---
 
     async def get_memory_count(
-        self,
-        user_id: str,
-        chat_id: Optional[str] = None
+        self, user_id: str, chat_id: Optional[str] = None
     ) -> int:
         """Get total number of memories for a user."""
         try:
@@ -725,12 +705,14 @@ class LanceDBMemoryStore:
             # Sort by specified column
             reverse = order_desc
             if order_by in ["created_at", "updated_at", "accessed_at"]:
-                rows.sort(key=lambda x: x.get(order_by) or datetime.min, reverse=reverse)
+                rows.sort(
+                    key=lambda x: x.get(order_by) or datetime.min, reverse=reverse
+                )
             elif order_by in ["importance", "access_count"]:
                 rows.sort(key=lambda x: x.get(order_by, 0), reverse=reverse)
 
             # Apply offset and limit
-            final = rows[offset:offset + limit]
+            final = rows[offset : offset + limit]
 
             return [self._format_memory_result(r) for r in final]
 
@@ -764,7 +746,7 @@ class LanceDBMemoryStore:
         return {
             "high": counts.get("high", 0),
             "medium": counts.get("medium", 0),
-            "low": counts.get("low", 0)
+            "low": counts.get("low", 0),
         }
 
     async def get_memory_stats(self, user_id: str) -> Dict[str, Any]:
@@ -787,7 +769,9 @@ class LanceDBMemoryStore:
                 "max_importance": max(importances),
                 "min_importance": min(importances),
                 "total_accesses": sum(access_counts),
-                "avg_access_count": statistics.mean(access_counts) if access_counts else 0.0,
+                "avg_access_count": statistics.mean(access_counts)
+                if access_counts
+                else 0.0,
                 "importance_distribution": self._categorize_importance(importances),
             }
 

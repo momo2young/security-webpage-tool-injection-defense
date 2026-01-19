@@ -15,18 +15,19 @@ class ChatDatabase:
 
     def __init__(self, db_path: str = "chats.db"):
         self.db_path = Path(db_path)
-        
+
         # Ensure parent directory exists
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # If db_path is a directory (Docker mount issue), remove it and create file
         if self.db_path.is_dir():
             import shutil
+
             shutil.rmtree(self.db_path)
-        
+
         # Touch the file to ensure it exists before SQLite opens it
         self.db_path.touch(exist_ok=True)
-        
+
         self.init_database()
 
     def init_database(self):
@@ -879,6 +880,7 @@ def get_database() -> ChatDatabase:
     if _db_instance is None:
         # Use environment variable for Docker, default to chats.db for local dev
         import os
+
         db_path = os.getenv("CHATS_DB_PATH", "chats.db")
         _db_instance = ChatDatabase(db_path)
     return _db_instance
