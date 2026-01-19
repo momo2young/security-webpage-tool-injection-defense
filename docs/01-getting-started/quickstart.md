@@ -110,6 +110,9 @@ If you want to modify the code, use **Dev Mode** which only runs the database an
 # Start infra only
 docker compose -f docker/docker-compose.dev.yml up -d
 
+# install dependencies
+uv sync --all-extras
+
 # Run app locally
 python src/suzent/server.py
 
