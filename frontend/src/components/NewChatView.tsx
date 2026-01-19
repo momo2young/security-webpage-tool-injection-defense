@@ -20,6 +20,41 @@ interface NewChatViewProps {
     streamingForCurrentChat: boolean;
 }
 
+// Memoized greeting robot component to prevent animation restarts on input changes
+const GreetingRobot: React.FC = React.memo(() => {
+    // Select a random friendly robot (only runs once per mount)
+    const greetingRobot = useMemo(() => {
+        const variants: RobotVariant[] = ['peeker', 'jumper', 'dj', 'party', 'snoozer'];
+        // Snoozer is rare (10% chance)
+        if (Math.random() > 0.9) return 'snoozer';
+
+        const friendly = ['peeker', 'jumper', 'dj', 'party'];
+        return friendly[Math.floor(Math.random() * friendly.length)] as RobotVariant;
+    }, []);
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 5) return 'NIGHT OWL?';
+        if (hour < 12) return 'GOOD MORNING.';
+        if (hour < 17) return 'KEEP BUILDING.';
+        if (hour < 21) return 'GOOD EVENING.';
+        return 'BED TIME? OR MAYBE LATE NIGHT CODING?';
+    };
+
+    return (
+        <div className="mb-8 flex flex-col items-center gap-6">
+            <div className="w-24 h-24">
+                <RobotAvatar variant={greetingRobot} />
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-brutal font-bold text-brutal-black mb-2 tracking-tight">
+                {getGreeting()}
+            </h2>
+        </div>
+    );
+});
+
+GreetingRobot.displayName = 'GreetingRobot';
+
 export const NewChatView: React.FC<NewChatViewProps> = ({
     input,
     setInput,
@@ -36,33 +71,10 @@ export const NewChatView: React.FC<NewChatViewProps> = ({
     configReady,
     streamingForCurrentChat,
 }) => {
-    // Select a random friendly robot
-    const greetingRobot = useMemo(() => {
-        const variants: RobotVariant[] = ['peeker', 'jumper', 'dj', 'party', 'snoozer'];
-        // Snoozer is rare (10% chance)
-        if (Math.random() > 0.9) return 'snoozer';
-
-        const friendly = ['peeker', 'jumper', 'dj', 'party'];
-        return friendly[Math.floor(Math.random() * friendly.length)] as RobotVariant;
-    }, []);
 
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center p-8 animate-brutal-drop">
-            <div className="mb-8 flex flex-col items-center gap-6">
-                <div className="w-24 h-24">
-                    <RobotAvatar variant={greetingRobot} />
-                </div>
-                <h2 className="text-4xl sm:text-5xl font-brutal font-bold text-brutal-black mb-2 tracking-tight">
-                    {(() => {
-                        const hour = new Date().getHours();
-                        if (hour < 5) return 'NIGHT OWL?';
-                        if (hour < 12) return 'GOOD MORNING.';
-                        if (hour < 17) return 'KEEP BUILDING.';
-                        if (hour < 21) return 'GOOD EVENING.';
-                        return 'BED TIME? OR MAYBE LATE NIGHT CODING?';
-                    })()}
-                </h2>
-            </div>
+            <GreetingRobot />
 
             <div className="w-full max-w-2xl">
                 <ChatInputPanel
@@ -86,3 +98,4 @@ export const NewChatView: React.FC<NewChatViewProps> = ({
         </div>
     );
 };
+
