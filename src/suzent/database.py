@@ -877,7 +877,10 @@ def get_database() -> ChatDatabase:
     """Get the global database instance."""
     global _db_instance
     if _db_instance is None:
-        _db_instance = ChatDatabase()
+        # Use environment variable for Docker, default to chats.db for local dev
+        import os
+        db_path = os.getenv("CHATS_DB_PATH", "chats.db")
+        _db_instance = ChatDatabase(db_path)
     return _db_instance
 
 
