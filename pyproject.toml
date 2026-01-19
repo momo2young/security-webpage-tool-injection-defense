@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "crawl4ai>=0.7.3",
-    "smolagents[gradio,litellm,mcp]",
+    "smolagents[litellm,mcp]",
     "starlette",
     "uvicorn",
     "python-dotenv",
@@ -23,6 +23,7 @@ dependencies = [
     # "asyncpg>=0.29.0",  # Removed for LanceDB migration
     # "pgvector>=0.3.6",  # Removed for LanceDB migration
     "lancedb>=0.17.0",
+    "ddgs>=9.10.0",
 ]
 
 [project.optional-dependencies]

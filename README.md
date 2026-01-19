@@ -57,7 +57,7 @@ Unlike most agents, **SUZENT** features dual workspaces: a cross-session workspa
 
 ### <img src="docs/assets/robot-snooze.svg" width="28" style="vertical-align: middle;" /> **PRIVATE & LOCAL**
 
-**SUZENT** runs entirely on your device with built-in SearXNG for ad-free, tracking-free web search, PostgreSQL + pgvector for local vector storage, and MicroSandbox isolation for safe code execution. Your data never leaves your machine.
+**SUZENT** runs entirely on your device with built-in optional SearXNG (or default DDGS) for privacy-focused web search, LanceDB for local vector storage, and MicroSandbox isolation for safe code execution. Your data never leaves your machine.
 
 ### <img src="docs/assets/robot-party.svg" width="28" style="vertical-align: middle;" /> **UI READY**
 
@@ -83,6 +83,9 @@ cp .env.example .env
 
 # 3. WAKE UP SUZENT
 docker compose -f docker/docker-compose.yml up -d
+
+# (OPTIONAL) ENABLE SEARXNG & REDIS
+# docker compose -f docker/docker-compose.yml --profile searxng up -d
 ```
 
 ▶ **OPEN: [LOCALHOST:5173](http://localhost:5173)**
@@ -93,7 +96,7 @@ docker compose -f docker/docker-compose.yml up -d
 
 *   **BACKEND**: Python 3.12, `smolagents`, `litellm`, Starlette, SQLite.
 *   **FRONTEND**: React, TypeScript, Tailwind, Vite.
-*   **MEMORY**: PostgreSQL + `pgvector`.
+*   **MEMORY**: LanceDB (Local Vector Store).
 *   **SANDBOX**: MicroSandbox.
 
 ---
