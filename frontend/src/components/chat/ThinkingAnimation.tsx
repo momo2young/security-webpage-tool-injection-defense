@@ -38,7 +38,7 @@ const selectWeightedVariant = (weights: { variant: RobotVariant; weight: number 
   return weights[0].variant; // Fallback
 };
 
-export const ThinkingAnimation: React.FC<ThinkingAnimationProps> = ({ isThinking }) => {
+const ThinkingAnimationComponent: React.FC<ThinkingAnimationProps> = ({ isThinking }) => {
   // Randomly select 3 variants based on weights on mount
   const variants = useMemo(() => {
     return [0, 1, 2].map(() => selectWeightedVariant(THINKING_WEIGHTS));
@@ -69,6 +69,11 @@ export const ThinkingAnimation: React.FC<ThinkingAnimationProps> = ({ isThinking
     </div>
   );
 };
+
+export const ThinkingAnimation = React.memo(ThinkingAnimationComponent);
+ThinkingAnimation.displayName = 'ThinkingAnimation';
+
+
 
 interface RobotIconProps {
   className?: string;
@@ -106,7 +111,7 @@ interface AgentBadgeProps {
   eyeClass?: string;
 }
 
-export const AgentBadge: React.FC<AgentBadgeProps> = ({
+const AgentBadgeComponent: React.FC<AgentBadgeProps> = ({
   isThinking,
   isStreaming
 }) => {
@@ -144,13 +149,12 @@ export const AgentBadge: React.FC<AgentBadgeProps> = ({
       transition-opacity duration-500 delay-200
       ${isThinking ? 'opacity-0 pointer-events-none' : 'opacity-100'}
     `}>
-      <div
-        // Key change forces animation reset on variant switch
-        key={variant}
-        className="w-8 h-8 animate-robot-slide-in"
-      >
+      <div className="w-8 h-8">
         <RobotAvatar variant={variant} />
       </div>
     </div>
   );
 };
+
+export const AgentBadge = React.memo(AgentBadgeComponent);
+AgentBadge.displayName = 'AgentBadge';
