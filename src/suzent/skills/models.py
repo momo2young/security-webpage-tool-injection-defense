@@ -1,5 +1,5 @@
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class SkillMetadata(BaseModel):
@@ -25,5 +25,4 @@ class Skill(BaseModel):
     path: Path
     dir: Path
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
