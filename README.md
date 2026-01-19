@@ -57,7 +57,7 @@ Unlike most agents, **SUZENT** features dual workspaces: a cross-session workspa
 
 ### <img src="docs/assets/robot-snooze.svg" width="28" style="vertical-align: middle;" /> **PRIVATE & LOCAL**
 
-**SUZENT** runs entirely on your device with built-in optional SearXNG (or default DDGS) for privacy-focused web search, LanceDB for local vector storage, and MicroSandbox isolation for safe code execution. Your data never leaves your machine.
+**SUZENT** runs entirely on your device with privacy-focused web search (using SearXNG when configured, or DDGS as the default fallback), LanceDB for local vector storage, and MicroSandbox isolation for safe code execution. Your data never leaves your machine.
 
 ### <img src="docs/assets/robot-party.svg" width="28" style="vertical-align: middle;" /> **UI READY**
 

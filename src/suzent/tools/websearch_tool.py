@@ -151,15 +151,7 @@ class WebSearchTool(Tool):
 
         try:
             # Lazy import to avoid loading unless needed
-            try:
-                from ddgs import DDGS
-            except ImportError as e:
-                logger.error(
-                    f"Failed to import ddgs: {e}. 'ddgs' library is required for search fallback."
-                )
-                return (
-                    "Error: Search configuration failed. 'ddgs' library not installed."
-                )
+            from ddgs import DDGS
 
             # Use context manager for better resource management
             with DDGS() as ddgs:
@@ -198,7 +190,7 @@ class WebSearchTool(Tool):
 
         except Exception as e:
             logger.error(f"DDGS search failed: {e}")
-            return f"Error querying DuckDuckGo: {str(e)}"
+            return f"Error querying DDGS: {str(e)}"
 
     def _search_with_searxng(
         self,
