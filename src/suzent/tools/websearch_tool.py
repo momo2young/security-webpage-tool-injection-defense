@@ -1,20 +1,20 @@
 """
-Web search tool that can use either smolagents WebSearchTool or SearXNG.
+Web search tool that can use either DDGS or SearXNG.
 
 This tool provides flexible web search capabilities:
 - If SEARXNG_BASE_URL is set in .env, it uses a SearXNG instance
-- Otherwise, it falls back to smolagents' built-in WebSearchTool
+- Otherwise, it falls back to DDGS
 
 SearXNG provides privacy-focused meta-search with customizable parameters.
 """
 
 import os
 import json
-from typing import Optional
 import httpx
-from smolagents.tools import Tool
-from smolagents import WebSearchTool as SmolWebSearchTool
+from urllib.parse import urlparse
+from typing import Optional, List, Dict, Any
 
+from smolagents.tools import Tool
 from suzent.logger import get_logger
 
 logger = get_logger(__name__)
@@ -22,36 +22,50 @@ logger = get_logger(__name__)
 
 class WebSearchTool(Tool):
     """
-    A unified web search tool that uses SearXNG if configured, otherwise falls back to default web search.
+    A unified web search tool that uses SearXNG if configured, otherwise falls back to DDGS.
 
     If SEARXNG_BASE_URL is set in environment variables, this tool will use a SearXNG instance
-    for privacy-focused meta-search. Otherwise, it uses the default smolagents WebSearchTool.
+    for privacy-focused meta-search. Otherwise, it defaults to using the DDGS library.
     """
 
     name: str = "WebSearchTool"
-    description: str = "Performs a web search using either SearXNG or default search. Returns search results formatted as markdown with titles, links, and descriptions."
+    description: str = "Performs a web search using either SearXNG or DDGS. Returns search results formatted as markdown with titles, links, and descriptions."
     is_initialized: bool = False
+
+    # Constants
+    TIME_RANGE_MAPPING = {
+        "day": "d",
+        "d": "d",
+        "week": "w",
+        "w": "w",
+        "month": "m",
+        "m": "m",
+        "year": "y",
+        "y": "y",
+    }
 
     inputs = {
         "query": {"type": "string", "description": "The search query string."},
         "categories": {
             "type": "string",
-            "description": "Optional categories to search (e.g., 'general', 'news', 'images'). SearXNG only.",
+            "description": "Search category",
+            "enum": ["general", "news", "images", "videos"],
             "nullable": True,
         },
-        "language": {
-            "type": "string",
-            "description": "Optional language code (e.g., 'en', 'fr'). SearXNG only.",
+        "max_results": {
+            "type": "integer",
+            "description": "Maximum number of results to return. Default: 10.",
             "nullable": True,
         },
         "time_range": {
             "type": "string",
-            "description": "Optional time range filter (e.g., 'day', 'week', 'month', 'year'). SearXNG only.",
+            "description": "Time range for general/news search.",
+            "enum": ["day", "week", "month", "year"],
             "nullable": True,
         },
         "page": {
             "type": "integer",
-            "description": "Optional page number for results (default: 1). SearXNG only.",
+            "description": "Page number for results (default: 1). General search only.",
             "nullable": True,
         },
     }
@@ -60,77 +74,133 @@ class WebSearchTool(Tool):
     def __init__(self):
         """Initialize the tool by checking for SearXNG configuration."""
         self.searxng_base_url = os.getenv("SEARXNG_BASE_URL")
-        self.use_searxng = bool(self.searxng_base_url)
+        self.use_searxng = self._validate_searxng_url(self.searxng_base_url)
+
+        self.client: Optional[httpx.Client] = None
 
         if self.use_searxng:
-            logger.info(f"Using SearXNG at {self.searxng_base_url}")
-            # Add headers to avoid 403 errors from SearXNG
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Accept": "application/json",
-                "Accept-Language": "en-US,en;q=0.9",
-            }
-            self.client = httpx.Client(
-                base_url=self.searxng_base_url,
-                timeout=30.0,
-                headers=headers,
-                follow_redirects=True,
-            )
-        else:
-            logger.info("Using default smolagents WebSearchTool")
-            self.fallback_tool = SmolWebSearchTool()
-            self.client = None
+            self._init_searxng_client()
+
+        # DDGS is initialized lazily per request
+
+    def _validate_searxng_url(self, url: Optional[str]) -> bool:
+        """Validate the SearXNG URL."""
+        if not url or not url.strip():
+            return False
+
+        try:
+            result = urlparse(url)
+            return all([result.scheme, result.netloc])
+        except Exception:
+            logger.warning(f"Invalid SEARXNG_BASE_URL provided: {url}")
+            return False
+
+    def _init_searxng_client(self):
+        """Initialize the HTTP client for SearXNG."""
+        logger.info(f"Using SearXNG at {self.searxng_base_url}")
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
+        self.client = httpx.Client(
+            base_url=self.searxng_base_url,
+            timeout=30.0,
+            headers=headers,
+            follow_redirects=True,
+        )
 
     def forward(
         self,
         query: str,
         categories: Optional[str] = None,
-        language: Optional[str] = None,
+        max_results: Optional[int] = 10,
         time_range: Optional[str] = None,
         page: Optional[int] = 1,
     ) -> str:
         """
         Perform a web search using either SearXNG or the default search tool.
-
-        Args:
-            query: The search query string
-            categories: Optional categories for SearXNG (ignored for default search)
-            language: Optional language code for SearXNG (ignored for default search)
-            time_range: Optional time range filter for SearXNG (ignored for default search)
-            page: Optional page number for SearXNG (ignored for default search)
-
-        Returns:
-            Search results as a string
         """
         if self.use_searxng:
             return self._search_with_searxng(
-                query, categories, language, time_range, page
+                query, categories, max_results, time_range, page
             )
         else:
-            # Use the fallback tool, which only accepts query parameter
-            return self.fallback_tool.forward(query=query)
+            return self._search_with_ddgs(
+                query, categories, max_results, time_range, page
+            )
+
+    def _search_with_ddgs(
+        self,
+        query: str,
+        category: Optional[str] = None,
+        max_results: Optional[int] = 10,
+        time_range: Optional[str] = None,
+        page: Optional[int] = 1,
+    ) -> str:
+        """Perform search using DuckDuckGo."""
+        timelimit = (
+            self.TIME_RANGE_MAPPING.get(time_range.lower()) if time_range else None
+        )
+
+        # Max results validation
+        max_results = max_results if max_results else 10
+
+        if max_results > 20:
+            max_results = 20  # Cap to reasonable limit
+
+        try:
+            # Lazy import to avoid loading unless needed
+            from ddgs import DDGS
+
+            # Use context manager for better resource management
+            with DDGS() as ddgs:
+                results = []
+                source_label = f"DDGS ({category or 'general'})"
+
+                if not category or category == "general":
+                    # Text Search (supports backend='api', 'html', 'lite') - 'api' is default
+                    # Note: DDGS.text() doesn't strictly support pagination in the API backend consistently across versions,
+                    # but we can simulate or pass parameters if supported.
+                    # For simplicity, we stick to basic arguments.
+                    results = list(
+                        ddgs.text(query, timelimit=timelimit, max_results=max_results)
+                    )
+                elif category == "news":
+                    results = list(
+                        ddgs.news(query, timelimit=timelimit, max_results=max_results)
+                    )
+                elif category == "images":
+                    results = list(
+                        ddgs.images(query, timelimit=timelimit, max_results=max_results)
+                    )
+                elif category == "videos":
+                    results = list(
+                        ddgs.videos(query, timelimit=timelimit, max_results=max_results)
+                    )
+                else:
+                    return f"Error: Unsupported category '{category}' for DuckDuckGo."
+
+                if not results:
+                    return f"No results found for query: '{query}'"
+
+                return self._format_results(
+                    results, source=source_label, category=category
+                )
+
+        except Exception as e:
+            logger.error(f"DDGS search failed: {e}")
+            return f"Error querying DDGS: {str(e)}"
 
     def _search_with_searxng(
         self,
         query: str,
         categories: Optional[str] = None,
-        language: Optional[str] = None,
+        max_results: Optional[int] = 10,
         time_range: Optional[str] = None,
         page: Optional[int] = 1,
     ) -> str:
-        """
-        Perform a search using SearXNG instance.
-
-        Args:
-            query: The search query string
-            categories: Optional categories to search
-            language: Optional language code
-            time_range: Optional time range filter
-            page: Optional page number
-
-        Returns:
-            JSON string with search results or error message
-        """
+        """Perform a search using SearXNG instance."""
         try:
             params = {
                 "q": query,
@@ -138,93 +208,122 @@ class WebSearchTool(Tool):
                 "page": page or 1,
             }
 
-            # Add optional parameters if provided
             if categories:
                 params["categories"] = categories
-            if language:
-                params["language"] = language
+
             if time_range:
                 params["time_range"] = time_range
 
             response = self.client.get("/search", params=params)
 
-            # If JSON format is forbidden (403), try without format parameter
             if response.status_code == 403:
-                logger.warning(
-                    "SearXNG JSON format restricted, falling back to smolagents WebSearchTool"
+                logger.warning("SearXNG JSON format restricted, falling back to DDGS")
+                # Pass defaults for new params since searxng function signature is older
+                return self._search_with_ddgs(
+                    query,
+                    category=categories,
+                    max_results=max_results,
+                    time_range=time_range,
+                    page=page,
                 )
-                # Fall back to the default tool
-                if hasattr(self, "fallback_tool"):
-                    return self.fallback_tool.forward(query=query)
-                else:
-                    self.fallback_tool = SmolWebSearchTool()
-                    return self.fallback_tool.forward(query=query)
 
             response.raise_for_status()
 
-            # Parse and format the JSON response
             try:
                 data = json.loads(response.text)
-                return self._format_search_results(data)
+                return self._format_results(
+                    data.get("results", []),
+                    source="SearXNG",
+                    query=data.get("query", query),
+                )
             except json.JSONDecodeError:
-                # If parsing fails, return raw response
                 return response.text
 
         except httpx.HTTPStatusError as e:
-            error_msg = f"Error: SearXNG returned status {e.response.status_code}"
-            if e.response.text:
-                error_msg += f": {e.response.text[:200]}"  # Limit error text length
-            error_msg += (
-                f"\nURL: {e.request.url}\nHeaders sent: {dict(e.request.headers)}"
+            logger.warning(
+                f"SearXNG failed with {e.response.status_code}. Falling back to DDGS."
             )
-            return error_msg
-        except httpx.RequestError as e:
-            return f"Error: Failed to connect to SearXNG at {self.searxng_base_url}: {str(e)}"
-        except Exception as e:
-            return f"Error querying SearXNG: {str(e)}"
+            return self._search_with_ddgs(
+                query,
+                category=categories,
+                max_results=max_results,
+                time_range=time_range,
+                page=page,
+            )
 
-    def _format_search_results(self, data: dict) -> str:
+        except (httpx.RequestError, Exception) as e:
+            logger.warning(
+                f"SearXNG connection failed: {str(e)}. Falling back to DDGS."
+            )
+            return self._search_with_ddgs(
+                query,
+                category=categories,
+                max_results=max_results,
+                time_range=time_range,
+                page=page,
+            )
+
+    def _format_results(
+        self,
+        results: List[Dict[str, Any]],
+        source: str,
+        query: str = "",
+        category: Optional[str] = None,
+    ) -> str:
         """
-        Format SearXNG JSON results into a readable markdown string.
-
-        Args:
-            data: Parsed JSON response from SearXNG
-
-        Returns:
-            Formatted markdown string with search results
+        Unified results formatting for both providers.
         """
-        query = data.get("query", "")
-        results = data.get("results", [])
-
         if not results:
-            return f"No results found for query: '{query}'"
+            return "No results found."
 
-        # Build formatted output
-        output = [f"# Search Results for: {query}\n"]
+        output = [f"# Search Results (via {source})\n"]
 
-        # Limit to top 10 results for readability
-        for i, result in enumerate(results[:10], 1):
+        for i, result in enumerate(results, 1):
+            # Normalize fields based on category/source
+
+            # Common defaults
             title = result.get("title", "No title")
-            url = result.get("url", "")
-            content = result.get("content", "No description available")
+            url = result.get("url") or result.get("href") or ""
+            content = result.get("content") or result.get("body") or ""
+
+            # Special handling for Images/Videos/News fields if distinct
+            if category == "images":
+                # DDGS images: 'title', 'image', 'thumbnail', 'url', 'height', 'width', 'source'
+                image_url = result.get("image", "")
+                thumbnail = result.get("thumbnail", "")
+                url = result.get("url")  # Page URL
+                content = f"Image: {image_url}\nThumbnail: {thumbnail}"
+            elif category == "videos":
+                # DDGS videos: 'title', 'content', 'embed_url', 'deputy_id', 'description', 'images', 'uploader', 'duration', 'published'
+                description = result.get("description", "")
+                uploader = result.get("uploader", "")
+                duration = result.get("duration", "")
+                content = f"{description}\nUploader: {uploader} | Duration: {duration}"
+            elif category == "news":
+                # DDGS news: 'date', 'title', 'body', 'url', 'image', 'source'
+                date = result.get("date", "")
+                source_news = result.get("source", "")
+                content = f"{content}\nDate: {date} | Source: {source_news}"
+
             engines = result.get("engines", [])
 
-            # Clean up content - remove extra whitespace and limit length
-            content = " ".join(content.split())
-            if len(content) > 200:
-                content = content[:197] + "..."
+            # Clean content if string
+            if isinstance(content, str):
+                content = " ".join(content.split())
+                if len(content) > 300:  # Allow slightly more context
+                    content = content[:297] + "..."
 
             output.append(f"## {i}. {title}")
             output.append(f"**URL:** {url}")
             output.append(f"**Description:** {content}")
             if engines:
                 output.append(f"**Sources:** {', '.join(engines)}")
-            output.append("")  # Empty line for spacing
+            output.append("")
 
         return "\n".join(output)
 
     def __del__(self):
-        """Clean up HTTP client when tool is destroyed."""
+        """Clean up HTTP client."""
         if self.client:
             try:
                 self.client.close()

@@ -57,7 +57,7 @@ Unlike most agents, **SUZENT** features dual workspaces: a cross-session workspa
 
 ### <img src="docs/assets/robot-snooze.svg" width="28" style="vertical-align: middle;" /> **PRIVATE & LOCAL**
 
-**SUZENT** runs entirely on your device with built-in SearXNG for ad-free, tracking-free web search, PostgreSQL + pgvector for local vector storage, and MicroSandbox isolation for safe code execution. Your data never leaves your machine.
+**SUZENT** runs entirely on your device with privacy-focused web search (using SearXNG when configured, or DDGS as the default fallback), LanceDB for local vector storage, and MicroSandbox isolation for safe code execution. Your data never leaves your machine.
 
 ### <img src="docs/assets/robot-party.svg" width="28" style="vertical-align: middle;" /> **UI READY**
 
@@ -70,7 +70,9 @@ Unlike most agents, **SUZENT** features dual workspaces: a cross-session workspa
 
 ## **QUICK START**
 
-### **THE "ONE-MINUTE" SETUP (DOCKER)**
+### **NATIVE SETUP (RECOMMENDED)**
+
+The fastest path to getting started. Requires **Python 3.12+**, **[Node.js 18+](https://nodejs.org/en/download)**, and **[uv](https://docs.astral.sh/uv/)**.
 
 ```bash
 # 1. CLONE YOUR NEW CO-WORKER
@@ -81,8 +83,35 @@ cd suzent
 cp .env.example .env
 # Edit .env with your favorite API key
 
-# 3. WAKE UP SUZENT
+# 3. INSTALL DEPENDENCIES
+uv sync
+cd frontend
+npm install
+cd ..
+
+# 4. WAKE UP SUZENT
+uv run start_dev.py
+```
+
+▶ **OPEN: [LOCALHOST:5173](http://localhost:5173)**
+
+---
+
+### **DOCKER SETUP (PRODUCTION / SELF-HOSTED SEARCH)**
+
+For deployment or when you want the optional SearXNG privacy-focused search engine.
+
+```bash
+# 1. CLONE & CONFIGURE
+git clone https://github.com/cyzus/suzent.git
+cd suzent
+cp .env.example .env
+
+# 2. LAUNCH (CORE STACK)
 docker compose -f docker/docker-compose.yml up -d
+
+# 2b. OR LAUNCH WITH SEARXNG (PRIVACY SEARCH)
+docker compose -f docker/docker-compose.yml --profile searxng up -d
 ```
 
 ▶ **OPEN: [LOCALHOST:5173](http://localhost:5173)**
@@ -93,7 +122,7 @@ docker compose -f docker/docker-compose.yml up -d
 
 *   **BACKEND**: Python 3.12, `smolagents`, `litellm`, Starlette, SQLite.
 *   **FRONTEND**: React, TypeScript, Tailwind, Vite.
-*   **MEMORY**: PostgreSQL + `pgvector`.
+*   **MEMORY**: LanceDB (Local Vector Store).
 *   **SANDBOX**: MicroSandbox.
 
 ---
