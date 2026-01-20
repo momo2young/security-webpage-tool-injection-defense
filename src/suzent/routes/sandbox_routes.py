@@ -6,126 +6,100 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from pathlib import Path
-from suzent.sandbox import SandboxManager
+
+from pathlib import Path
 from suzent.logger import get_logger
+from suzent.config import get_effective_volumes
+from suzent.tools.path_resolver import PathResolver
+from suzent.database import get_database
 
 logger = get_logger(__name__)
 
 
-def _resolve_host_path(
-    chat_id: str, virtual_path: str
-) -> tuple[Path | None, dict | None]:
-    """
-    Resolve a virtual sandbox path to a host filesystem path.
-    Returns: (resolved_host_path, mounts_map) or (None, None) if invalid/error.
-    """
-    try:
-        # Instantiate manager to get config/paths resolved
-        # Fetch per-chat config from database
-        from suzent.database import get_database
+def _get_resolver_for_request(
+    chat_id: str, override_volumes: list[str] | None = None
+) -> PathResolver:
+    """Helper to create a PathResolver instance for the request context."""
+    custom_volumes = []
 
-        custom_volumes = None
+    if override_volumes is not None:
+        # trust the client provided volumes (e.g. from frontend state)
+        # but still apply global defaults/skills via get_effective_volumes
+        custom_volumes = get_effective_volumes(override_volumes)
+    else:
         try:
             db = get_database()
             chat = db.get_chat(chat_id)
             if chat and "config" in chat:
-                custom_volumes = chat["config"].get("sandbox_volumes")
+                # Get raw volumes from chat config
+                cv = chat["config"].get("sandbox_volumes", [])
+                # Calculate effective volumes (merges global + chat + defaults like skills)
+                custom_volumes = get_effective_volumes(cv)
+            else:
+                # Even if no chat specific config, we want global defaults (like skills)
+                custom_volumes = get_effective_volumes([])
         except Exception as e:
             logger.warning(f"Failed to fetch chat config for volumes: {e}")
+            # Fallback to defaults
+            custom_volumes = get_effective_volumes([])
 
-        manager = SandboxManager(custom_volumes=custom_volumes)
-        session = manager.get_session(chat_id)
-
-        # Build Mount Map: Key=VirtualPath, Value=HostPath
-        mounts = {}
-
-        # 1. Standard Mounts
-        mounts["/persistence"] = session.session_dir.resolve()
-        mounts["/shared"] = (Path(manager.data_path) / "shared").resolve()
-
-        # Ensure standard roots exist
-        mounts["/persistence"].mkdir(parents=True, exist_ok=True)
-        mounts["/shared"].mkdir(parents=True, exist_ok=True)
-
-        # 2. Custom Mounts using SandboxManager logic
-        for vol in manager.custom_volumes:
-            host_part = None
-            container_part = None
-
-            if ":" in vol:
-                last_colon = vol.rfind(":")
-                if last_colon != -1:
-                    host_part = vol[:last_colon]
-                    container_part = vol[last_colon + 1 :]
-
-            if host_part and container_part:
-                if host_part.startswith("/mnt/"):
-                    import re
-
-                    match = re.match(r"^/mnt/([a-zA-Z])/(.*)", host_part)
-                    if match:
-                        drive = match.group(1).upper()
-                        rest = match.group(2)
-                        host_part = f"{drive}:/{rest}"
-
-                host_path = Path(host_part).resolve()
-
-                container_path = container_part.strip().replace("\\", "/")
-                if not container_path.startswith("/"):
-                    container_path = "/" + container_path
-
-                mounts[container_path] = host_path
-
-        # Resolve Path
-        request_path = virtual_path.replace("\\", "/")
-        if not request_path.startswith("/"):
-            request_path = "/" + request_path
-        if request_path != "/" and request_path.endswith("/"):
-            request_path = request_path[:-1]
-
-        matched_mount_point = None
-        matched_mount_len = 0
-
-        for v_path in mounts.keys():
-            if request_path == v_path or request_path.startswith(v_path + "/"):
-                if len(v_path) > matched_mount_len:
-                    matched_mount_point = v_path
-                    matched_mount_len = len(v_path)
-
-        return request_path, mounts, matched_mount_point
-
-    except Exception as e:
-        logger.error(f"Error resolving path: {e}")
-        return None, None, None
+    # Create resolver (sandbox_enabled=True implies sandbox paths /persistence etc)
+    return PathResolver(
+        chat_id=chat_id, sandbox_enabled=True, custom_volumes=custom_volumes
+    )
 
 
 async def list_sandbox_files(request: Request) -> JSONResponse:
     """List files in sandbox directory."""
     chat_id = request.query_params.get("chat_id")
     raw_path = request.query_params.get("path", "/").strip()
+    volumes_json = request.query_params.get("volumes")
+    
+    override_volumes = None
+    if volumes_json:
+        import json
+        try:
+            override_volumes = json.loads(volumes_json)
+        except Exception:
+            pass
 
     if not chat_id:
         return JSONResponse({"error": "chat_id is required"}, status_code=400)
 
     try:
-        request_path, mounts, matched_mount_point = _resolve_host_path(
-            chat_id, raw_path
-        )
-
-        if request_path is None:
-            return JSONResponse({"error": "Failed to resolve path"}, status_code=500)
-
+        resolver = _get_resolver_for_request(chat_id, override_volumes=override_volumes)
+        
+        # Normalize request path
+        request_path = raw_path.replace("\\", "/")
+        if not request_path.startswith("/"):
+            request_path = "/" + request_path
+        if request_path != "/" and request_path.endswith("/"):
+            request_path = request_path[:-1]
+            
         items = []
         virtual_children = set()
 
         # 1. Virtual directory listing logic (parents of mounts)
-        for v_path in mounts.keys():
-            parent_check_path = (
-                request_path if request_path == "/" else request_path + "/"
-            )
+        # SandboxFileView expects us to list "mnt" if we have "/mnt/data" and we are at "/"
+        
+        # Get all virtual roots
+        roots = resolver.get_virtual_roots()  # List[Tuple[virtual_path, host_path]]
+        
+        # Collect virtual directories that are children of current path
+        # e.g. if path="/", and we have "/mnt/data", we need to list "mnt"
+        # e.g. if path="/mnt", and we have "/mnt/data", we need to list "data"
+        
+        parent_check_path = request_path if request_path == "/" else request_path + "/"
+        
+        for v_path, _ in roots:
             if v_path.startswith(parent_check_path):
-                suffix = v_path[len(parent_check_path) :]
-                child = suffix.split("/")[0]
+                # It is a child (or grandchild) of current view
+                suffix = v_path[len(parent_check_path):]
+                if "/" in suffix:
+                    child = suffix.split("/")[0]
+                else:
+                    child = suffix
+                    
                 if child:
                     virtual_children.add(child)
 
@@ -133,37 +107,91 @@ async def list_sandbox_files(request: Request) -> JSONResponse:
             items.append({"name": child, "is_dir": True, "size": 0, "mtime": 0})
 
         # 2. Actual file listing
-        if matched_mount_point:
-            host_root = mounts[matched_mount_point]
-            if request_path == matched_mount_point:
-                target_host_path = host_root
+        # Try to resolve to a real path. 
+        # Note: If we are at "/" or "/mnt" which are purely virtual (no mapped host path yet),
+        # resolver.resolve() might fail or default to persistence.
+        # We only want to list REAL files if the path corresponds to a valid mount or inside one.
+        
+        try:
+            # We use a slightly different check here. 
+            # We want to know if there is a real directory backing this path.
+            # resolver.resolve() raises ValueError if path is invalid/traversal
+            # It maps "/" to /persistence usually, or custom logic.
+            
+            # Let's see if we are inside a mount.
+            # PathResolver.resolve maps unknown paths relative to session_dir.
+            # But if request_path is just a virtual parent (like "/mnt"), it shouldn't map to persistence!
+            
+            # Check if this path IS a mount point or INSIDE one
+            best_match = None
+            best_match_len = 0
+            selected_host_root = None
+            
+            # Re-implementing simplified logic from SandboxRoutes because PathResolver
+            # doesn't expose "is this a purely virtual directory?" directly yet,
+            # though get_virtual_roots gives us the map.
+            
+            for v_path, h_path in roots:
+                if request_path == v_path or request_path.startswith(v_path + "/"):
+                    if len(v_path) > best_match_len:
+                        best_match = v_path
+                        best_match_len = len(v_path)
+                        selected_host_root = h_path
+
+            if selected_host_root:
+                # We are inside a mount
+                if request_path == best_match:
+                    target_host_path = selected_host_root
+                else:
+                    rel_path = request_path[len(best_match):].lstrip("/")
+                    target_host_path = (selected_host_root / rel_path).resolve()
+
+                if target_host_path.exists() and target_host_path.is_dir():
+                    for entry in target_host_path.iterdir():
+                        try:
+                            # Don't duplicate if it's already listed as a virtual child (unlikely but possible)
+                            if entry.name not in virtual_children:
+                                stat = entry.stat()
+                                items.append(
+                                    {
+                                        "name": entry.name,
+                                        "is_dir": entry.is_dir(),
+                                        "size": stat.st_size,
+                                        "mtime": stat.st_mtime,
+                                    }
+                                )
+                        except Exception:
+                            pass
             else:
-                rel_path = request_path[len(matched_mount_point) :].lstrip("/")
-                target_host_path = (host_root / rel_path).resolve()
+                 # If we are NOT in a mount (e.g. "/mnt" where only "/mnt/data" exists),
+                 # then we only show virtual children (which we already did).
+                 # Unless... "/" defaults to persistence?
+                 # PathResolver defaults "/" to persistence.
+                 # But if we treat "/" as purely virtual root for mounts, we might hide persistence if not explicit?
+                 # Actually, get_virtual_roots includes /persistence.
+                 # So if we are at "/", /persistence is a child.
+                 
+                 # Wait, PathResolver says:
+                 # roots.append(("/persistence", ...))
+                 # roots.append(("/shared", ...))
+                 
+                 # So if I am at "/", "persistence" and "shared" will be in virtual_children.
+                 # Accessing "/" directly doesn't list contents of persistence unless mapped to "/".
+                 # The current frontend expects "persistence" folder to show up? 
+                 # Or does it expect "/" to SHOW the contents of persistence?
+                 
+                 # SandboxFiles.tsx default path is "/".
+                 # Old logic:
+                 # mounts["/persistence"] = ...
+                 # if request_path == "/": virtual_children adds "persistence", "shared".
+                 
+                 # So yes, at "/" we just show the folders "persistence", "shared", "mnt" etc.
+                 # We do NOT list files inside persistence at root.
+                 pass
 
-            # Security Check
-            try:
-                target_host_path.relative_to(host_root)
-            except ValueError:
-                return JSONResponse(
-                    {"error": "Access denied: Path traversal detected"}, status_code=403
-                )
-
-            if target_host_path.exists() and target_host_path.is_dir():
-                for entry in target_host_path.iterdir():
-                    try:
-                        if entry.name not in virtual_children:
-                            stat = entry.stat()
-                            items.append(
-                                {
-                                    "name": entry.name,
-                                    "is_dir": entry.is_dir(),
-                                    "size": stat.st_size,
-                                    "mtime": stat.st_mtime,
-                                }
-                            )
-                    except Exception:
-                        pass
+        except Exception as e:
+            # If resolution fails, we just return what we have (virtual items)
+            pass
 
         items.sort(key=lambda x: (not x["is_dir"], x["name"].lower()))
         return JSONResponse({"path": request_path, "items": items})
@@ -177,6 +205,15 @@ async def read_sandbox_file(request: Request) -> JSONResponse:
     """Read file content from sandbox."""
     chat_id = request.query_params.get("chat_id")
     raw_path = request.query_params.get("path", "").strip()
+    volumes_json = request.query_params.get("volumes")
+    
+    override_volumes = None
+    if volumes_json:
+        import json
+        try:
+            override_volumes = json.loads(volumes_json)
+        except Exception:
+            pass
 
     if not chat_id:
         return JSONResponse({"error": "chat_id is required"}, status_code=400)
@@ -184,24 +221,8 @@ async def read_sandbox_file(request: Request) -> JSONResponse:
         return JSONResponse({"error": "path is required"}, status_code=400)
 
     try:
-        request_path, mounts, matched_mount_point = _resolve_host_path(
-            chat_id, raw_path
-        )
-
-        if not matched_mount_point:
-            return JSONResponse(
-                {"error": "File not found (not in any mount)"}, status_code=404
-            )
-
-        host_root = mounts[matched_mount_point]
-        rel_path = request_path[len(matched_mount_point) :].lstrip("/")
-        target_host_path = (host_root / rel_path).resolve()
-
-        # Security Check
-        try:
-            target_host_path.relative_to(host_root)
-        except ValueError:
-            return JSONResponse({"error": "Access denied"}, status_code=403)
+        resolver = _get_resolver_for_request(chat_id, override_volumes=override_volumes)
+        target_host_path = resolver.resolve(raw_path)
 
         if not target_host_path.exists():
             return JSONResponse({"error": "File not found"}, status_code=404)
@@ -212,7 +233,7 @@ async def read_sandbox_file(request: Request) -> JSONResponse:
         # Read content (text only for now)
         try:
             content = target_host_path.read_text(encoding="utf-8")
-            return JSONResponse({"path": request_path, "content": content})
+            return JSONResponse({"path": raw_path, "content": content})
         except UnicodeDecodeError:
             return JSONResponse(
                 {"error": "Binary file not supported for preview"}, status_code=400
@@ -220,6 +241,8 @@ async def read_sandbox_file(request: Request) -> JSONResponse:
         except Exception as e:
             return JSONResponse({"error": f"Failed to read file: {e}"}, status_code=500)
 
+    except ValueError as ve:
+         return JSONResponse({"error": str(ve)}, status_code=403)
     except Exception as e:
         logger.error(f"Error reading file: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -237,27 +260,21 @@ async def write_sandbox_file(request: Request) -> JSONResponse:
             return JSONResponse({"error": "chat_id is required"}, status_code=400)
         if not raw_path:
             return JSONResponse({"error": "path is required"}, status_code=400)
+            
+        volumes_json = request.query_params.get("volumes")
+        override_volumes = None
+        if volumes_json:
+            import json
+            try:
+                override_volumes = json.loads(volumes_json)
+            except Exception:
+                pass
 
-        request_path, mounts, matched_mount_point = _resolve_host_path(
-            chat_id, raw_path
-        )
-
-        if not matched_mount_point:
-            return JSONResponse(
-                {"error": "Invalid path (not in any mount)"}, status_code=400
-            )
-
-        host_root = mounts[matched_mount_point]
-        rel_path = request_path[len(matched_mount_point) :].lstrip("/")
-        target_host_path = (host_root / rel_path).resolve()
-
-        # Security Check
+        resolver = _get_resolver_for_request(chat_id, override_volumes=override_volumes)
         try:
-            target_host_path.relative_to(host_root)
-        except ValueError:
-            return JSONResponse(
-                {"error": "Access denied: Path traversal detected"}, status_code=403
-            )
+            target_host_path = resolver.resolve(raw_path)
+        except ValueError as ve:
+             return JSONResponse({"error": str(ve)}, status_code=403)
 
         # Ensure parent directory exists
         target_host_path.parent.mkdir(parents=True, exist_ok=True)
@@ -266,7 +283,7 @@ async def write_sandbox_file(request: Request) -> JSONResponse:
         target_host_path.write_text(content, encoding="utf-8")
 
         size = len(content)
-        return JSONResponse({"path": request_path, "size": size, "status": "written"})
+        return JSONResponse({"path": raw_path, "size": size, "status": "written"})
 
     except Exception as e:
         logger.error(f"Error writing file: {e}")
@@ -283,25 +300,18 @@ async def delete_sandbox_file(request: Request) -> JSONResponse:
     if not raw_path:
         return JSONResponse({"error": "path is required"}, status_code=400)
 
-    try:
-        request_path, mounts, matched_mount_point = _resolve_host_path(
-            chat_id, raw_path
-        )
-
-        if not matched_mount_point:
-            return JSONResponse(
-                {"error": "File not found (not in any mount)"}, status_code=404
-            )
-
-        host_root = mounts[matched_mount_point]
-        rel_path = request_path[len(matched_mount_point) :].lstrip("/")
-        target_host_path = (host_root / rel_path).resolve()
-
-        # Security Check
+    volumes_json = request.query_params.get("volumes")
+    override_volumes = None
+    if volumes_json:
+        import json
         try:
-            target_host_path.relative_to(host_root)
-        except ValueError:
-            return JSONResponse({"error": "Access denied"}, status_code=403)
+            override_volumes = json.loads(volumes_json)
+        except Exception:
+            pass
+
+    try:
+        resolver = _get_resolver_for_request(chat_id, override_volumes=override_volumes)
+        target_host_path = resolver.resolve(raw_path)
 
         if not target_host_path.exists():
             return JSONResponse({"error": "File not found"}, status_code=404)
@@ -312,11 +322,13 @@ async def delete_sandbox_file(request: Request) -> JSONResponse:
             import shutil
 
             shutil.rmtree(target_host_path)
-            return JSONResponse({"path": request_path, "status": "directory deleted"})
+            return JSONResponse({"path": raw_path, "status": "directory deleted"})
         else:
             target_host_path.unlink()
-            return JSONResponse({"path": request_path, "status": "file deleted"})
+            return JSONResponse({"path": raw_path, "status": "file deleted"})
 
+    except ValueError as ve:
+         return JSONResponse({"error": str(ve)}, status_code=403)
     except Exception as e:
         logger.error(f"Error deleting file: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -334,25 +346,18 @@ async def serve_sandbox_file(request: Request):
     if not raw_path:
         return JSONResponse({"error": "path is required"}, status_code=400)
 
-    try:
-        request_path, mounts, matched_mount_point = _resolve_host_path(
-            chat_id, raw_path
-        )
-
-        if not matched_mount_point:
-            return JSONResponse(
-                {"error": "File not found (not in any mount)"}, status_code=404
-            )
-
-        host_root = mounts[matched_mount_point]
-        rel_path = request_path[len(matched_mount_point) :].lstrip("/")
-        target_host_path = (host_root / rel_path).resolve()
-
-        # Security Check
+    volumes_json = request.query_params.get("volumes")
+    override_volumes = None
+    if volumes_json:
+        import json
         try:
-            target_host_path.relative_to(host_root)
-        except ValueError:
-            return JSONResponse({"error": "Access denied"}, status_code=403)
+            override_volumes = json.loads(volumes_json)
+        except Exception:
+            pass
+
+    try:
+        resolver = _get_resolver_for_request(chat_id, override_volumes=override_volumes)
+        target_host_path = resolver.resolve(raw_path)
 
         if not target_host_path.exists():
             return JSONResponse({"error": "File not found"}, status_code=404)
@@ -362,6 +367,8 @@ async def serve_sandbox_file(request: Request):
 
         return FileResponse(target_host_path)
 
+    except ValueError as ve:
+         return JSONResponse({"error": str(ve)}, status_code=403)
     except Exception as e:
         logger.error(f"Error serving file: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -384,26 +391,19 @@ async def serve_sandbox_file_wildcard(request: Request):
     if not raw_path:
         return JSONResponse({"error": "path is required"}, status_code=400)
 
-    try:
-        request_path, mounts, matched_mount_point = _resolve_host_path(
-            chat_id, raw_path
-        )
-
-        if not matched_mount_point:
-            return JSONResponse(
-                {"error": f"File not found: {raw_path} (not in any mount)"},
-                status_code=404,
-            )
-
-        host_root = mounts[matched_mount_point]
-        rel_path = request_path[len(matched_mount_point) :].lstrip("/")
-        target_host_path = (host_root / rel_path).resolve()
-
-        # Security Check
+    # volumes from query param (even for wildcard route)
+    volumes_json = request.query_params.get("volumes")
+    override_volumes = None
+    if volumes_json:
+        import json
         try:
-            target_host_path.relative_to(host_root)
-        except ValueError:
-            return JSONResponse({"error": "Access denied"}, status_code=403)
+            override_volumes = json.loads(volumes_json)
+        except Exception:
+            pass
+
+    try:
+        resolver = _get_resolver_for_request(chat_id, override_volumes=override_volumes)
+        target_host_path = resolver.resolve(raw_path)
 
         if not target_host_path.exists():
             return JSONResponse(
@@ -415,6 +415,8 @@ async def serve_sandbox_file_wildcard(request: Request):
 
         return FileResponse(target_host_path)
 
+    except ValueError as ve:
+         return JSONResponse({"error": str(ve)}, status_code=403)
     except Exception as e:
         logger.error(f"Error serving file wildcard: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
