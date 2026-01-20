@@ -22,6 +22,8 @@ import sys
 import threading
 import time
 from pathlib import Path
+from urllib.request import urlopen
+from urllib.error import URLError
 
 
 def find_venv_python(root: Path, venv_path: str) -> str | None:
@@ -48,6 +50,22 @@ def stream_reader(prefix: str, stream, lock: threading.Lock):
         with lock:
             print(f"[{prefix}] {text}")
     stream.close()
+
+
+def wait_for_backend(url: str = "http://localhost:8000", timeout: int = 30, check_interval: float = 0.5):
+    """Wait for the backend to be ready by polling a health endpoint."""
+    print(f"Waiting for backend to be ready at {url}...")
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            with urlopen(url, timeout=1) as response:
+                if response.status in (200, 404):  # 404 is fine, just means server is up
+                    print("Backend is ready!")
+                    return True
+        except (URLError, OSError):
+            time.sleep(check_interval)
+    print(f"Warning: Backend did not respond within {timeout}s, starting frontend anyway...")
+    return False
 
 
 def start_process(cmd, cwd=None, prefix=None, env=None):
@@ -103,6 +121,9 @@ def main():
     try:
         # Start backend
         procs.append(start_process(backend_cmd, cwd=root, prefix="backend"))
+
+        # Wait for backend to be ready
+        wait_for_backend()
 
         # Start frontend
         procs.append(

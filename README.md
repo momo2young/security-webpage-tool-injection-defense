@@ -85,10 +85,12 @@ cp .env.example .env
 
 # 3. INSTALL DEPENDENCIES
 uv sync
-cd frontend && npm install && cd ..
+cd frontend
+npm install
+cd ..
 
 # 4. WAKE UP SUZENT
-python start_dev.py
+uv run start_dev.py
 ```
 
 ▶ **OPEN: [LOCALHOST:5173](http://localhost:5173)**
