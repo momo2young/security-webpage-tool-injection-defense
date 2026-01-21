@@ -113,6 +113,8 @@ export async function saveUserPreferences(preferences: {
   agent?: string;
   tools?: string[];
   memory_enabled?: boolean;
+  embedding_model?: string;
+  extraction_model?: string;
 }): Promise<boolean> {
   try {
     const res = await fetch('/api/preferences', {
@@ -128,6 +130,18 @@ export async function saveUserPreferences(preferences: {
   } catch (error) {
     console.error('Error saving preferences:', error);
     return false;
+  }
+}
+
+export async function fetchEmbeddingModels(): Promise<string[]> {
+  try {
+    const res = await fetch('/api/config/embedding-models');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.models || [];
+  } catch (e) {
+    console.error('Error fetching embedding models:', e);
+    return [];
   }
 }
 

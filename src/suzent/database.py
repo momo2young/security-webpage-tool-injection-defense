@@ -135,6 +135,17 @@ class ApiKeyModel(SQLModel, table=True):
     updated_at: datetime = Field(serialization_alias="updatedAt")
 
 
+class MemoryConfigModel(SQLModel, table=True):
+    """Singleton table for memory system configuration."""
+
+    __tablename__ = "memory_config"
+
+    id: int = Field(default=1, primary_key=True)
+    embedding_model: Optional[str] = None
+    extraction_model: Optional[str] = None
+    updated_at: datetime = Field(serialization_alias="updatedAt")
+
+
 # -----------------------------------------------------------------------------
 # Database Management
 # -----------------------------------------------------------------------------
@@ -624,6 +635,46 @@ class ChatDatabase:
                 )
 
             session.add(prefs)
+            session.commit()
+            return True
+
+    # -------------------------------------------------------------------------
+    # Memory Configuration Operations
+    # -------------------------------------------------------------------------
+
+    def get_memory_config(self) -> Optional[MemoryConfigModel]:
+        """Get memory system configuration from the database."""
+        with self._session() as session:
+            return session.get(MemoryConfigModel, 1)
+
+    def save_memory_config(
+        self,
+        embedding_model: str = None,
+        extraction_model: str = None,
+    ) -> bool:
+        """Save memory system configuration to the database."""
+        now = datetime.now()
+
+        with self._session() as session:
+            config = session.get(MemoryConfigModel, 1)
+
+            if config:
+                # Update existing
+                if embedding_model is not None:
+                    config.embedding_model = embedding_model
+                if extraction_model is not None:
+                    config.extraction_model = extraction_model
+                config.updated_at = now
+            else:
+                # Create new
+                config = MemoryConfigModel(
+                    id=1,
+                    embedding_model=embedding_model,
+                    extraction_model=extraction_model,
+                    updated_at=now,
+                )
+
+            session.add(config)
             session.commit()
             return True
 

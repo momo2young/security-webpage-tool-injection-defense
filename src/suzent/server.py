@@ -33,6 +33,7 @@ from suzent.routes.chat_routes import (
 from suzent.routes.config_routes import (
     get_api_keys_status,
     get_config,
+    get_embedding_models,
     save_api_keys,
     save_preferences,
     verify_provider,
@@ -141,6 +142,7 @@ app = Starlette(
         Route(
             "/config/providers/{provider_id}/verify", verify_provider, methods=["POST"]
         ),
+        Route("/config/embedding-models", get_embedding_models, methods=["GET"]),
         # MCP server management endpoints
         Route("/mcp_servers", list_mcp_servers, methods=["GET"]),
         Route("/mcp_servers", add_mcp_server, methods=["POST"]),

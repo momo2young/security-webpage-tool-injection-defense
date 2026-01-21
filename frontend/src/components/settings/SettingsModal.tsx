@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useChatStore } from '../../hooks/useChatStore';
-import { ApiProvider, fetchApiKeys, saveApiKeys, UserConfig, verifyProvider } from '../../lib/api';
+import { ApiProvider, fetchApiKeys, fetchEmbeddingModels, saveApiKeys, saveUserPreferences, UserConfig, verifyProvider } from '../../lib/api';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface SettingsModalProps {
 type ProviderTab = 'credentials' | 'models';
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps): React.ReactElement | null {
-  const { refreshBackendConfig } = useChatStore();
+  const { refreshBackendConfig, backendConfig } = useChatStore();
   const [providers, setProviders] = useState<ApiProvider[]>([]);
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [userConfigs, setUserConfigs] = useState<Record<string, UserConfig>>({});
@@ -20,6 +20,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps): React.Re
   const [verifying, setVerifying] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Memory Configuration state
+  const [embeddingModels, setEmbeddingModels] = useState<string[]>([]);
+  const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState<string>('');
+  const [selectedExtractionModel, setSelectedExtractionModel] = useState<string>('');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -52,7 +57,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps): React.Re
       setActiveTabs(initialTabs);
       setLoading(false);
     });
-  }, [isOpen]);
+
+    // Fetch embedding models
+    fetchEmbeddingModels().then(models => {
+      setEmbeddingModels(models);
+    });
+
+    // Initialize from existing preferences
+    const prefs = (backendConfig as any)?.userPreferences;
+    if (prefs) {
+      setSelectedEmbeddingModel(prefs.embedding_model || '');
+      setSelectedExtractionModel(prefs.extraction_model || '');
+    }
+  }, [isOpen, backendConfig]);
 
   function handleKeyChange(key: string, val: string): void {
     setApiKeys(prev => ({ ...prev, [key]: val }));
@@ -129,6 +146,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps): React.Re
 
     const configBlob = JSON.stringify(userConfigs);
     await saveApiKeys({ ...keysToSave, "_PROVIDER_CONFIG_": configBlob });
+
+    // Save memory configuration preferences
+    if (selectedEmbeddingModel || selectedExtractionModel) {
+      await saveUserPreferences({
+        embedding_model: selectedEmbeddingModel || undefined,
+        extraction_model: selectedExtractionModel || undefined,
+      });
+    }
+
     await refreshBackendConfig();
 
     setSaving(false);
@@ -307,6 +333,53 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps): React.Re
               <p className="text-xs font-mono mt-1 text-neutral-700">
                 Keys are encrypted at rest locally. Use "Verify" to fetch models from provider.
               </p>
+            </div>
+
+            {/* Memory Configuration Section */}
+            <div className="mt-8 bg-white border-4 border-brutal-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-5">
+              <h2 className="text-xl font-bold uppercase text-brutal-black tracking-wide mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Memory Configuration
+              </h2>
+              <p className="text-xs text-neutral-600 mb-4 font-mono">
+                Configure models for memory system. Changes require server restart.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Extraction Model */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-neutral-600">Extraction Model</label>
+                  <p className="text-[10px] text-neutral-500 -mt-1">LLM for fact extraction (empty = heuristic)</p>
+                  <select
+                    value={selectedExtractionModel}
+                    onChange={(e) => setSelectedExtractionModel(e.target.value)}
+                    className="w-full bg-neutral-50 border-2 border-brutal-black px-3 py-2 font-mono text-sm focus:outline-none focus:bg-white focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  >
+                    <option value="">Use heuristics (no LLM)</option>
+                    {backendConfig?.models?.map((model: string) => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Embedding Model */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-neutral-600">Embedding Model</label>
+                  <p className="text-[10px] text-neutral-500 -mt-1">Model for vector embeddings</p>
+                  <select
+                    value={selectedEmbeddingModel}
+                    onChange={(e) => setSelectedEmbeddingModel(e.target.value)}
+                    className="w-full bg-neutral-50 border-2 border-brutal-black px-3 py-2 font-mono text-sm focus:outline-none focus:bg-white focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  >
+                    <option value="">Select embedding model...</option>
+                    {embeddingModels.map((model) => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </div>

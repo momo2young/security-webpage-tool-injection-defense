@@ -26,10 +26,21 @@ async def get_config(request: Request) -> JSONResponse:
     """Return frontend-consumable configuration merged with user preferences."""
     db = get_database()
     user_prefs = db.get_user_preferences()
+    memory_config = db.get_memory_config()
 
     sandbox_enabled = getattr(CONFIG, "sandbox_enabled", False)
     sandbox_volumes = CONFIG.sandbox_volumes or []
     available_models = get_enabled_models_from_db()
+    
+    # Get embedding/extraction models with fallback to CONFIG defaults
+    embedding_model = (
+        memory_config.embedding_model if memory_config and memory_config.embedding_model 
+        else CONFIG.embedding_model
+    )
+    extraction_model = (
+        memory_config.extraction_model if memory_config and memory_config.extraction_model 
+        else CONFIG.extraction_model
+    )
 
     data: dict[str, Any] = {
         "title": CONFIG.title,
@@ -41,6 +52,8 @@ async def get_config(request: Request) -> JSONResponse:
         "userId": CONFIG.user_id,
         "globalSandboxVolumes": sandbox_volumes,
         "sandboxEnabled": sandbox_enabled,
+        "embeddingModel": CONFIG.embedding_model,
+        "extractionModel": CONFIG.extraction_model,
     }
 
     if user_prefs:
@@ -51,6 +64,14 @@ async def get_config(request: Request) -> JSONResponse:
             "memory_enabled": user_prefs.memory_enabled,
             "sandbox_enabled": user_prefs.sandbox_enabled,
             "sandbox_volumes": user_prefs.sandbox_volumes,
+            "embedding_model": embedding_model,
+            "extraction_model": extraction_model,
+        }
+    else:
+        # Even if no user_prefs, provide memory config defaults
+        data["userPreferences"] = {
+            "embedding_model": embedding_model,
+            "extraction_model": extraction_model,
         }
 
     return JSONResponse(data)
@@ -61,6 +82,8 @@ async def save_preferences(request: Request) -> JSONResponse:
     data = await request.json()
 
     db = get_database()
+    
+    # Save user preferences (non-memory settings)
     success = db.save_user_preferences(
         model=data.get("model"),
         agent=data.get("agent"),
@@ -69,6 +92,13 @@ async def save_preferences(request: Request) -> JSONResponse:
         sandbox_enabled=data.get("sandbox_enabled"),
         sandbox_volumes=data.get("sandbox_volumes"),
     )
+    
+    # Save memory configuration separately
+    if data.get("embedding_model") is not None or data.get("extraction_model") is not None:
+        db.save_memory_config(
+            embedding_model=data.get("embedding_model"),
+            extraction_model=data.get("extraction_model"),
+        )
 
     if success:
         return JSONResponse({"success": True})
@@ -209,3 +239,32 @@ async def verify_provider(request: Request) -> JSONResponse:
     except Exception as e:
         traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+async def get_embedding_models(request: Request) -> JSONResponse:
+    """
+    Fetch available embedding models from configured providers.
+    
+    Uses LiteLLM's get_valid_models() with provider endpoint checking,
+    then filters for models containing 'embedding' in the name.
+    """
+    try:
+        import litellm
+        
+        # Fetch valid models from all configured providers
+        all_models = litellm.get_valid_models(check_provider_endpoint=True)
+        
+        # Filter for embedding models
+        embedding_models = [
+            model for model in all_models 
+            if "embedding" in model.lower()
+        ]
+        
+        # Sort for consistent ordering
+        embedding_models.sort()
+        
+        return JSONResponse({"models": embedding_models})
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse({"error": str(e), "models": []}, status_code=500)
+

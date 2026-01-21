@@ -144,6 +144,18 @@ class TestUserPreferences:
         prefs = db.get_user_preferences()
         assert prefs.model == "claude-3"
 
+    def test_save_embedding_and_extraction_models(self, db):
+        """Test that embedding and extraction models can be saved and retrieved."""
+        db.save_memory_config(
+            embedding_model="gemini/gemini-embedding-001",
+            extraction_model="gemini/gemini-2.5-flash"
+        )
+
+        config = db.get_memory_config()
+        assert config is not None
+        assert config.embedding_model == "gemini/gemini-embedding-001"
+        assert config.extraction_model == "gemini/gemini-2.5-flash"
+
 
 class TestMCPServers:
     """Tests for MCP server management."""
