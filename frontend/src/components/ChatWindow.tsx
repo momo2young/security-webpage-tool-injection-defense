@@ -75,6 +75,7 @@ const MessageList: React.FC<{
                 messageIndex={idx}
                 isStreaming={streamingForCurrentChat}
                 isLastMessage={isLastMessage}
+                onFileClick={onFileClick}
               />
             )}
           </div>
@@ -305,16 +306,34 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   // Handle file click from chat messages
-  const handleFileClick = (path: string, name: string, shiftKey?: boolean) => {
-    if (shiftKey) {
-      // Shift+Click: Open full-screen modal directly
-      setViewingFile({ path, name });
-    } else {
-      // Normal click: Open in right sidebar
-      setSidebarFilePreview({ path, name });
-      if (!isRightSidebarOpen) {
-        onRightSidebarToggle(true);
+  const handleFileClick = async (path: string, name: string, shiftKey?: boolean) => {
+    // Let the click animation finish first
+    await new Promise(resolve => setTimeout(resolve, 150));
+
+    // Check if file exists before opening (silently fail if not)
+    try {
+      const chatIdParam = currentChatId ? `chat_id=${currentChatId}&` : '';
+      const response = await fetch(`/api/sandbox/serve?${chatIdParam}path=${encodeURIComponent(path)}`, {
+        method: 'HEAD'
+      });
+
+      if (!response.ok) {
+        // File doesn't exist - do nothing (animation already played)
+        return;
       }
+
+      if (shiftKey) {
+        // Shift+Click: Open full-screen modal directly
+        setViewingFile({ path, name });
+      } else {
+        // Normal click: Open in right sidebar
+        setSidebarFilePreview({ path, name });
+        if (!isRightSidebarOpen) {
+          onRightSidebarToggle(true);
+        }
+      }
+    } catch (error) {
+      // Error checking file - do nothing (animation already played)
     }
   };
 

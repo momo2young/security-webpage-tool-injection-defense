@@ -14,13 +14,15 @@ interface AssistantMessageProps {
   messageIndex: number;
   isStreaming: boolean;
   isLastMessage: boolean;
+  onFileClick?: (filePath: string, fileName: string, shiftKey?: boolean) => void;
 }
 
 // Streaming content with typewriter effect
 const StreamingContent: React.FC<{
   content: string;
   messageIndex: number;
-}> = ({ content, messageIndex }) => {
+  onFileClick?: (filePath: string, fileName: string, shiftKey?: boolean) => void;
+}> = ({ content, messageIndex, onFileClick }) => {
   const displayedContent = useTypewriter(content, 10, true);
   const blocks = splitAssistantContent(displayedContent);
 
@@ -31,10 +33,12 @@ const StreamingContent: React.FC<{
         const isLastBlock = bi === blocks.length - 1;
 
         if (b.type === 'markdown') {
-          const contentWithCursor = isLastBlock
-            ? b.content + ' <span class="animate-brutal-blink inline-block w-2.5 h-4 bg-brutal-black align-middle ml-1"></span>'
-            : b.content;
-          return <MarkdownRenderer key={blockKey} content={contentWithCursor} />;
+          return (
+            <React.Fragment key={blockKey}>
+              <MarkdownRenderer content={b.content} onFileClick={onFileClick} />
+              {isLastBlock && <span className="animate-brutal-blink inline-block w-2.5 h-4 bg-brutal-black align-middle ml-1" />}
+            </React.Fragment>
+          );
         } else if (b.type === 'log') {
           return <LogBlock key={blockKey} title={b.title} content={b.content} />;
         } else {
@@ -49,13 +53,14 @@ const StreamingContent: React.FC<{
 const StaticContent: React.FC<{
   blocks: ReturnType<typeof splitAssistantContent>;
   messageIndex: number;
-}> = ({ blocks, messageIndex }) => {
+  onFileClick?: (filePath: string, fileName: string, shiftKey?: boolean) => void;
+}> = ({ blocks, messageIndex, onFileClick }) => {
   return (
     <>
       {blocks.map((b, bi) => {
         const blockKey = generateBlockKey(b, bi, messageIndex);
         if (b.type === 'markdown') {
-          return <MarkdownRenderer key={blockKey} content={b.content} />;
+          return <MarkdownRenderer key={blockKey} content={b.content} onFileClick={onFileClick} />;
         } else if (b.type === 'log') {
           return <LogBlock key={blockKey} title={b.title} content={b.content} />;
         } else {
@@ -71,6 +76,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
   messageIndex,
   isStreaming,
   isLastMessage,
+  onFileClick,
 }) => {
   const isStreamingThis = isStreaming && isLastMessage;
   const isThinking = isStreamingThis && !message.content;
@@ -146,9 +152,9 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
           ${isThinking ? 'opacity-0 invisible absolute' : 'opacity-100 visible'}
         `}>
           {isStreamingThis ? (
-            <StreamingContent content={message.content} messageIndex={messageIndex} />
+            <StreamingContent content={message.content} messageIndex={messageIndex} onFileClick={onFileClick} />
           ) : (
-            <StaticContent blocks={blocks} messageIndex={messageIndex} />
+            <StaticContent blocks={blocks} messageIndex={messageIndex} onFileClick={onFileClick} />
           )}
         </div>
       </div>

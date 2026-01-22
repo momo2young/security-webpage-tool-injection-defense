@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Message } from '../../types/api';
 import { FileIcon } from '../FileIcon';
+import { ClickableContent } from '../ClickableContent';
 import { ArrowDownTrayIcon, EyeIcon } from '@heroicons/react/24/outline';
 
 interface UserMessageProps {
@@ -82,7 +83,7 @@ export const UserMessage: React.FC<UserMessageProps> = ({ message, chatId, onIma
         <div className="flex justify-end">
           <div className="bg-brutal-yellow border-3 border-brutal-black shadow-brutal-lg px-5 py-4 max-w-full font-medium relative select-text">
             <div className="prose prose-sm max-w-none break-words text-brutal-black font-sans">
-              {message.content}
+              <ClickableContent content={message.content} onFileClick={onFileClick} />
             </div>
           </div>
         </div>
