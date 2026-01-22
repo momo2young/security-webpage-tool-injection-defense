@@ -407,6 +407,13 @@ async def serve_sandbox_file_wildcard(request: Request):
 
     try:
         resolver = _get_resolver_for_request(chat_id, override_volumes=override_volumes)
+        
+        # FIX: Ensure path is treated as absolute virtual path (relative to sandbox root)
+        # The frontend strips the leading slash to avoid double-slashes in the URL,
+        # but the resolver needs it to differentiate "/persistence" (virtual root) from "persistence" (folder in session).
+        if not raw_path.startswith("/"):
+            raw_path = "/" + raw_path
+
         target_host_path = resolver.resolve(raw_path)
 
         if not target_host_path.exists():
