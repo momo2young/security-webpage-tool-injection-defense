@@ -1,13 +1,18 @@
 import React from 'react';
 import { BrutalSelect } from './BrutalSelect';
 import { ConfigOptions, ChatConfig } from '../types/api';
+import { FileIcon } from './FileIcon';
+import { PaperClipIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface ChatInputPanelProps {
     input: string;
     setInput: React.Dispatch<React.SetStateAction<string>>;
-    selectedImages: File[];
-    handleImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    removeImage: (index: number) => void;
+    selectedFiles: File[];
+    handleFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    removeFile: (index: number) => void;
+    uploadProgress?: number;
+    isUploading?: boolean;
+    fileError?: string | null;
     send: () => void;
     isStreaming: boolean;
     config: ChatConfig;
@@ -20,16 +25,19 @@ interface ChatInputPanelProps {
     stopStreaming?: () => void; // Optional because only used in footer sometimes
     stopInFlight?: boolean;
     modelSelectDropUp?: boolean;
-    onPasteImages?: (files: File[]) => void;
+    onPaste?: (files: File[]) => void;
     onImageClick?: (src: string) => void;
 }
 
 export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
     input,
     setInput,
-    selectedImages,
-    handleImageSelect,
-    removeImage,
+    selectedFiles,
+    handleFileSelect,
+    removeFile,
+    uploadProgress = 0,
+    isUploading = false,
+    fileError = null,
     send,
     isStreaming,
     config,
@@ -42,7 +50,7 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
     stopStreaming,
     stopInFlight = false,
     modelSelectDropUp = true,
-    onPasteImages,
+    onPaste,
     onImageClick,
 }) => {
     return (
@@ -50,30 +58,80 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
             onSubmit={(e) => { e.preventDefault(); send(); }}
             className="bg-neutral-50 border-2 border-brutal-black shadow-brutal-sm p-2 flex flex-col gap-2 relative group focus-within:shadow-brutal focus-within:-translate-y-[1px] transition-all duration-200"
         >
-            {/* Image preview section */}
-            {selectedImages.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-2 mb-1">
-                    {selectedImages.map((file, idx) => (
-                        <div key={idx} className="relative group/image">
-                            <img
-                                src={URL.createObjectURL(file)}
-                                alt={file.name}
-                                className="w-20 h-20 object-cover border-3 border-brutal-black cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => onImageClick?.(URL.createObjectURL(file))}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => removeImage(idx)}
-                                className="absolute -top-2 -right-2 w-6 h-6 bg-brutal-red border-2 border-brutal-black text-white text-sm flex items-center justify-center font-bold shadow-brutal-sm hover:shadow-none transition-all"
-                                title="Remove image"
-                            >
-                                ×
-                            </button>
-                        </div>
-                    ))}
+            {/* Unified file preview section */}
+            {selectedFiles.length > 0 && (
+                <div className="flex flex-col gap-2 p-2 mb-1">
+                    {selectedFiles.map((file, idx) => {
+                        const isImage = file.type.startsWith('image/');
+
+                        return (
+                            <div key={idx}>
+                                {isImage ? (
+                                    // Image preview (larger, visual)
+                                    <div className="relative group/image inline-block">
+                                        <img
+                                            src={URL.createObjectURL(file)}
+                                            alt={file.name}
+                                            className="w-20 h-20 object-cover border-3 border-brutal-black cursor-pointer hover:opacity-80 transition-opacity"
+                                            onClick={() => onImageClick?.(URL.createObjectURL(file))}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFile(idx)}
+                                            className="absolute -top-2 -right-2 w-6 h-6 bg-brutal-red border-2 border-brutal-black text-white text-sm flex items-center justify-center font-bold shadow-brutal-sm hover:shadow-none transition-all"
+                                            title="Remove file"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ) : (
+                                    // File card (icon + name + size)
+                                    <div className="flex items-center gap-2 bg-white border-2 border-brutal-black p-2">
+                                        <FileIcon mimeType={file.type} className="w-5 h-5 shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-bold text-brutal-black truncate">{file.name}</div>
+                                            <div className="text-xs text-neutral-500">
+                                                {(file.size / 1024).toFixed(1)} KB
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFile(idx)}
+                                            className="shrink-0 w-6 h-6 bg-brutal-red border-2 border-brutal-black text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                                            title="Remove file"
+                                        >
+                                            <XMarkIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
-            )
-            }
+            )}
+
+            {/* Upload progress bar */}
+            {isUploading && (
+                <div className="p-2">
+                    <div className="w-full bg-neutral-200 border-2 border-brutal-black h-6 overflow-hidden">
+                        <div
+                            className="h-full bg-brutal-blue transition-all duration-300 flex items-center justify-center"
+                            style={{ width: `${uploadProgress}%` }}
+                        >
+                            <span className="text-xs font-bold text-white">{uploadProgress.toFixed(0)}%</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Error message */}
+            {fileError && (
+                <div className="p-2">
+                    <div className="bg-brutal-red border-2 border-brutal-black p-2 text-white text-sm font-bold">
+                        {fileError}
+                    </div>
+                </div>
+            )}
 
             < textarea
                 autoFocus
@@ -92,29 +150,25 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
                 placeholder={configReady ? 'How can I help you today?' : 'SYSTEM LOADING...'}
                 disabled={!configReady}
                 onPaste={(e) => {
-                    if (onPasteImages && e.clipboardData && e.clipboardData.items) {
-                        const items = Array.from(e.clipboardData.items);
-                        const imageFiles: File[] = [];
+                    if (onPaste && e.clipboardData) {
+                        // Method 1: Get files directly (works for all file types pasted)
+                        const files = Array.from(e.clipboardData.files || []);
 
-                        items.forEach(item => {
-                            if (item.type.startsWith('image/')) {
-                                const file = item.getAsFile();
-                                if (file) {
-                                    imageFiles.push(file);
+                        // Method 2: Fallback to items for screenshot/image data
+                        if (files.length === 0) {
+                            const items = Array.from(e.clipboardData.items);
+                            items.forEach(item => {
+                                if (item.kind === 'file') {
+                                    const file = item.getAsFile();
+                                    if (file) {
+                                        files.push(file);
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
 
-                        if (imageFiles.length > 0) {
-                            // Don't prevent default if we want text to still paste?
-                            // Actually if we are pasting images we probably don't want the filename text inserted if the browser does that,
-                            // but browsers usually don't insert text for image paste unless it's a file path text.
-                            // However, we might rely on the image being handled separately.
-                            // If we prevent default, text pasting won't work if mixed.
-
-                            // Better approach: only prevent default if we ONLY found images and NO text?
-                            // Or just add images and let text paste proceed.
-                            onPasteImages(imageFiles);
+                        if (files.length > 0) {
+                            onPaste(files);
                         }
                     }
                 }}
@@ -123,27 +177,24 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
             {/* Button row */}
             <div className="flex flex-wrap gap-2 items-center justify-between pt-1">
                 <div className="flex gap-4 items-center pl-2 shrink-0">
+                    {/* Unified file input (all types) */}
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="*"
                         multiple
-                        onChange={handleImageSelect}
+                        onChange={handleFileSelect}
                         className="hidden"
                     />
                     <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         className="text-brutal-black hover:text-brutal-blue transition-colors disabled:opacity-40"
-                        title="Attach images"
-                        disabled={!configReady || isStreaming}
+                        title="Attach files (images, PDFs, documents, etc.)"
+                        disabled={!configReady || isStreaming || isUploading}
                     >
-                        <svg className="w-6 h-6" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="8" y1="2" x2="8" y2="14" />
-                            <line x1="2" y1="8" x2="14" y2="8" />
-                        </svg>
+                        <PaperClipIcon className="w-6 h-6" />
                     </button>
-                    {/* Removed Clock Icon as requested */}
                 </div>
 
                 <div className="flex flex-wrap gap-2 items-center justify-end flex-1 min-w-0">

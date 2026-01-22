@@ -6,9 +6,12 @@ import { RobotAvatar, RobotVariant } from './chat/RobotAvatar';
 interface NewChatViewProps {
     input: string;
     setInput: React.Dispatch<React.SetStateAction<string>>;
-    selectedImages: File[];
-    handleImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    removeImage: (index: number) => void;
+    selectedFiles: File[];
+    handleFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    removeFile: (index: number) => void;
+    uploadProgress?: number;
+    isUploading?: boolean;
+    fileError?: string | null;
     send: () => void;
     isStreaming: boolean;
     config: ChatConfig;
@@ -18,7 +21,7 @@ interface NewChatViewProps {
     textareaRef: React.RefObject<HTMLTextAreaElement>;
     configReady: boolean;
     streamingForCurrentChat: boolean;
-    onPasteImages?: (files: File[]) => void;
+    onPaste?: (files: File[]) => void;
     onImageClick?: (src: string) => void;
 }
 
@@ -60,9 +63,12 @@ GreetingRobot.displayName = 'GreetingRobot';
 export const NewChatView: React.FC<NewChatViewProps> = ({
     input,
     setInput,
-    selectedImages,
-    handleImageSelect,
-    removeImage,
+    selectedFiles,
+    handleFileSelect,
+    removeFile,
+    uploadProgress,
+    isUploading,
+    fileError,
     send,
     isStreaming,
     config,
@@ -72,7 +78,7 @@ export const NewChatView: React.FC<NewChatViewProps> = ({
     textareaRef,
     configReady,
     streamingForCurrentChat,
-    onPasteImages,
+    onPaste,
     onImageClick,
 }) => {
 
@@ -84,9 +90,12 @@ export const NewChatView: React.FC<NewChatViewProps> = ({
                 <ChatInputPanel
                     input={input}
                     setInput={setInput}
-                    selectedImages={selectedImages}
-                    handleImageSelect={handleImageSelect}
-                    removeImage={removeImage}
+                    selectedFiles={selectedFiles}
+                    handleFileSelect={handleFileSelect}
+                    removeFile={removeFile}
+                    uploadProgress={uploadProgress}
+                    isUploading={isUploading}
+                    fileError={fileError}
                     send={send}
                     isStreaming={isStreaming}
                     config={config}
@@ -97,7 +106,7 @@ export const NewChatView: React.FC<NewChatViewProps> = ({
                     configReady={configReady}
                     streamingForCurrentChat={streamingForCurrentChat}
                     modelSelectDropUp={false}
-                    onPasteImages={onPasteImages}
+                    onPaste={onPaste}
                     onImageClick={onImageClick}
                 />
             </div>

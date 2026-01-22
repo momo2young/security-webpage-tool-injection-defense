@@ -431,3 +431,91 @@ async def serve_sandbox_file_wildcard(request: Request):
     except Exception as e:
         logger.error(f"Error serving file wildcard: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+async def upload_files(request: Request) -> JSONResponse:
+    """
+    Upload files to sandbox /persistence/uploads/ directory.
+    Route: POST /api/sandbox/upload?chat_id={chat_id}
+
+    Accepts multipart form-data with 'files' field (multiple files).
+    Returns array of file metadata for frontend to include in messages.
+    """
+    import mimetypes
+    import time
+    from pathlib import Path
+
+    chat_id = request.query_params.get("chat_id")
+
+    if not chat_id:
+        return JSONResponse({"error": "chat_id is required"}, status_code=400)
+
+    try:
+        # Parse multipart form data
+        form = await request.form()
+        uploaded_files = form.getlist("files")
+
+        if not uploaded_files:
+            return JSONResponse({"error": "No files provided"}, status_code=400)
+
+        # Create resolver for this chat session
+        resolver = _get_resolver_for_request(chat_id)
+
+        # Resolve /persistence/uploads/ to host path
+        uploads_virtual_path = "/persistence/uploads"
+        uploads_host_path = resolver.resolve(uploads_virtual_path)
+
+        # Create uploads directory if it doesn't exist
+        uploads_host_path.mkdir(parents=True, exist_ok=True)
+
+        result_files = []
+
+        for upload_file in uploaded_files:
+            if not upload_file.filename:
+                continue
+
+            # Sanitize filename (remove path components)
+            safe_filename = Path(upload_file.filename).name
+
+            # Handle filename conflicts by appending timestamp
+            target_path = uploads_host_path / safe_filename
+            if target_path.exists():
+                # Append timestamp before extension
+                stem = target_path.stem
+                suffix = target_path.suffix
+                timestamp = int(time.time() * 1000)  # milliseconds
+                safe_filename = f"{stem}_{timestamp}{suffix}"
+                target_path = uploads_host_path / safe_filename
+
+            # Write file to disk
+            content = await upload_file.read()
+            target_path.write_bytes(content)
+
+            # Get file metadata
+            stat = target_path.stat()
+            mime_type = mimetypes.guess_type(safe_filename)[0] or "application/octet-stream"
+
+            # Virtual path for agent to use
+            virtual_path = f"{uploads_virtual_path}/{safe_filename}"
+
+            # Build metadata for frontend
+            import uuid
+            from datetime import datetime
+
+            file_metadata = {
+                "id": str(uuid.uuid4()),
+                "filename": safe_filename,
+                "path": virtual_path,
+                "size": stat.st_size,
+                "mime_type": mime_type,
+                "uploaded_at": datetime.utcnow().isoformat() + "Z"
+            }
+
+            result_files.append(file_metadata)
+            logger.info(f"Uploaded file: {safe_filename} ({stat.st_size} bytes) to {virtual_path}")
+
+        return JSONResponse({"files": result_files})
+
+    except Exception as e:
+        logger.error(f"Error uploading files: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)

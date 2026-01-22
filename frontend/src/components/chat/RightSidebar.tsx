@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PlanProgress } from '../PlanProgress';
 import { SandboxFiles } from '../sidebar/SandboxFiles';
 import type { Plan } from '../../types/api';
@@ -9,6 +9,8 @@ interface RightSidebarProps {
   plan: Plan | null;
   isPlanExpanded: boolean;
   onTogglePlanExpand: () => void;
+  fileToPreview?: { path: string; name: string } | null;
+  onMaximizeFile?: (filePath: string, fileName: string) => void;
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({
@@ -16,10 +18,19 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onClose,
   plan,
   isPlanExpanded,
-  onTogglePlanExpand
+  onTogglePlanExpand,
+  fileToPreview,
+  onMaximizeFile
 }) => {
   const [activeTab, setActiveTab] = useState<'plan' | 'files'>('plan');
   const [isFileExpanded, setIsFileExpanded] = useState(false);
+
+  // Auto-switch to files tab when a file is provided
+  useEffect(() => {
+    if (fileToPreview) {
+      setActiveTab('files');
+    }
+  }, [fileToPreview]);
 
   return (
     <div
@@ -74,7 +85,12 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
           </div>
         ) : (
           <div className="flex-1 h-full">
-            <SandboxFiles onViewModeChange={setIsFileExpanded} />
+            <SandboxFiles
+              onViewModeChange={setIsFileExpanded}
+              externalFilePath={fileToPreview?.path ?? null}
+              externalFileName={fileToPreview?.name ?? null}
+              onMaximize={onMaximizeFile}
+            />
           </div>
         )}
       </div>
