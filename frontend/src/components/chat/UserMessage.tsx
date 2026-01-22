@@ -3,9 +3,10 @@ import type { Message } from '../../types/api';
 
 interface UserMessageProps {
   message: Message;
+  onImageClick?: (src: string) => void;
 }
 
-export const UserMessage: React.FC<UserMessageProps> = ({ message }) => {
+export const UserMessage: React.FC<UserMessageProps> = ({ message, onImageClick }) => {
   // Don't render empty messages (no content and no images)
   if (!message.content?.trim() && (!message.images || message.images.length === 0)) {
     return null;
@@ -23,6 +24,8 @@ export const UserMessage: React.FC<UserMessageProps> = ({ message }) => {
                 alt={img.filename}
                 className="max-w-sm max-h-64 border-4 border-brutal-black shadow-brutal-lg object-contain bg-white"
                 title={img.filename}
+                onClick={() => onImageClick?.(`data:${img.mime_type};base64,${img.data}`)}
+                style={{ cursor: onImageClick ? 'pointer' : 'default' }}
               />
               <div className="absolute bottom-0 left-0 right-0 bg-brutal-black text-brutal-white text-xs px-2 py-1 font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-100">
                 {img.filename}

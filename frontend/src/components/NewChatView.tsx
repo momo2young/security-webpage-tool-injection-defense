@@ -18,6 +18,8 @@ interface NewChatViewProps {
     textareaRef: React.RefObject<HTMLTextAreaElement>;
     configReady: boolean;
     streamingForCurrentChat: boolean;
+    onPasteImages?: (files: File[]) => void;
+    onImageClick?: (src: string) => void;
 }
 
 // Memoized greeting robot component to prevent animation restarts on input changes
@@ -70,6 +72,8 @@ export const NewChatView: React.FC<NewChatViewProps> = ({
     textareaRef,
     configReady,
     streamingForCurrentChat,
+    onPasteImages,
+    onImageClick,
 }) => {
 
     return (
@@ -93,6 +97,8 @@ export const NewChatView: React.FC<NewChatViewProps> = ({
                     configReady={configReady}
                     streamingForCurrentChat={streamingForCurrentChat}
                     modelSelectDropUp={false}
+                    onPasteImages={onPasteImages}
+                    onImageClick={onImageClick}
                 />
             </div>
         </div>

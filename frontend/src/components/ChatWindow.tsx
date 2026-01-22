@@ -9,6 +9,7 @@ import { useImageUpload } from '../hooks/useImageUpload';
 import { PlanProgress } from './PlanProgress';
 import { NewChatView } from './NewChatView';
 import { ChatInputPanel } from './ChatInputPanel';
+import { ImageViewer } from './ImageViewer';
 import { UserMessage, AssistantMessage, RightSidebar } from './chat';
 
 // Drag overlay component
@@ -52,7 +53,8 @@ const MessageList: React.FC<{
   messages: Message[];
   isStreaming: boolean;
   streamingForCurrentChat: boolean;
-}> = ({ messages, isStreaming, streamingForCurrentChat }) => (
+  onImageClick?: (src: string) => void;
+}> = ({ messages, isStreaming, streamingForCurrentChat, onImageClick }) => (
   <div className="space-y-8">
     {messages.map((m, idx) => {
       const isUser = m.role === 'user';
@@ -62,7 +64,7 @@ const MessageList: React.FC<{
         <div key={idx} className="w-full flex flex-col group/message">
           <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
             {isUser ? (
-              <UserMessage message={m} />
+              <UserMessage message={m} onImageClick={onImageClick} />
             ) : (
               <AssistantMessage
                 message={m}
@@ -123,6 +125,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   // Local state
   const [input, setInput] = useState('');
   const [isPlanExpanded, setIsPlanExpanded] = useState(true);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const stopInFlightRef = useRef(false);
 
@@ -138,7 +141,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     handleDragLeave,
     handleDragOver,
     handleDrop,
-    prepareImagesForSend
+    prepareImagesForSend,
+    addImages
   } = useImageUpload();
 
   // Safe values
@@ -303,12 +307,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 textareaRef={textareaRef}
                 configReady={configReady}
                 streamingForCurrentChat={streamingForCurrentChat}
+                onPasteImages={addImages}
+                onImageClick={setViewingImage}
               />
             ) : (
               <MessageList
                 messages={safeMessages}
                 isStreaming={isStreaming}
                 streamingForCurrentChat={streamingForCurrentChat}
+                onImageClick={setViewingImage}
               />
             )}
 
@@ -349,6 +356,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               stopStreaming={stopStreaming}
               stopInFlight={stopInFlightRef.current}
               modelSelectDropUp={true}
+              onPasteImages={addImages}
+              onImageClick={setViewingImage}
             />
           </div>
         )}
@@ -361,6 +370,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         plan={plan}
         isPlanExpanded={isPlanExpanded}
         onTogglePlanExpand={() => setIsPlanExpanded(!isPlanExpanded)}
+      />
+
+      <ImageViewer
+        src={viewingImage}
+        onClose={() => setViewingImage(null)}
       />
     </div>
   );

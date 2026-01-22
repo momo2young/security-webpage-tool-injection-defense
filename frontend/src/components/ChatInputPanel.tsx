@@ -20,6 +20,8 @@ interface ChatInputPanelProps {
     stopStreaming?: () => void; // Optional because only used in footer sometimes
     stopInFlight?: boolean;
     modelSelectDropUp?: boolean;
+    onPasteImages?: (files: File[]) => void;
+    onImageClick?: (src: string) => void;
 }
 
 export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
@@ -40,6 +42,8 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
     stopStreaming,
     stopInFlight = false,
     modelSelectDropUp = true,
+    onPasteImages,
+    onImageClick,
 }) => {
     return (
         <form
@@ -48,13 +52,14 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
         >
             {/* Image preview section */}
             {selectedImages.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 bg-neutral-50 border-3 border-brutal-black shadow-brutal-sm mb-2">
+                <div className="flex flex-wrap gap-2 p-2 mb-1">
                     {selectedImages.map((file, idx) => (
                         <div key={idx} className="relative group/image">
                             <img
                                 src={URL.createObjectURL(file)}
                                 alt={file.name}
-                                className="w-20 h-20 object-cover border-3 border-brutal-black"
+                                className="w-20 h-20 object-cover border-3 border-brutal-black cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => onImageClick?.(URL.createObjectURL(file))}
                             />
                             <button
                                 type="button"
@@ -67,9 +72,10 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
                         </div>
                     ))}
                 </div>
-            )}
+            )
+            }
 
-            <textarea
+            < textarea
                 autoFocus
                 ref={textareaRef}
                 className="w-full resize-none overflow-y-auto min-h-[44px] max-h-[200px] bg-transparent focus:outline-none text-lg text-brutal-black placeholder-neutral-400 font-medium placeholder:font-bold border-none p-2"
@@ -85,6 +91,33 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
                 }}
                 placeholder={configReady ? 'How can I help you today?' : 'SYSTEM LOADING...'}
                 disabled={!configReady}
+                onPaste={(e) => {
+                    if (onPasteImages && e.clipboardData && e.clipboardData.items) {
+                        const items = Array.from(e.clipboardData.items);
+                        const imageFiles: File[] = [];
+
+                        items.forEach(item => {
+                            if (item.type.startsWith('image/')) {
+                                const file = item.getAsFile();
+                                if (file) {
+                                    imageFiles.push(file);
+                                }
+                            }
+                        });
+
+                        if (imageFiles.length > 0) {
+                            // Don't prevent default if we want text to still paste?
+                            // Actually if we are pasting images we probably don't want the filename text inserted if the browser does that,
+                            // but browsers usually don't insert text for image paste unless it's a file path text.
+                            // However, we might rely on the image being handled separately.
+                            // If we prevent default, text pasting won't work if mixed.
+
+                            // Better approach: only prevent default if we ONLY found images and NO text?
+                            // Or just add images and let text paste proceed.
+                            onPasteImages(imageFiles);
+                        }
+                    }
+                }}
             />
 
             {/* Button row */}

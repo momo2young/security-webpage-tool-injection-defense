@@ -1,0 +1,50 @@
+import React, { useEffect } from 'react';
+
+interface ImageViewerProps {
+    src: string | null;
+    onClose: () => void;
+}
+
+export const ImageViewer: React.FC<ImageViewerProps> = ({ src, onClose }) => {
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+
+        if (src) {
+            window.addEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = 'hidden';
+        }
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = '';
+        };
+    }, [src, onClose]);
+
+    if (!src) return null;
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-brutal-black/90 p-4 md:p-8 animate-in fade-in duration-200"
+            onClick={onClose}
+        >
+            <div className="relative max-w-full max-h-full flex flex-col items-center">
+                <img
+                    src={src}
+                    alt="Full screen preview"
+                    className="max-w-full max-h-[85vh] object-contain border-4 border-brutal-black shadow-brutal-xl bg-white"
+                    onClick={(e) => e.stopPropagation()}
+                />
+                <button
+                    onClick={onClose}
+                    className="mt-4 px-6 py-2 bg-brutal-red text-white border-2 border-brutal-black font-bold text-sm uppercase shadow-brutal hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+    );
+};

@@ -55,6 +55,13 @@ export function useImageUpload() {
     }
   }, []);
 
+  const addImages = useCallback((files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length > 0) {
+      setSelectedImages(prev => [...prev, ...imageFiles]);
+    }
+  }, []);
+
   // Convert files to base64 for sending
   const prepareImagesForSend = useCallback(async (images: File[]) => {
     const promises = images.map(file => {
@@ -88,6 +95,7 @@ export function useImageUpload() {
     handleDragLeave,
     handleDragOver,
     handleDrop,
-    prepareImagesForSend
+    prepareImagesForSend,
+    addImages
   };
 }
