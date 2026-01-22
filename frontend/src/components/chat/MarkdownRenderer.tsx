@@ -68,12 +68,32 @@ export const MarkdownRenderer = React.memo<MarkdownRendererProps>(({ content, on
     return ALLOWED_LANGUAGES.has(clean) ? `\`\`\`${clean}` : '```';
   });
 
+  // Safe URL transform - block dangerous protocols while allowing file:// and standard protocols
+  const safeUrlTransform = (url: string): string => {
+    const urlLower = url.toLowerCase().trim();
+
+    // Allow safe protocols
+    const safeProtocols = ['http:', 'https:', 'mailto:', 'file:', 'tel:'];
+    const hasProtocol = urlLower.includes(':');
+
+    if (hasProtocol) {
+      const isAllowed = safeProtocols.some(protocol => urlLower.startsWith(protocol));
+      if (!isAllowed) {
+        // Block dangerous protocols like javascript:, data:, vbscript:, etc.
+        return '';
+      }
+    }
+
+    // Allow relative URLs and fragment links
+    return url;
+  };
+
   return (
     <div className="prose tight-lists prose-sm max-w-none break-words select-text">
       <RM
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypePrism]}
-        urlTransform={(url: string) => url}
+        urlTransform={safeUrlTransform}
         components={{
           pre: (p: any) => {
             if (p.node?.children?.length === 1 && p.node.children[0].tagName === 'code') {

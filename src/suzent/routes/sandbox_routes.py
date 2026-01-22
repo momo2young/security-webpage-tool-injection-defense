@@ -2,8 +2,16 @@
 Sandbox-related API routes.
 """
 
+import re
+import json
+import shutil
+import mimetypes
+import time
+import uuid
+from pathlib import Path
+from datetime import datetime, timezone
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, FileResponse
 
 
 from suzent.logger import get_logger
@@ -12,6 +20,81 @@ from suzent.tools.path_resolver import PathResolver
 from suzent.database import get_database
 
 logger = get_logger(__name__)
+
+
+def sanitize_filename(filename: str, max_length: int = 255) -> str:
+    """
+    Comprehensive filename sanitization to prevent security issues.
+
+    Args:
+        filename: The original filename
+        max_length: Maximum allowed filename length (default 255 for most filesystems)
+
+    Returns:
+        Sanitized filename safe for filesystem operations
+    """
+    if not filename:
+        return "unnamed_file"
+
+    # Remove null bytes (critical security issue)
+    filename = filename.replace("\x00", "")
+
+    # Get just the filename (no path components)
+
+    filename = Path(filename).name
+
+    # Remove or replace problematic characters
+    # Keep: letters, numbers, dots, hyphens, underscores, spaces
+    # Replace others with underscore
+    filename = re.sub(r"[^\w\s.\-]", "_", filename)
+
+    # Remove leading/trailing dots and spaces (can cause issues on Windows)
+    filename = filename.strip(". ")
+
+    # Prevent reserved names on Windows (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+    reserved_names = {
+        "CON",
+        "PRN",
+        "AUX",
+        "NUL",
+        "COM1",
+        "COM2",
+        "COM3",
+        "COM4",
+        "COM5",
+        "COM6",
+        "COM7",
+        "COM8",
+        "COM9",
+        "LPT1",
+        "LPT2",
+        "LPT3",
+        "LPT4",
+        "LPT5",
+        "LPT6",
+        "LPT7",
+        "LPT8",
+        "LPT9",
+    }
+    name_without_ext = filename.rsplit(".", 1)[0].upper()
+    if name_without_ext in reserved_names:
+        filename = f"_{filename}"
+
+    # Enforce maximum length (leave room for extensions and timestamps)
+    if len(filename) > max_length:
+        # Try to preserve extension
+        if "." in filename:
+            name, ext = filename.rsplit(".", 1)
+            max_name_length = max_length - len(ext) - 1
+            filename = name[:max_name_length] + "." + ext
+        else:
+            filename = filename[:max_length]
+
+    # Final check - if filename became empty, provide default
+    if not filename or filename == ".":
+        return "unnamed_file"
+
+    return filename
 
 
 def _get_resolver_for_request(
@@ -55,8 +138,6 @@ async def list_sandbox_files(request: Request) -> JSONResponse:
 
     override_volumes = None
     if volumes_json:
-        import json
-
         try:
             override_volumes = json.loads(volumes_json)
         except Exception:
@@ -208,8 +289,6 @@ async def read_sandbox_file(request: Request) -> JSONResponse:
 
     override_volumes = None
     if volumes_json:
-        import json
-
         try:
             override_volumes = json.loads(volumes_json)
         except Exception:
@@ -264,8 +343,6 @@ async def write_sandbox_file(request: Request) -> JSONResponse:
         volumes_json = request.query_params.get("volumes")
         override_volumes = None
         if volumes_json:
-            import json
-
             try:
                 override_volumes = json.loads(volumes_json)
             except Exception:
@@ -304,8 +381,6 @@ async def delete_sandbox_file(request: Request) -> JSONResponse:
     volumes_json = request.query_params.get("volumes")
     override_volumes = None
     if volumes_json:
-        import json
-
         try:
             override_volumes = json.loads(volumes_json)
         except Exception:
@@ -321,7 +396,6 @@ async def delete_sandbox_file(request: Request) -> JSONResponse:
         if target_host_path.is_dir():
             # Only allow deleting empty directories for now, or use shutil.rmtree for recursive
             # Let's use rmtree for convenience but be careful
-            import shutil
 
             shutil.rmtree(target_host_path)
             return JSONResponse({"path": raw_path, "status": "directory deleted"})
@@ -338,7 +412,6 @@ async def delete_sandbox_file(request: Request) -> JSONResponse:
 
 async def serve_sandbox_file(request: Request):
     """Serve a file raw from sandbox (for browser rendering of html, pdf, etc)."""
-    from starlette.responses import FileResponse
 
     chat_id = request.query_params.get("chat_id")
     raw_path = request.query_params.get("path", "").strip()
@@ -351,8 +424,6 @@ async def serve_sandbox_file(request: Request):
     volumes_json = request.query_params.get("volumes")
     override_volumes = None
     if volumes_json:
-        import json
-
         try:
             override_volumes = json.loads(volumes_json)
         except Exception:
@@ -383,7 +454,6 @@ async def serve_sandbox_file_wildcard(request: Request):
     Route: /sandbox/serve/{chat_id}/{file_path:path}
     This allows relative links (e.g. <img src="image.png">) in HTML files to work correctly.
     """
-    from starlette.responses import FileResponse
 
     chat_id = request.path_params.get("chat_id")
     # 'file_path' captures the rest of the URL, including slashes
@@ -398,8 +468,6 @@ async def serve_sandbox_file_wildcard(request: Request):
     volumes_json = request.query_params.get("volumes")
     override_volumes = None
     if volumes_json:
-        import json
-
         try:
             override_volumes = json.loads(volumes_json)
         except Exception:
@@ -441,9 +509,6 @@ async def upload_files(request: Request) -> JSONResponse:
     Accepts multipart form-data with 'files' field (multiple files).
     Returns array of file metadata for frontend to include in messages.
     """
-    import mimetypes
-    import time
-    from pathlib import Path
 
     chat_id = request.query_params.get("chat_id")
 
@@ -474,8 +539,8 @@ async def upload_files(request: Request) -> JSONResponse:
             if not upload_file.filename:
                 continue
 
-            # Sanitize filename (remove path components)
-            safe_filename = Path(upload_file.filename).name
+            # Comprehensive filename sanitization
+            safe_filename = sanitize_filename(upload_file.filename)
 
             # Handle filename conflicts by appending timestamp
             target_path = uploads_host_path / safe_filename
@@ -501,8 +566,6 @@ async def upload_files(request: Request) -> JSONResponse:
             virtual_path = f"{uploads_virtual_path}/{safe_filename}"
 
             # Build metadata for frontend
-            import uuid
-            from datetime import datetime
 
             file_metadata = {
                 "id": str(uuid.uuid4()),
@@ -510,7 +573,7 @@ async def upload_files(request: Request) -> JSONResponse:
                 "path": virtual_path,
                 "size": stat.st_size,
                 "mime_type": mime_type,
-                "uploaded_at": datetime.utcnow().isoformat() + "Z",
+                "uploaded_at": datetime.now(timezone.utc).isoformat(),
             }
 
             result_files.append(file_metadata)

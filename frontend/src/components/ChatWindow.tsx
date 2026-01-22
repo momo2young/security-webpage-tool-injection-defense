@@ -181,13 +181,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const prompt = input.trim();
     if (!prompt || isStreaming || !configReady || isUploading) return;
 
-    const resetFlag = shouldResetNext;
-    if (resetFlag) consumeResetFlag();
-    setInput('');
-
-    const filesToSend = [...selectedFiles];
-    clearFiles();
-
     // Create chat if needed
     let chatIdForSend = currentChatId;
     if (!chatIdForSend) {
@@ -198,10 +191,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       }
     }
 
+    const filesToSend = [...selectedFiles];
+    const imageFilesToSend = filesToSend.filter(f => f.type.startsWith('image/'));
+
     // Upload all files to server + generate base64 for images
     let uploadedFileMetadata: FileAttachment[] | undefined;
     let imagePreviews;
-    const imageFilesToSend = filesToSend.filter(f => f.type.startsWith('image/'));
 
     if (filesToSend.length > 0) {
       try {
@@ -210,10 +205,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         imagePreviews = imagePreviewData.length > 0 ? imagePreviewData : undefined;
       } catch (error) {
         console.error('Error uploading files:', error);
-        // Don't proceed if file upload fails
+        // Don't proceed if file upload fails - keep input and files so user can retry
         return;
       }
     }
+
+    // Upload successful - now clear input and files
+    const resetFlag = shouldResetNext;
+    if (resetFlag) consumeResetFlag();
+    setInput('');
+    clearFiles();
 
     addMessage({
       role: 'user',

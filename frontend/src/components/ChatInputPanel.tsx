@@ -29,6 +29,34 @@ interface ChatInputPanelProps {
     onImageClick?: (src: string) => void;
 }
 
+const ImagePreviewThumbnail: React.FC<{
+    file: File;
+    onImageClick?: (src: string) => void;
+}> = ({ file, onImageClick }) => {
+    const [previewUrl, setPreviewUrl] = React.useState<string>('');
+
+    React.useEffect(() => {
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+
+        // Cleanup URL on unmount or when file changes
+        return () => {
+            URL.revokeObjectURL(url);
+        };
+    }, [file]);
+
+    if (!previewUrl) return null;
+
+    return (
+        <img
+            src={previewUrl}
+            alt={file.name}
+            className="w-20 h-20 object-cover border-3 border-brutal-black cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => onImageClick?.(previewUrl)}
+        />
+    );
+};
+
 export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
     input,
     setInput,
@@ -68,12 +96,11 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
                             <div key={idx}>
                                 {isImage ? (
                                     // Image preview (larger, visual)
+                                    // Image preview with proper URL cleanup
                                     <div className="relative group/image inline-block">
-                                        <img
-                                            src={URL.createObjectURL(file)}
-                                            alt={file.name}
-                                            className="w-20 h-20 object-cover border-3 border-brutal-black cursor-pointer hover:opacity-80 transition-opacity"
-                                            onClick={() => onImageClick?.(URL.createObjectURL(file))}
+                                        <ImagePreviewThumbnail
+                                            file={file}
+                                            onImageClick={onImageClick}
                                         />
                                         <button
                                             type="button"

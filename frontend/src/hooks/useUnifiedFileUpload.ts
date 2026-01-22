@@ -189,17 +189,14 @@ export function useUnifiedFileUpload() {
           } else {
             reject(new Error(`Upload failed with status ${xhr.status}`));
           }
-          setIsUploading(false);
         });
 
         xhr.addEventListener('error', () => {
           reject(new Error('Upload failed due to network error'));
-          setIsUploading(false);
         });
 
         xhr.addEventListener('abort', () => {
           reject(new Error('Upload was cancelled'));
-          setIsUploading(false);
         });
 
         xhr.open('POST', `/api/sandbox/upload?chat_id=${chatId}`);
@@ -212,13 +209,13 @@ export function useUnifiedFileUpload() {
         ? await convertImagesToBase64(imageFiles)
         : [];
 
-      setIsUploading(false);
       return { fileMetadata, imagePreviews };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Upload failed';
       setError(errorMessage);
-      setIsUploading(false);
       throw err;
+    } finally {
+      setIsUploading(false);
     }
   }, [convertImagesToBase64]);
 

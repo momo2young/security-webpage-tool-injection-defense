@@ -6,8 +6,7 @@ import {
     isHtmlFile,
     isMarkdownFile,
     isMermaidFile,
-    getLanguageForFile,
-    getFileExtension
+    getLanguageForFile
 } from '../../lib/fileUtils';
 
 interface FilePreviewProps {
