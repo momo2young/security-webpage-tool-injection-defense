@@ -34,7 +34,7 @@ INSTRUCTIONS: ""
 ADDITIONAL_AUTHORIZED_IMPORTS: []
 
 # Memory System (requires PostgreSQL with pgvector - see .env for connection)
-MEMORY_ENABLED: false
+MEMORY_ENABLED: true
 EMBEDDING_MODEL: gemini/gemini-embedding-001
 EMBEDDING_DIMENSION: 3072
 
