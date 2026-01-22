@@ -1,4 +1,4 @@
-import type { ChatConfig } from '../types/api';
+import type { ChatConfig, FileAttachment } from '../types/api';
 import { useChatStore } from '../hooks/useChatStore'; // (Note: runtime import not used directly here, but kept for context)
 
 // Streaming implementation mirroring logic from Streamlit app.py
@@ -83,7 +83,7 @@ function getStepFootnote(step: any, stepName: string): string {
   return foot;
 }
 
-export async function streamChat(prompt: string, config: ChatConfig, callbacks: StreamCallbacks, codeTag = '<code>', reset = false, chatId?: string | null, imageFiles?: File[]) {
+export async function streamChat(prompt: string, config: ChatConfig, callbacks: StreamCallbacks, codeTag = '<code>', reset = false, chatId?: string | null, imageFiles?: File[], fileAttachments?: FileAttachment[]) {
   const { onDelta, onAction, onNewAssistantMessage, onStreamStopped, onStreamComplete, onPlanUpdate, onStepComplete, onImagesProcessed } = callbacks;
 
   let body: BodyInit;
@@ -98,6 +98,9 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
     if (chatId) {
       formData.append('chat_id', chatId);
     }
+    if (fileAttachments && fileAttachments.length > 0) {
+      formData.append('files_metadata', JSON.stringify(fileAttachments));
+    }
     imageFiles.forEach((file) => {
       formData.append('files', file);
     });
@@ -108,6 +111,9 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
     const payload: any = { message: prompt, config, reset };
     if (chatId) {
       payload.chat_id = chatId;
+    }
+    if (fileAttachments && fileAttachments.length > 0) {
+      payload.files = fileAttachments;
     }
     body = JSON.stringify(payload);
     headers = { 'Content-Type': 'application/json' };

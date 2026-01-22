@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useChatStore } from '../../hooks/useChatStore';
 import { FilePreview } from './FilePreview';
+import { isBinaryServedFile, isImageFile, isMarkdownFile, isCodeFile } from '../../lib/fileUtils';
 import {
     FolderIcon,
     DocumentIcon,
@@ -11,7 +12,8 @@ import {
     CodeBracketIcon,
     PhotoIcon,
     ArrowUturnLeftIcon,
-    ArrowUpTrayIcon
+    ArrowUpTrayIcon,
+    ArrowsPointingOutIcon
 } from '@heroicons/react/24/outline';
 
 interface FileItem {
@@ -28,11 +30,18 @@ interface FileListResponse {
 }
 
 interface SandboxFilesProps {
-
     onViewModeChange?: (isViewingFile: boolean) => void;
+    externalFilePath?: string | null;
+    externalFileName?: string | null;
+    onMaximize?: (filePath: string, fileName: string) => void;
 }
 
-export const SandboxFiles: React.FC<SandboxFilesProps> = ({ onViewModeChange }) => {
+export const SandboxFiles: React.FC<SandboxFilesProps> = ({
+    onViewModeChange,
+    externalFilePath,
+    externalFileName,
+    onMaximize
+}) => {
     const { currentChatId, config } = useChatStore();
     const [currentPath, setCurrentPath] = useState<string>('/persistence');
     const [items, setItems] = useState<FileItem[]>([]);
@@ -93,6 +102,22 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({ onViewModeChange }) 
         }
     }, [currentChatId, config.sandbox_volumes]);
 
+    // Handle external file opening from chat messages
+    useEffect(() => {
+        if (externalFilePath && externalFileName) {
+            setSelectedFile(externalFilePath);
+            setError(null);
+            setFileContent(null);
+
+            // Skip content fetching for binary/served files
+            if (!isBinaryServedFile(externalFileName)) {
+                fetchFileContent(externalFilePath);
+            }
+
+            onViewModeChange?.(true);
+        }
+    }, [externalFilePath, externalFileName, fetchFileContent, onViewModeChange]);
+
     const handleUploadClick = () => {
         document.getElementById('sandbox-file-upload')?.click();
     };
@@ -152,9 +177,8 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({ onViewModeChange }) 
             setError(null);
             setFileContent(null);
 
-            const ext = item.name.split('.').pop()?.toLowerCase();
             // Skip content fetching for binary/served files
-            if (!['pdf', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'html', 'htm'].includes(ext || '')) {
+            if (!isBinaryServedFile(item.name)) {
                 fetchFileContent(newPath);
             }
 
@@ -195,10 +219,9 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({ onViewModeChange }) 
     const getFileIcon = (name: string, isDir: boolean) => {
         const className = "w-5 h-5 stroke-2";
         if (isDir) return <FolderIcon className={`${className} text-brutal-black`} />;
-        const ext = name.split('.').pop()?.toLowerCase();
-        if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext || '')) return <PhotoIcon className={className} />;
-        if (['md', 'txt', 'log'].includes(ext || '')) return <DocumentTextIcon className={className} />;
-        if (['js', 'ts', 'tsx', 'jsx', 'py', 'html', 'css', 'json'].includes(ext || '')) return <CodeBracketIcon className={className} />;
+        if (isImageFile(name)) return <PhotoIcon className={className} />;
+        if (isMarkdownFile(name) || name.endsWith('.txt') || name.endsWith('.log')) return <DocumentTextIcon className={className} />;
+        if (isCodeFile(name)) return <CodeBracketIcon className={className} />;
         return <DocumentIcon className={className} />;
     };
 
@@ -231,6 +254,15 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({ onViewModeChange }) 
                             {filename}
                         </span>
                     </div>
+                    {onMaximize && (
+                        <button
+                            onClick={() => onMaximize(selectedFile, filename)}
+                            className="p-1.5 bg-brutal-yellow border-2 border-brutal-black hover:shadow-[2px_2px_0_0_#000] active:translate-y-[2px] active:shadow-none transition-all"
+                            title="Maximize (full screen)"
+                        >
+                            <ArrowsPointingOutIcon className="w-5 h-5 stroke-2" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Content Area */}

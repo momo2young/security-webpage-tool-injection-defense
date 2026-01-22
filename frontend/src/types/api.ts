@@ -7,11 +7,21 @@ export interface ImageAttachment {
   height?: number;
 }
 
+export interface FileAttachment {
+  id: string;
+  filename: string;
+  path: string;           // Virtual path: /persistence/uploads/filename
+  size: number;           // Bytes
+  mime_type: string;
+  uploaded_at?: string;
+}
+
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
   stepInfo?: string; // Step metadata like "Step: 1 | Input tokens: 100 | Output tokens: 50"
   images?: ImageAttachment[]; // Optional image attachments
+  files?: FileAttachment[];   // Optional file attachments
 }
 export interface ChatConfig {
   model: string;

@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useChatStore } from '../hooks/useChatStore';
 import { streamChat } from '../lib/streaming';
-import type { Message } from '../types/api';
+import type { Message, FileAttachment } from '../types/api';
 import { usePlan } from '../hooks/usePlan';
 import { useMemory } from '../hooks/useMemory';
 import { useAutoScroll } from '../hooks/useAutoScroll';
-import { useImageUpload } from '../hooks/useImageUpload';
+import { useUnifiedFileUpload } from '../hooks/useUnifiedFileUpload';
 import { PlanProgress } from './PlanProgress';
 import { NewChatView } from './NewChatView';
 import { ChatInputPanel } from './ChatInputPanel';
+import { ImageViewer } from './ImageViewer';
+import { FileViewer } from './FileViewer';
 import { UserMessage, AssistantMessage, RightSidebar } from './chat';
 
 // Drag overlay component
@@ -16,9 +18,10 @@ const DragOverlay: React.FC = () => (
   <div className="absolute inset-0 z-50 bg-brutal-blue/20 border-4 border-dashed border-brutal-black flex items-center justify-center pointer-events-none">
     <div className="bg-brutal-yellow border-4 border-brutal-black shadow-brutal-xl px-8 py-6 flex flex-col items-center gap-3">
       <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-brutal-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
       </svg>
-      <span className="text-lg font-bold text-brutal-black uppercase">Drop Images Here</span>
+      <span className="text-lg font-bold text-brutal-black uppercase">Drop Files Here</span>
+      <span className="text-sm text-brutal-black">Images, PDFs, Documents, etc.</span>
     </div>
   </div>
 );
@@ -52,7 +55,10 @@ const MessageList: React.FC<{
   messages: Message[];
   isStreaming: boolean;
   streamingForCurrentChat: boolean;
-}> = ({ messages, isStreaming, streamingForCurrentChat }) => (
+  chatId?: string;
+  onImageClick?: (src: string) => void;
+  onFileClick?: (filePath: string, fileName: string, shiftKey?: boolean) => void;
+}> = ({ messages, isStreaming, streamingForCurrentChat, chatId, onImageClick, onFileClick }) => (
   <div className="space-y-8">
     {messages.map((m, idx) => {
       const isUser = m.role === 'user';
@@ -62,13 +68,14 @@ const MessageList: React.FC<{
         <div key={idx} className="w-full flex flex-col group/message">
           <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
             {isUser ? (
-              <UserMessage message={m} />
+              <UserMessage message={m} chatId={chatId} onImageClick={onImageClick} onFileClick={onFileClick} />
             ) : (
               <AssistantMessage
                 message={m}
                 messageIndex={idx}
                 isStreaming={streamingForCurrentChat}
                 isLastMessage={isLastMessage}
+                onFileClick={onFileClick}
               />
             )}
           </div>
@@ -123,23 +130,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   // Local state
   const [input, setInput] = useState('');
   const [isPlanExpanded, setIsPlanExpanded] = useState(true);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [viewingFile, setViewingFile] = useState<{ path: string; name: string } | null>(null);
+  const [sidebarFilePreview, setSidebarFilePreview] = useState<{ path: string; name: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const stopInFlightRef = useRef(false);
 
   // Custom hooks
   const {
-    selectedImages,
+    selectedFiles,
     isDragging,
     fileInputRef,
-    handleImageSelect,
-    removeImage,
-    clearImages,
+    handleFileSelect,
+    handlePaste,
+    removeFile,
+    clearFiles,
     handleDragEnter,
     handleDragLeave,
     handleDragOver,
     handleDrop,
-    prepareImagesForSend
-  } = useImageUpload();
+    uploadFiles,
+    uploadProgress,
+    isUploading,
+    error: fileError,
+  } = useUnifiedFileUpload();
 
   // Safe values
   const safeMessages = messages || [];
@@ -165,14 +179,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   // Send message handler
   const send = async () => {
     const prompt = input.trim();
-    if (!prompt || isStreaming || !configReady) return;
-
-    const resetFlag = shouldResetNext;
-    if (resetFlag) consumeResetFlag();
-    setInput('');
-
-    const imagesToSend = [...selectedImages];
-    clearImages();
+    if (!prompt || isStreaming || !configReady || isUploading) return;
 
     // Create chat if needed
     let chatIdForSend = currentChatId;
@@ -184,12 +191,37 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       }
     }
 
-    // Prepare images
-    const imagePreviews = imagesToSend.length > 0
-      ? await prepareImagesForSend(imagesToSend)
-      : undefined;
+    const filesToSend = [...selectedFiles];
+    const imageFilesToSend = filesToSend.filter(f => f.type.startsWith('image/'));
 
-    addMessage({ role: 'user', content: prompt, images: imagePreviews }, chatIdForSend);
+    // Upload all files to server + generate base64 for images
+    let uploadedFileMetadata: FileAttachment[] | undefined;
+    let imagePreviews;
+
+    if (filesToSend.length > 0) {
+      try {
+        const { fileMetadata, imagePreviews: imagePreviewData } = await uploadFiles(filesToSend, chatIdForSend);
+        uploadedFileMetadata = fileMetadata;
+        imagePreviews = imagePreviewData.length > 0 ? imagePreviewData : undefined;
+      } catch (error) {
+        console.error('Error uploading files:', error);
+        // Don't proceed if file upload fails - keep input and files so user can retry
+        return;
+      }
+    }
+
+    // Upload successful - now clear input and files
+    const resetFlag = shouldResetNext;
+    if (resetFlag) consumeResetFlag();
+    setInput('');
+    clearFiles();
+
+    addMessage({
+      role: 'user',
+      content: prompt,
+      images: imagePreviews,
+      files: uploadedFileMetadata
+    }, chatIdForSend);
     setIsStreaming(true, chatIdForSend);
     stopInFlightRef.current = false;
 
@@ -229,7 +261,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         safeBackendConfig?.codeTag || '<code>',
         resetFlag,
         chatIdForSend,
-        imagesToSend.length > 0 ? imagesToSend : undefined
+        imageFilesToSend.length > 0 ? imageFilesToSend : undefined,
+        uploadedFileMetadata
       );
     } catch (error) {
       console.error('Error during streaming:', error);
@@ -273,6 +306,43 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   };
 
+  // Handle file click from chat messages
+  const handleFileClick = async (path: string, name: string, shiftKey?: boolean) => {
+    // Let the click animation finish first
+    await new Promise(resolve => setTimeout(resolve, 150));
+
+    // Check if file exists before opening (silently fail if not)
+    try {
+      const chatIdParam = currentChatId ? `chat_id=${currentChatId}&` : '';
+      const response = await fetch(`/api/sandbox/serve?${chatIdParam}path=${encodeURIComponent(path)}`, {
+        method: 'HEAD'
+      });
+
+      if (!response.ok) {
+        // File doesn't exist - do nothing (animation already played)
+        return;
+      }
+
+      if (shiftKey) {
+        // Shift+Click: Open full-screen modal directly
+        setViewingFile({ path, name });
+      } else {
+        // Normal click: Open in right sidebar
+        setSidebarFilePreview({ path, name });
+        if (!isRightSidebarOpen) {
+          onRightSidebarToggle(true);
+        }
+      }
+    } catch (error) {
+      // Error checking file - do nothing (animation already played)
+    }
+  };
+
+  // Handle maximize button from sidebar
+  const handleMaximizeFile = (path: string, name: string) => {
+    setViewingFile({ path, name });
+  };
+
   return (
     <div
       className="flex flex-row flex-1 h-full overflow-hidden bg-neutral-50 relative"
@@ -291,9 +361,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               <NewChatView
                 input={input}
                 setInput={setInput}
-                selectedImages={selectedImages}
-                handleImageSelect={handleImageSelect}
-                removeImage={removeImage}
+                selectedFiles={selectedFiles}
+                handleFileSelect={handleFileSelect}
+                removeFile={removeFile}
+                uploadProgress={uploadProgress}
+                isUploading={isUploading}
+                fileError={fileError}
                 send={send}
                 isStreaming={isStreaming}
                 config={safeConfig}
@@ -303,12 +376,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 textareaRef={textareaRef}
                 configReady={configReady}
                 streamingForCurrentChat={streamingForCurrentChat}
+                onPaste={handlePaste}
+                onImageClick={setViewingImage}
               />
             ) : (
               <MessageList
                 messages={safeMessages}
                 isStreaming={isStreaming}
                 streamingForCurrentChat={streamingForCurrentChat}
+                chatId={currentChatId ?? undefined}
+                onImageClick={setViewingImage}
+                onFileClick={handleFileClick}
               />
             )}
 
@@ -334,9 +412,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             <ChatInputPanel
               input={input}
               setInput={setInput}
-              selectedImages={selectedImages}
-              handleImageSelect={handleImageSelect}
-              removeImage={removeImage}
+              selectedFiles={selectedFiles}
+              handleFileSelect={handleFileSelect}
+              removeFile={removeFile}
+              uploadProgress={uploadProgress}
+              isUploading={isUploading}
+              fileError={fileError}
               send={send}
               isStreaming={isStreaming}
               config={safeConfig}
@@ -349,6 +430,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               stopStreaming={stopStreaming}
               stopInFlight={stopInFlightRef.current}
               modelSelectDropUp={true}
+              onPaste={handlePaste}
+              onImageClick={setViewingImage}
             />
           </div>
         )}
@@ -361,6 +444,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         plan={plan}
         isPlanExpanded={isPlanExpanded}
         onTogglePlanExpand={() => setIsPlanExpanded(!isPlanExpanded)}
+        fileToPreview={sidebarFilePreview}
+        onMaximizeFile={handleMaximizeFile}
+      />
+
+      <ImageViewer
+        src={viewingImage}
+        onClose={() => setViewingImage(null)}
+      />
+
+      <FileViewer
+        filePath={viewingFile?.path ?? null}
+        fileName={viewingFile?.name ?? null}
+        chatId={currentChatId}
+        onClose={() => setViewingFile(null)}
       />
     </div>
   );

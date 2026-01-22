@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
-import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypePrism from 'rehype-prism-plus';
 import { CodeBlockComponent } from './CodeBlockComponent';
+import { ClickableContent } from '../ClickableContent';
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
 
 const ALLOWED_LANGUAGES = new Set([
   'python', 'javascript', 'typescript', 'java', 'cpp', 'c', 'go', 'rust', 'sql',
@@ -16,9 +16,42 @@ const ALLOWED_LANGUAGES = new Set([
 
 interface MarkdownRendererProps {
   content: string;
+  onFileClick?: (filePath: string, fileName: string, shiftKey?: boolean) => void;
 }
 
-export const MarkdownRenderer = React.memo<MarkdownRendererProps>(({ content }) => {
+// Reusable clickable file button component
+const FileButton: React.FC<{
+  path: string;
+  displayName: string;
+  onFileClick: (path: string, fileName: string, shiftKey?: boolean) => void;
+}> = ({ path, displayName, onFileClick }) => {
+  const fileName = path.split('/').pop() || displayName;
+
+  return (
+    <span
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onFileClick(path, fileName, e.shiftKey);
+      }}
+      className="inline-flex items-center gap-1 bg-brutal-yellow border-2 border-brutal-black px-2 py-0.5 font-mono text-xs font-bold text-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all cursor-pointer"
+      title={`Click to view ${path} (Shift+Click for full screen)`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onFileClick(path, fileName, e.shiftKey);
+        }
+      }}
+    >
+      <DocumentTextIcon className="w-3 h-3 stroke-[3]" />
+      <span>{displayName}</span>
+    </span>
+  );
+};
+
+export const MarkdownRenderer = React.memo<MarkdownRendererProps>(({ content, onFileClick }) => {
   const RM: any = ReactMarkdown;
 
   // Normalize content
@@ -35,41 +68,33 @@ export const MarkdownRenderer = React.memo<MarkdownRendererProps>(({ content }) 
     return ALLOWED_LANGUAGES.has(clean) ? `\`\`\`${clean}` : '```';
   });
 
+  // Safe URL transform - block dangerous protocols while allowing file:// and standard protocols
+  const safeUrlTransform = (url: string): string => {
+    const urlLower = url.toLowerCase().trim();
+
+    // Allow safe protocols
+    const safeProtocols = ['http:', 'https:', 'mailto:', 'file:', 'tel:'];
+    const hasProtocol = urlLower.includes(':');
+
+    if (hasProtocol) {
+      const isAllowed = safeProtocols.some(protocol => urlLower.startsWith(protocol));
+      if (!isAllowed) {
+        // Block dangerous protocols like javascript:, data:, vbscript:, etc.
+        return '';
+      }
+    }
+
+    // Allow relative URLs and fragment links
+    return url;
+  };
+
   return (
     <div className="prose tight-lists prose-sm max-w-none break-words select-text">
       <RM
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[
-          rehypeRaw,
-          [rehypeSanitize, {
-            ...defaultSchema,
-            tagNames: [...(defaultSchema.tagNames || []), 'details', 'summary'],
-            attributes: {
-              ...defaultSchema.attributes,
-              details: ['open'],
-              summary: [],
-              code: ['className'],
-              span: ['className']
-            }
-          }],
-          rehypePrism
-        ]}
+        rehypePlugins={[rehypePrism]}
+        urlTransform={safeUrlTransform}
         components={{
-          details: (p: any) => (
-            <details className="group border-3 border-brutal-black bg-white my-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] open:shadow-none open:translate-x-[2px] open:translate-y-[2px] transition-all overflow-hidden">
-              {p.children}
-            </details>
-          ),
-          summary: (p: any) => (
-            <summary className="cursor-pointer font-mono font-bold p-3 bg-brutal-black text-white border-b-3 border-brutal-black group-open:border-b-3 list-none flex items-center justify-between select-none hover:bg-neutral-800 transition-colors uppercase tracking-wider text-xs">
-              <div className="flex items-center gap-3">
-                <span className="text-white transform group-open:rotate-90 transition-transform inline-block">►</span>
-                <span>{p.children}</span>
-              </div>
-              <span className="text-[10px] text-neutral-400 group-open:hidden">CLICK TO EXPAND</span>
-              <span className="text-[10px] text-neutral-400 hidden group-open:inline">SYSTEM_LOG_ACTIVE</span>
-            </summary>
-          ),
           pre: (p: any) => {
             if (p.node?.children?.length === 1 && p.node.children[0].tagName === 'code') {
               return <>{p.children}</>;
@@ -86,13 +111,47 @@ export const MarkdownRenderer = React.memo<MarkdownRendererProps>(({ content }) 
             const { inline, className, children, ...rest } = codeProps;
             const match = /language-([a-zA-Z0-9_-]+)/.exec(className || '');
             const lang = match ? match[1] : null;
-            const codeContent = String(children).replace(/\n$/, '');
+
+            // Extract text content
+            const extractCodeText = (children: any): string => {
+              if (typeof children === 'string') return children;
+              if (Array.isArray(children)) return children.map(extractCodeText).join('');
+              if (React.isValidElement(children)) {
+                const props = children.props as any;
+                if (props?.children) {
+                  return extractCodeText(props.children);
+                }
+              }
+              return String(children);
+            };
+
+            const codeContent = extractCodeText(children).replace(/\n$/, '');
+
+            // Detect if this is inline code (no language and not in a <pre> parent)
+            const isInline = inline !== false && !lang;
 
             const isText = !lang || lang === 'text';
             const isSingleLine = !codeContent.includes('\n');
             const isShort = codeContent.length < 60;
 
-            if (!inline && !(isText && isSingleLine && isShort)) {
+            // Check if inline code contains a file path pattern
+            if (isInline && onFileClick) {
+              // Pattern 1: Markdown file:// link in backticks: `[text](file:///path)`
+              const fileLinkMatch = codeContent.match(/^\[([^\]]+)\]\(file:\/\/([^\)]+)\)$/);
+              if (fileLinkMatch) {
+                const [, displayName, path] = fileLinkMatch;
+                return <FileButton path={path} displayName={displayName} onFileClick={onFileClick} />;
+              }
+
+              // Pattern 2: Plain absolute path in backticks: `/persistence/file.txt`
+              const absolutePathMatch = codeContent.match(/^\/[\w\-./]+\.\w{2,5}$/);
+              if (absolutePathMatch) {
+                const path = codeContent.trim();
+                return <FileButton path={path} displayName={path} onFileClick={onFileClick} />;
+              }
+            }
+
+            if (!isInline && !(isText && isSingleLine && isShort)) {
               return <CodeBlockComponent lang={lang || 'text'} content={codeContent} />;
             }
             return (
@@ -104,16 +163,28 @@ export const MarkdownRenderer = React.memo<MarkdownRendererProps>(({ content }) 
               </code>
             );
           },
-          a: (p: any) => (
-            <a
-              href={p.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brutal-blue hover:bg-brutal-yellow font-bold underline break-words transition-colors duration-100"
-            >
-              {p.children}
-            </a>
-          ),
+          a: (props: any) => {
+            const { href, children } = props;
+            const hrefStr = href || '';
+
+            // Handle file:// links and absolute paths as clickable file buttons
+            if (onFileClick && (hrefStr.startsWith('file://') || hrefStr.startsWith('/persistence/') || hrefStr.startsWith('/mnt/'))) {
+              const path = hrefStr.startsWith('file://') ? hrefStr.replace('file://', '') : hrefStr;
+              return <FileButton path={path} displayName={String(children)} onFileClick={onFileClick} />;
+            }
+
+            // Regular external links
+            return (
+              <a
+                href={hrefStr}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brutal-blue hover:bg-brutal-yellow font-bold underline break-words transition-colors duration-100"
+              >
+                {children}
+              </a>
+            );
+          },
           table: (p: any) => (
             <div className="overflow-x-auto">
               <table className="text-xs border-3 border-brutal-black">{p.children}</table>
@@ -136,6 +207,35 @@ export const MarkdownRenderer = React.memo<MarkdownRendererProps>(({ content }) 
                 </p>
               );
             }
+
+            // Check if paragraph contains only simple text (for ClickableContent detection)
+            const isSimpleText = React.Children.toArray(pArg.children).every(
+              (child) => typeof child === 'string' ||
+              (React.isValidElement(child) && (child.type === 'strong' || child.type === 'em'))
+            );
+
+            // Apply ClickableContent for plain text paragraphs to detect file paths
+            if (isSimpleText && onFileClick) {
+              const extractText = (children: any): string => {
+                return React.Children.toArray(children)
+                  .map((child) => {
+                    if (typeof child === 'string') return child;
+                    if (React.isValidElement(child) && child.props?.children) {
+                      return extractText(child.props.children);
+                    }
+                    return '';
+                  })
+                  .join('');
+              };
+
+              const textContent = extractText(pArg.children);
+              return (
+                <p className="leading-relaxed break-words whitespace-pre-wrap m-0">
+                  <ClickableContent content={textContent} onFileClick={onFileClick} />
+                </p>
+              );
+            }
+
             return <p className="leading-relaxed break-words whitespace-pre-wrap m-0">{pArg.children}</p>;
           },
           blockquote: (p: any) => (

@@ -79,6 +79,13 @@ async def chat(request: Request) -> StreamingResponse:
             except json.JSONDecodeError:
                 config = {}
 
+            # Parse file metadata from form
+            files_metadata_str = form.get("files_metadata", "[]")
+            try:
+                files_metadata = json.loads(files_metadata_str)
+            except json.JSONDecodeError:
+                files_metadata = []
+
             # Process uploaded images (compress and prepare for agent)
             files = form.getlist("files")
             for file in files:
@@ -128,6 +135,7 @@ async def chat(request: Request) -> StreamingResponse:
             reset = data.get("reset", False)
             config = data.get("config", {})
             chat_id = data.get("chat_id")
+            files_metadata = data.get("files", [])
 
         if not message:
             return StreamingResponse(
@@ -231,10 +239,29 @@ async def chat(request: Request) -> StreamingResponse:
                     )
 
                 try:
+                    # Enhance message with file references if files were uploaded
+                    enhanced_message = message
+                    if files_metadata:
+                        file_list = "\n".join(
+                            [
+                                f"- {file['filename']} (type: {file['mime_type']}, path: {file['path']})"
+                                for file in files_metadata
+                            ]
+                        )
+                        file_prompt_addition = (
+                            f"\n\n[The user has attached the following files for your reference:\n"
+                            f"{file_list}\n"
+                            f"You can read these files using the ReadFileTool.]"
+                        )
+                        enhanced_message = message + file_prompt_addition
+                        logger.info(
+                            f"Enhanced message with {len(files_metadata)} file references"
+                        )
+
                     # Stream agent responses (pass PIL images to agent)
                     async for chunk in stream_agent_responses(
                         agent_instance,
-                        message,
+                        enhanced_message,
                         reset=reset,
                         chat_id=chat_id,
                         images=pil_images if pil_images else None,

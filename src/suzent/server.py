@@ -59,6 +59,7 @@ from suzent.routes.sandbox_routes import (
     delete_sandbox_file,
     serve_sandbox_file,
     serve_sandbox_file_wildcard,
+    upload_files,
 )
 from suzent.routes.skill_routes import get_skills, reload_skills, toggle_skill
 from suzent.routes.system_routes import list_host_files
@@ -161,6 +162,7 @@ app = Starlette(
             serve_sandbox_file_wildcard,
             methods=["GET"],
         ),
+        Route("/sandbox/upload", upload_files, methods=["POST"]),
         # System endpoints
         Route("/system/files", list_host_files, methods=["GET"]),
         # Memory endpoints
