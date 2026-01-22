@@ -30,7 +30,7 @@ export const BrutalDeleteOverlay: React.FC<BrutalDeleteOverlayProps> = ({
                 <button
                     onClick={onConfirm}
                     disabled={isDeleting}
-                    className="px-3 py-1.5 bg-brutal-black border-2 border-brutal-white text-white text-xs font-bold uppercase disabled:opacity-50 hover:bg-neutral-800"
+                    className="px-3 py-1.5 bg-brutal-black border-2 border-brutal-black text-white text-xs font-bold uppercase disabled:opacity-50 hover:bg-neutral-800"
                 >
                     {isDeleting ? '...' : confirmText}
                 </button>
