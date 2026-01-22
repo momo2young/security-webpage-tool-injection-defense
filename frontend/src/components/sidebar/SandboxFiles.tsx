@@ -34,7 +34,7 @@ interface SandboxFilesProps {
 
 export const SandboxFiles: React.FC<SandboxFilesProps> = ({ onViewModeChange }) => {
     const { currentChatId, config } = useChatStore();
-    const [currentPath, setCurrentPath] = useState<string>('/');
+    const [currentPath, setCurrentPath] = useState<string>('/persistence');
     const [items, setItems] = useState<FileItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
