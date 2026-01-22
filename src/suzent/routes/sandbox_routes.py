@@ -493,7 +493,9 @@ async def upload_files(request: Request) -> JSONResponse:
 
             # Get file metadata
             stat = target_path.stat()
-            mime_type = mimetypes.guess_type(safe_filename)[0] or "application/octet-stream"
+            mime_type = (
+                mimetypes.guess_type(safe_filename)[0] or "application/octet-stream"
+            )
 
             # Virtual path for agent to use
             virtual_path = f"{uploads_virtual_path}/{safe_filename}"
@@ -508,11 +510,13 @@ async def upload_files(request: Request) -> JSONResponse:
                 "path": virtual_path,
                 "size": stat.st_size,
                 "mime_type": mime_type,
-                "uploaded_at": datetime.utcnow().isoformat() + "Z"
+                "uploaded_at": datetime.utcnow().isoformat() + "Z",
             }
 
             result_files.append(file_metadata)
-            logger.info(f"Uploaded file: {safe_filename} ({stat.st_size} bytes) to {virtual_path}")
+            logger.info(
+                f"Uploaded file: {safe_filename} ({stat.st_size} bytes) to {virtual_path}"
+            )
 
         return JSONResponse({"files": result_files})
 

@@ -242,17 +242,21 @@ async def chat(request: Request) -> StreamingResponse:
                     # Enhance message with file references if files were uploaded
                     enhanced_message = message
                     if files_metadata:
-                        file_list = "\n".join([
-                            f"- {file['filename']} (type: {file['mime_type']}, path: {file['path']})"
-                            for file in files_metadata
-                        ])
+                        file_list = "\n".join(
+                            [
+                                f"- {file['filename']} (type: {file['mime_type']}, path: {file['path']})"
+                                for file in files_metadata
+                            ]
+                        )
                         file_prompt_addition = (
                             f"\n\n[The user has attached the following files for your reference:\n"
                             f"{file_list}\n"
                             f"You can read these files using the ReadFileTool.]"
                         )
                         enhanced_message = message + file_prompt_addition
-                        logger.info(f"Enhanced message with {len(files_metadata)} file references")
+                        logger.info(
+                            f"Enhanced message with {len(files_metadata)} file references"
+                        )
 
                     # Stream agent responses (pass PIL images to agent)
                     async for chunk in stream_agent_responses(
