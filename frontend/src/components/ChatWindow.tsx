@@ -356,7 +356,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       {/* Main Chat Column */}
       <div className="flex flex-col flex-1 min-w-0 h-full relative">
         <div className="relative flex-1 min-h-0">
-          <div ref={scrollContainerRef} className="h-full overflow-y-auto p-4 md:p-6 pb-6 scrollbar-thin">
+          <div
+            ref={scrollContainerRef}
+            className={safeMessages.length === 0
+              ? "h-full overflow-hidden p-4 md:p-6 pb-6"
+              : "h-full overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-6 scrollbar-thin"
+            }
+          >
             {safeMessages.length === 0 ? (
               <NewChatView
                 input={input}

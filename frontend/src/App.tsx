@@ -91,6 +91,12 @@ function AppInner(): React.ReactElement {
   React.useEffect(() => {
     console.log('Loading plan for chat:', currentChatId);
     refresh(currentChatId);
+    
+    // Auto-collapse right sidebar on new chat
+    if (!currentChatId) {
+      setIsRightSidebarOpen(false);
+    }
+
     if (window.innerWidth < 768) {
       setIsLeftSidebarOpen(false);
     }
