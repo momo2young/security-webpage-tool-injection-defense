@@ -225,8 +225,16 @@ class ExtractedFact(BaseModel):
     tags: List[str] = Field(
         default_factory=list, description="Relevant tags for the fact"
     )
-    conversation_context: Optional[ConversationContext] = Field(
-        None, description="Context from the conversation"
+    context_user_intent: str = Field(
+        "inferred from conversation",
+        description="What the user was trying to accomplish",
+    )
+    context_outcome: str = Field(
+        "extracted from conversation turn",
+        description="Result of the interaction",
+    )
+    context_agent_actions_summary: Optional[str] = Field(
+        None, description="Summary of agent actions"
     )
 
 

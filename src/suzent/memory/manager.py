@@ -367,11 +367,13 @@ class MemoryManager:
                 "category": fact.category,
                 "tags": fact.tags,
                 "source_chat_id": source_chat_id,
+                # Flattened context fields
+                "conversation_context": {
+                    "user_intent": fact.context_user_intent,
+                    "agent_actions_summary": fact.context_agent_actions_summary,
+                    "outcome": fact.context_outcome,
+                },
             }
-            if fact.conversation_context:
-                metadata["conversation_context"] = (
-                    fact.conversation_context.model_dump()
-                )
 
             # Search for similar existing memories
             similar = await self.search_memories(
@@ -473,10 +475,8 @@ class MemoryManager:
 
             facts = extraction_result.facts
 
-            # Ensure all facts have conversation_context set
-            for fact in facts:
-                if fact.conversation_context is None:
-                    fact.conversation_context = ConversationContext()
+            # Ensure defaults for context fields if missing (should be handled by Pydantic defaults but safe to check)
+            # No action needed as Pydantic model has defaults for these fields
 
             logger.info(f"LLM extracted {len(facts)} facts via schema")
 
@@ -488,8 +488,8 @@ class MemoryManager:
                     f"  Category: {fact.category}\n"
                     f"  Importance: {fact.importance}\n"
                     f"  Tags: {fact.tags}\n"
-                    f"  Context: intent={fact.conversation_context.user_intent if fact.conversation_context else 'N/A'}, "
-                    f"outcome={fact.conversation_context.outcome if fact.conversation_context else 'N/A'}"
+                    f"  Tags: {fact.tags}\n"
+                    f"  Context: intent={fact.context_user_intent}, outcome={fact.context_outcome}"
                 )
 
             return facts
@@ -533,7 +533,16 @@ class MemoryManager:
                             category=f.get("category"),
                             importance=f.get("importance", DEFAULT_IMPORTANCE),
                             tags=f.get("tags", []),
-                            conversation_context=conversation_context,
+                            # Map flat context fields from potentially nested JSON or flat JSON
+                            context_user_intent=conversation_context.user_intent
+                            if conversation_context
+                            else "inferred from conversation",
+                            context_agent_actions_summary=conversation_context.agent_actions_summary
+                            if conversation_context
+                            else None,
+                            context_outcome=conversation_context.outcome
+                            if conversation_context
+                            else "extracted from conversation turn",
                         )
                     )
 
