@@ -119,7 +119,7 @@ export async function streamChat(prompt: string, config: ChatConfig, callbacks: 
     headers = { 'Content-Type': 'application/json' };
   }
 
-  const res = await fetch('/api/chat', {
+  const res = await fetch('/chat', {
     method: 'POST',
     body,
     headers

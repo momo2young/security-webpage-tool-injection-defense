@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Message, ChatConfig, ConfigOptions, Chat, ChatSummary } from '../types/api';
+import { API_BASE } from '../lib/api';
 
 interface ChatContextValue {
   messages: Message[];
@@ -227,7 +228,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch backend config with retry logic
   const fetchConfigWithRetry = useCallback(async (attempt = 1, maxAttempts = 5) => {
     try {
-      const res = await fetch('/api/config');
+      const res = await fetch(`${API_BASE}/config`);
       if (res.ok) {
         const data: ConfigOptions = await res.json();
 
@@ -312,7 +313,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentMessages = currentChatId ? getMessagesForChat(currentChatId) : null;
     try {
       const searchParam = search !== undefined ? search : searchQuery;
-      const url = searchParam ? `/api/chats?search=${encodeURIComponent(searchParam)}` : '/api/chats';
+      const url = searchParam ? `${API_BASE}/chats?search=${encodeURIComponent(searchParam)}` : `${API_BASE}/chats`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -397,7 +398,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (chatMessages.length === 0) return;
       const chatTitle = chatMessages[0].role === 'user' ? generateChatTitle(chatMessages[0].content) : 'New Chat';
       try {
-        const res = await fetch('/api/chats', {
+        const res = await fetch(`${API_BASE}/chats`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: chatTitle, config: chatConfig, messages: chatMessages })
@@ -443,7 +444,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const payload: any = { config: chatConfig, messages: chatMessages };
       if (updateTitle) payload.title = updateTitle;
 
-      const res = await fetch(`/api/chats/${chatId}`, {
+      const res = await fetch(`${API_BASE}/chats/${chatId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -737,7 +738,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const chatTitle = firstUserMessage ? generateChatTitle(firstUserMessage.content) : 'New Chat';
 
       try {
-        const res = await fetch('/api/chats', {
+        const res = await fetch(`${API_BASE}/chats`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -833,7 +834,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const res = await fetch(`/api/chats/${chatId}`);
+      const res = await fetch(`${API_BASE}/chats/${chatId}`);
       if (res.ok) {
         const chat: Chat = await res.json();
         setCurrentChatTitle(chat.title);
@@ -862,7 +863,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [chats, configByChat, currentChatId, clearScheduledSave]); const deleteChat = useCallback(async (chatId: string) => {
     try {
-      const res = await fetch(`/api/chats/${chatId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/chats/${chatId}`, { method: 'DELETE' });
       if (res.ok) {
         const key = keyForChat(chatId);
         setMessagesByChat(prev => {

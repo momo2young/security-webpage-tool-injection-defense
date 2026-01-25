@@ -8,6 +8,7 @@ import {
     isMermaidFile,
     getLanguageForFile
 } from '../../lib/fileUtils';
+import { API_BASE } from '../../lib/api';
 
 interface FilePreviewProps {
     filename: string;
@@ -22,7 +23,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({ filename, content, cha
     const serveUrl = useMemo(() => {
         // Remove leading slash for clean URL construction
         const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-        return `/api/sandbox/serve/${chatId}/${cleanPath}`;
+        return `${API_BASE}/sandbox/serve/${chatId}/${cleanPath}`;
     }, [chatId, path]);
 
     // 1. Images

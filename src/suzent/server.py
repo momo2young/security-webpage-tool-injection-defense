@@ -193,6 +193,11 @@ app = Starlette(
 
 if __name__ == "__main__":
     import uvicorn
+    import os
 
-    logger.info("Starting Suzent server on http://0.0.0.0:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Support dynamic port from environment (for Tauri)
+    port = int(os.getenv("SUZENT_PORT", "8000"))
+    host = os.getenv("SUZENT_HOST", "0.0.0.0")  # localhost only in bundled mode
+
+    logger.info(f"Starting Suzent server on http://{host}:{port}")
+    uvicorn.run(app, host=host, port=port)

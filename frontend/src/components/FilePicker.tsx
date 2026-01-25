@@ -39,7 +39,7 @@ export const FilePicker: React.FC<FilePickerProps> = ({ isOpen, onClose, onSelec
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`/api/system/files?path=${encodeURIComponent(path)}`);
+            const res = await fetch(`/system/files?path=${encodeURIComponent(path)}`);
             const data = await res.json();
 
             if (data.error) {

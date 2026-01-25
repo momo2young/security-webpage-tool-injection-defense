@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Build Python backend executable using Nuitka."""
+
+import subprocess
+import sys
+import platform
+from pathlib import Path
+
+
+def get_output_name() -> str:
+    """Get platform-specific executable name."""
+    return "suzent-backend.exe" if platform.system() == "Windows" else "suzent-backend"
+
+
+def get_platform_flags() -> list[str]:
+    """Get platform-specific Nuitka flags."""
+    system = platform.system()
+    if system == "Windows":
+        return ["--windows-console-mode=disable"]
+    if system == "Darwin":
+        return ["--macos-create-app-bundle"]
+    return []
+
+
+def build_backend() -> None:
+    """Build the Python backend as a standalone executable."""
+    system = platform.system()
+    project_root = Path(__file__).parent.parent
+    output_dir = project_root / "src-tauri" / "binaries"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    output_name = get_output_name()
+    print(f"Building backend for {system}...")
+
+    cmd = [
+        sys.executable, "-m", "nuitka",
+        "--standalone",
+        "--onefile",
+        "--python-flag=no_site",
+        "--include-package=suzent",
+        "--include-package=crawl4ai",
+        "--include-package=lancedb",
+        "--include-package=starlette",
+        "--include-package=uvicorn",
+        "--include-package=smolagents",
+        "--include-package=litellm",
+        "--include-data-dir=config=config",
+        "--include-data-dir=skills=skills",
+        f"--output-dir={output_dir}",
+        f"--output-filename={output_name}",
+        str(project_root / "src" / "suzent" / "server.py"),
+        *get_platform_flags(),
+    ]
+
+    print("Running:", " ".join(cmd))
+    result = subprocess.run(cmd)
+
+    if result.returncode != 0:
+        print("Build failed!")
+        sys.exit(1)
+
+    print(f"\nBackend built successfully: {output_dir / output_name}")
+
+
+if __name__ == "__main__":
+    build_backend()

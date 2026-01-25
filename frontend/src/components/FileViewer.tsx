@@ -10,6 +10,8 @@ interface FileViewerProps {
     onClose: () => void;
 }
 
+import { API_BASE } from '../lib/api';
+
 export const FileViewer: React.FC<FileViewerProps> = ({ filePath, fileName, chatId, onClose }) => {
     const [fileContent, setFileContent] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -47,7 +49,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({ filePath, fileName, chat
                 return;
             }
 
-            const response = await fetch(`/api/sandbox/read_file?chat_id=${chatId}&path=${encodeURIComponent(filePath)}`);
+            const response = await fetch(`${API_BASE}/sandbox/read_file?chat_id=${chatId}&path=${encodeURIComponent(filePath)}`);
             const data = await response.json();
 
             if (data.error) {

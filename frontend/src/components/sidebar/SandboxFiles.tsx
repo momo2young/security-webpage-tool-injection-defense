@@ -58,7 +58,7 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({
         setError(null);
         try {
             const volumesParam = JSON.stringify(config.sandbox_volumes || []);
-            const res = await fetch(`/api/sandbox/files?chat_id=${currentChatId}&path=${encodeURIComponent(path)}&volumes=${encodeURIComponent(volumesParam)}`);
+            const res = await fetch(`/sandbox/files?chat_id=${currentChatId}&path=${encodeURIComponent(path)}&volumes=${encodeURIComponent(volumesParam)}`);
             const data: FileListResponse = await res.json();
 
             if (data.error) {
@@ -88,7 +88,7 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({
         setError(null);
         try {
             const volumesParam = JSON.stringify(config.sandbox_volumes || []);
-            const response = await fetch(`/api/sandbox/read_file?chat_id=${currentChatId}&path=${encodeURIComponent(path)}&volumes=${encodeURIComponent(volumesParam)}`);
+            const response = await fetch(`/sandbox/read_file?chat_id=${currentChatId}&path=${encodeURIComponent(path)}&volumes=${encodeURIComponent(volumesParam)}`);
             const data = await response.json();
             if (data.error) {
                 setError(data.error);
@@ -143,7 +143,7 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({
 
                 // Upload
                 const volumesParam = JSON.stringify(config.sandbox_volumes || []);
-                const res = await fetch(`/api/sandbox/file?chat_id=${currentChatId}&volumes=${encodeURIComponent(volumesParam)}`, {
+                const res = await fetch(`/sandbox/file?chat_id=${currentChatId}&volumes=${encodeURIComponent(volumesParam)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

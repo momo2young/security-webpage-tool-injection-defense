@@ -1,6 +1,30 @@
 import { ConfigOptions } from '../types/api';
 
 // -----------------------------------------------------------------------------
+// Tauri Integration
+// -----------------------------------------------------------------------------
+
+// Get backend port injected by Tauri (available in both dev and prod modes)
+// Falls back to empty string for browser mode (uses relative URLs via Vite proxy)
+function getApiBase(): string {
+  if (typeof window === 'undefined') return '';
+  const port = window.__SUZENT_BACKEND_PORT__;
+
+  if (port) {
+    return `http://localhost:${port}`;
+  }
+
+  // If no port is injected but we are in Tauri, default to 8000 (standard dev port)
+  if (window.__TAURI__) {
+    return 'http://localhost:8000';
+  }
+
+  return '';
+}
+
+export const API_BASE = getApiBase();
+
+// -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
 
@@ -54,7 +78,7 @@ interface VerifyProviderResponse {
 // -----------------------------------------------------------------------------
 
 export async function fetchMcpServers(): Promise<McpServersResponse> {
-  const res = await fetch('/api/mcp_servers');
+  const res = await fetch(`${API_BASE}/mcp_servers`);
   if (!res.ok) throw new Error('Failed to fetch MCP servers');
   return res.json();
 }
@@ -68,7 +92,7 @@ export async function addMcpServer(
   if (url) body.url = url;
   if (stdio) body.stdio = stdio;
 
-  const res = await fetch('/api/mcp_servers', {
+  const res = await fetch(`${API_BASE}/mcp_servers`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
@@ -77,7 +101,7 @@ export async function addMcpServer(
 }
 
 export async function removeMcpServer(name: string): Promise<void> {
-  const res = await fetch('/api/mcp_servers/remove', {
+  const res = await fetch(`${API_BASE}/mcp_servers/remove`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name })
@@ -86,7 +110,7 @@ export async function removeMcpServer(name: string): Promise<void> {
 }
 
 export async function setMcpServerEnabled(name: string, enabled: boolean): Promise<void> {
-  const res = await fetch('/api/mcp_servers/enabled', {
+  const res = await fetch(`${API_BASE}/mcp_servers/enabled`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, enabled })
@@ -100,7 +124,7 @@ export async function setMcpServerEnabled(name: string, enabled: boolean): Promi
 
 export async function fetchBackendConfig(): Promise<ConfigOptions | null> {
   try {
-    const res = await fetch('/api/config');
+    const res = await fetch(`${API_BASE}/config`);
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -117,7 +141,7 @@ export async function saveUserPreferences(preferences: {
   extraction_model?: string;
 }): Promise<boolean> {
   try {
-    const res = await fetch('/api/preferences', {
+    const res = await fetch(`${API_BASE}/preferences`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(preferences)
@@ -135,7 +159,7 @@ export async function saveUserPreferences(preferences: {
 
 export async function fetchEmbeddingModels(): Promise<string[]> {
   try {
-    const res = await fetch('/api/config/embedding-models');
+    const res = await fetch(`${API_BASE}/config/embedding-models`);
     if (!res.ok) return [];
     const data = await res.json();
     return data.models || [];
@@ -151,7 +175,7 @@ export async function fetchEmbeddingModels(): Promise<string[]> {
 
 export async function fetchApiKeys(): Promise<{ providers: ApiProvider[] } | null> {
   try {
-    const res = await fetch('/api/config/api-keys');
+    const res = await fetch(`${API_BASE}/config/api-keys`);
     if (!res.ok) throw new Error('Failed to fetch API keys');
     return await res.json();
   } catch (e) {
@@ -162,7 +186,7 @@ export async function fetchApiKeys(): Promise<{ providers: ApiProvider[] } | nul
 
 export async function saveApiKeys(keys: Record<string, string>): Promise<boolean> {
   try {
-    const res = await fetch('/api/config/api-keys', {
+    const res = await fetch(`${API_BASE}/config/api-keys`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ keys })
@@ -180,7 +204,7 @@ export async function verifyProvider(
   config: Record<string, string>
 ): Promise<VerifyProviderResponse> {
   try {
-    const res = await fetch(`/api/config/providers/${providerId}/verify`, {
+    const res = await fetch(`${API_BASE}/config/providers/${providerId}/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config })

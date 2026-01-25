@@ -3,6 +3,7 @@ import type { Message } from '../../types/api';
 import { FileIcon } from '../FileIcon';
 import { ClickableContent } from '../ClickableContent';
 import { ArrowDownTrayIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { API_BASE } from '../../lib/api';
 
 interface UserMessageProps {
   message: Message;
@@ -14,8 +15,8 @@ interface UserMessageProps {
 export const UserMessage: React.FC<UserMessageProps> = ({ message, chatId, onImageClick, onFileClick }) => {
   // Don't render empty messages (no content, no images, and no files)
   if (!message.content?.trim() &&
-      (!message.images || message.images.length === 0) &&
-      (!message.files || message.files.length === 0)) {
+    (!message.images || message.images.length === 0) &&
+    (!message.files || message.files.length === 0)) {
     return null;
   }
 
@@ -64,7 +65,7 @@ export const UserMessage: React.FC<UserMessageProps> = ({ message, chatId, onIma
                     <EyeIcon className="w-4 h-4" />
                   </button>
                   <a
-                    href={`/api/sandbox/serve?chat_id=${chatId}&path=${encodeURIComponent(file.path)}`}
+                    href={`${API_BASE}/sandbox/serve?chat_id=${chatId}&path=${encodeURIComponent(file.path)}`}
                     download={file.filename}
                     className="shrink-0 p-2 bg-brutal-blue border-2 border-brutal-black text-white hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                     title="Download file"

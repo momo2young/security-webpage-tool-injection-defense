@@ -1,6 +1,7 @@
 import os
 import importlib
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -10,8 +11,25 @@ from smolagents import Tool as _SmolTool  # type: ignore
 
 from pydantic import BaseModel, ValidationError
 
-# Project root (two levels above this file: src/suzent -> src -> project root)
-PROJECT_DIR = Path(__file__).resolve().parents[2]
+
+def get_project_root() -> Path:
+    """Get project root, handling both dev and bundled scenarios."""
+
+    # Check if running as bundled executable (Nuitka/PyInstaller)
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable
+        # Use app data directory passed from Tauri
+        if os.getenv("SUZENT_APP_DATA"):
+            return Path(os.getenv("SUZENT_APP_DATA"))
+        return Path(sys.executable).parent
+
+    # Development mode
+    # Project root (two levels above this file: src/suzent -> src -> project root)
+    return Path(__file__).resolve().parents[2]
+
+
+# Project root
+PROJECT_DIR = get_project_root()
 
 
 def _normalize_keys(d: Dict[str, Any]) -> Dict[str, Any]:

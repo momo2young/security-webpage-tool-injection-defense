@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { FileAttachment, ImageAttachment } from '../types/api';
+import { API_BASE } from '../lib/api';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB per file
 const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100 MB total
@@ -199,7 +200,7 @@ export function useUnifiedFileUpload() {
           reject(new Error('Upload was cancelled'));
         });
 
-        xhr.open('POST', `/api/sandbox/upload?chat_id=${chatId}`);
+        xhr.open('POST', `${API_BASE}/sandbox/upload?chat_id=${chatId}`);
         xhr.send(formData);
       });
 

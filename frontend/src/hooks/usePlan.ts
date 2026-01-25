@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Plan, PlanPhaseStatus } from '../types/api';
+import { API_BASE } from '../lib/api';
 
 const getPlanKey = (plan: Plan) => (plan.id != null ? `plan:${plan.id}` : plan.versionKey);
 
@@ -30,7 +31,7 @@ export const PlanProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const res = await fetch(`/api/plans?chat_id=${chatId}`);
+      const res = await fetch(`${API_BASE}/plans?chat_id=${chatId}`);
       if (res.ok) {
         const data: Plan[] = await res.json();
         setPlans(data);

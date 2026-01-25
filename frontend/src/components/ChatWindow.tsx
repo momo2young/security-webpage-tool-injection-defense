@@ -291,7 +291,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
 
     try {
-      const res = await fetch('/api/chat/stop', {
+      const res = await fetch('/chat/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: targetChatId, reason: 'User requested stop' })
@@ -314,7 +314,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     // Check if file exists before opening (silently fail if not)
     try {
       const chatIdParam = currentChatId ? `chat_id=${currentChatId}&` : '';
-      const response = await fetch(`/api/sandbox/serve?${chatIdParam}path=${encodeURIComponent(path)}`, {
+      const response = await fetch(`/sandbox/serve?${chatIdParam}path=${encodeURIComponent(path)}`, {
         method: 'HEAD'
       });
 

@@ -9,8 +9,9 @@ import type {
   MemoryStats,
   MemorySearchResponse,
 } from '../types/memory';
+import { API_BASE } from './api';
 
-const API_BASE = '/api/memory';
+const MEMORY_ENDPOINT = `${API_BASE}/memory`;
 
 export const memoryApi = {
   /**
@@ -21,7 +22,7 @@ export const memoryApi = {
     if (chatId) {
       params.set('chat_id', chatId);
     }
-    const response = await fetch(`${API_BASE}/core?${params}`);
+    const response = await fetch(`${MEMORY_ENDPOINT}/core?${params}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch core memory: ${response.statusText}`);
     }
@@ -37,7 +38,7 @@ export const memoryApi = {
     content: string,
     userId: string = 'default-user'
   ): Promise<void> {
-    const response = await fetch(`${API_BASE}/core`, {
+    const response = await fetch(`${MEMORY_ENDPOINT}/core`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -74,7 +75,7 @@ export const memoryApi = {
       params.set('query', query);
     }
 
-    const response = await fetch(`${API_BASE}/archival?${params}`);
+    const response = await fetch(`${MEMORY_ENDPOINT}/archival?${params}`);
     if (!response.ok) {
       throw new Error(`Failed to search archival memory: ${response.statusText}`);
     }
@@ -86,7 +87,7 @@ export const memoryApi = {
    * Delete an archival memory by ID
    */
   async deleteArchivalMemory(memoryId: string): Promise<void> {
-    const response = await fetch(`${API_BASE}/archival/${encodeURIComponent(memoryId)}`, {
+    const response = await fetch(`${MEMORY_ENDPOINT}/archival/${encodeURIComponent(memoryId)}`, {
       method: 'DELETE',
     });
 
@@ -99,7 +100,7 @@ export const memoryApi = {
    * Get memory statistics
    */
   async getMemoryStats(userId: string = 'default-user'): Promise<MemoryStats> {
-    const response = await fetch(`${API_BASE}/stats?user_id=${encodeURIComponent(userId)}`);
+    const response = await fetch(`${MEMORY_ENDPOINT}/stats?user_id=${encodeURIComponent(userId)}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch memory stats: ${response.statusText}`);
     }
