@@ -31,6 +31,7 @@ export const BrutalSelect: React.FC<BrutalSelectProps> = ({
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Normalize options to Option objects
   const normalizedOptions: Option[] = options.map(opt =>
@@ -67,7 +68,11 @@ export const BrutalSelect: React.FC<BrutalSelectProps> = ({
   // Close on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const isOutsideContainer = containerRef.current && !containerRef.current.contains(target);
+      const isOutsideDropdown = dropdownRef.current && !dropdownRef.current.contains(target);
+
+      if (isOutsideContainer && isOutsideDropdown) {
         setIsOpen(false);
       }
     };
@@ -80,6 +85,7 @@ export const BrutalSelect: React.FC<BrutalSelectProps> = ({
 
   const dropdown = isOpen && dropdownPosition && createPortal(
     <div
+      ref={dropdownRef}
       className={`fixed z-[9999] bg-white border-3 border-brutal-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-h-60 overflow-y-auto overflow-x-hidden animate-brutal-drop ${showScrollbar ? 'scrollbar-thin scrollbar-track-neutral-200 scrollbar-thumb-brutal-black' : 'scrollbar-none'} ${dropdownClassName}`}
       style={{
         top: dropdownPosition.top,
