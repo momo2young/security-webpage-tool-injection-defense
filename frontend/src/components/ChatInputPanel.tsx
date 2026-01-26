@@ -296,16 +296,7 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
                         ↵ SEND • ⇧↵ NEW LINE
                     </div>
 
-                    {stopStreaming && streamingForCurrentChat && (
-                        <button
-                            type="button"
-                            onClick={stopStreaming}
-                            className="h-10 bg-brutal-red border-2 border-brutal-black shadow-brutal hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all duration-100 px-4 text-xs font-bold disabled:opacity-60 disabled:cursor-not-allowed text-white uppercase shrink-0"
-                            disabled={stopInFlight}
-                        >
-                            STOP
-                        </button>
-                    )}
+
 
                     {configReady && (
                         <div className="relative shrink-0">
@@ -322,12 +313,22 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
                     )}
 
                     <button
-                        type="submit"
-                        className="h-9 bg-brutal-blue border-2 border-brutal-black shadow-brutal hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all duration-100 px-4 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white uppercase ml-1 shrink-0"
-                        disabled={isStreaming || !configReady}
-                        title="Send Message"
+                        type={stopStreaming && streamingForCurrentChat ? "button" : "submit"}
+                        onClick={(e) => {
+                            if (stopStreaming && streamingForCurrentChat) {
+                                e.preventDefault();
+                                stopStreaming();
+                            }
+                        }}
+                        className={`h-9 border-2 border-brutal-black shadow-brutal hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all duration-100 px-4 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white uppercase ml-1 shrink-0 ${stopStreaming && streamingForCurrentChat ? 'bg-brutal-red' : 'bg-brutal-blue'}`}
+                        disabled={
+                            stopStreaming && streamingForCurrentChat
+                                ? stopInFlight
+                                : (isStreaming || !configReady)
+                        }
+                        title={stopStreaming && streamingForCurrentChat ? "Stop Generating" : "Send Message"}
                     >
-                        {streamingForCurrentChat ? 'SENDING...' : 'SEND'}
+                        {stopStreaming && streamingForCurrentChat ? 'STOP' : 'SEND'}
                     </button>
                 </div>
             </div>

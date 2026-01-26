@@ -49,17 +49,17 @@ export function Sidebar({
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-brutal-black/50 z-40 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-brutal-black/50 z-40 lg:hidden backdrop-blur-sm"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
       <aside className={`
-        fixed md:relative z-50 h-full shrink-0
+        fixed lg:relative z-50 h-full shrink-0
         w-80 border-r-3 border-brutal-black flex flex-col bg-neutral-50
         transition-all duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0 md:ml-0' : '-translate-x-full md:translate-x-0 md:-ml-80'}
+        ${isOpen ? 'translate-x-0 lg:ml-0' : '-translate-x-full lg:translate-x-0 lg:-ml-80'}
       `}>
         <div className="h-14 flex items-center justify-start px-4 border-b-3 border-brutal-black bg-white sticky top-0 z-10 shrink-0">
           {/* Toggle Button (Close) */}

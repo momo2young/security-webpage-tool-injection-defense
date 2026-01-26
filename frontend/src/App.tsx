@@ -69,7 +69,7 @@ function AppInner(): React.ReactElement {
   const [sidebarTab, setSidebarTab] = useState<'chats' | 'config'>('chats');
   const [mainView, setMainView] = useState<MainView>('chat');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(window.innerWidth >= 768);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(window.innerWidth >= 1024);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 
   const { refresh } = usePlan();
@@ -99,10 +99,27 @@ function AppInner(): React.ReactElement {
       setIsRightSidebarOpen(false);
     }
 
-    if (window.innerWidth < 768) {
+    if (window.innerWidth < 1024) {
       setIsLeftSidebarOpen(false);
     }
   }, [currentChatId, refresh]);
+
+  // Track previous width to only auto-close when crossing the threshold
+  const prevWidthRef = React.useRef(window.innerWidth);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      const currentWidth = window.innerWidth;
+      // Close sidebar only when crossing the threshold from desktop to mobile
+      if (prevWidthRef.current >= 1024 && currentWidth < 1024) {
+        setIsLeftSidebarOpen(false);
+      }
+      prevWidthRef.current = currentWidth;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   function getTitle(): string | undefined {
     switch (mainView) {
