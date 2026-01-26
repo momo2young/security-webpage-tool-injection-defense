@@ -53,9 +53,16 @@ def start(
     # Check if node_modules exists
     if not (frontend_dir / "node_modules").exists():
         typer.echo("    Installing dependencies...")
-        subprocess.run(["npm", "install"], cwd=frontend_dir, check=True, shell=sys.platform == "win32")
+        subprocess.run(
+            ["npm", "install"],
+            cwd=frontend_dir,
+            check=True,
+            shell=sys.platform == "win32",
+        )
 
-    subprocess.run(["npm", "run", "dev"], cwd=frontend_dir, shell=sys.platform == "win32")
+    subprocess.run(
+        ["npm", "run", "dev"], cwd=frontend_dir, shell=sys.platform == "win32"
+    )
 
 
 @app.command()
@@ -79,7 +86,7 @@ def doctor():
     for name, cmd in checks.items():
         try:
             # Use shell=True on Windows for npm/cargo which might be scripts/shims
-            use_shell = sys.platform == "win32" and name in ["npm", "uv"] 
+            use_shell = sys.platform == "win32" and name in ["npm", "uv"]
             res = subprocess.run(cmd, capture_output=True, text=True, shell=use_shell)
             if res.returncode == 0:
                 typer.echo(f"  ✅ {name:<10} : {res.stdout.strip()}")
@@ -101,7 +108,7 @@ def upgrade():
     """Update Suzent to the latest version."""
     typer.echo("🔄 Upgrading Suzent...")
     root = get_project_root()
-    
+
     # 1. Git Pull
     typer.echo("  • Pulling latest changes...")
     try:
@@ -117,9 +124,12 @@ def upgrade():
     # 3. Update Frontend Deps
     typer.echo("  • Updating frontend dependencies...")
     frontend_dir = root / "src-tauri"
-    subprocess.run(["npm", "install"], cwd=frontend_dir, check=True, shell=sys.platform == "win32")
+    subprocess.run(
+        ["npm", "install"], cwd=frontend_dir, check=True, shell=sys.platform == "win32"
+    )
 
     typer.echo("\n✨ Suzent successfully upgraded!")
+
 
 @app.command()
 def setup_build_tools():
@@ -135,22 +145,32 @@ def setup_build_tools():
     try:
         subprocess.run(["winget", "--version"], capture_output=True, check=True)
     except (FileNotFoundError, subprocess.CalledProcessError):
-        typer.echo("❌ 'winget' not found. Please update App Installer from Microsoft Store.")
+        typer.echo(
+            "❌ 'winget' not found. Please update App Installer from Microsoft Store."
+        )
         raise typer.Exit(code=1)
 
     # Command to install VS Build Tools with C++ workload
     cmd = [
-        "winget", "install", 
-        "--id", "Microsoft.VisualStudio.2022.BuildTools", 
-        "--override", "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+        "winget",
+        "install",
+        "--id",
+        "Microsoft.VisualStudio.2022.BuildTools",
+        "--override",
+        "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended",
     ]
-    
+
     try:
         subprocess.run(cmd, check=True)
-        typer.echo("\n✅ Build Tools installed successfully! Please RESTART your terminal.")
+        typer.echo(
+            "\n✅ Build Tools installed successfully! Please RESTART your terminal."
+        )
     except subprocess.CalledProcessError:
-        typer.echo("\n❌ Installation failed. You may need to run this as Administrator.")
+        typer.echo(
+            "\n❌ Installation failed. You may need to run this as Administrator."
+        )
         raise typer.Exit(code=1)
+
 
 if __name__ == "__main__":
     app()
