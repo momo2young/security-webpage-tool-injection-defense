@@ -52,6 +52,27 @@ cd frontend
 npm install
 cd ..
 
+# 7. Setup Global CLI
+echo -e "\033[0;33mSetting up 'suzent' command...\033[0m"
+INSTALL_DIR="$HOME/.local/bin"
+mkdir -p "$INSTALL_DIR"
+
+# Create shim script
+cat > "$INSTALL_DIR/suzent" <<EOF
+#!/bin/bash
+cd "$(pwd)"
+uv run suzent "\$@"
+EOF
+
+chmod +x "$INSTALL_DIR/suzent"
+
+# Check PATH
+if [[ ":\$PATH:" != *":$INSTALL_DIR:"* ]]; then
+    echo -e "\033[0;33mWarning: $INSTALL_DIR is not in your PATH.\033[0m"
+    echo "Add this to your shell config (.bashrc / .zshrc):"
+    echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+fi
+
 echo -e "\033[0;32m✅ Setup Complete!\033[0m"
 echo "To start Suzent, run:"
-echo -e "\033[0;36m  ./scripts/start-tauri-dev.sh\033[0m"
+echo -e "\033[0;36m  suzent\033[0m"

@@ -49,6 +49,17 @@ Set-Location "frontend"
 npm install
 Set-Location ..
 
+# 7. Add to PATH (Global CLI)
+$scriptsDir = Join-Path (Get-Location) "scripts"
+$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+
+if ($currentPath -notlike "*$scriptsDir*") {
+    Write-Host "Adding $scriptsDir to PATH..." -ForegroundColor Yellow
+    [Environment]::SetEnvironmentVariable("Path", "$currentPath;$scriptsDir", "User")
+    $env:Path += ";$scriptsDir"
+    Write-Host "✅ Added 'suzent' command to PATH" -ForegroundColor Green
+}
+
 Write-Host "✅ Setup Complete!" -ForegroundColor Green
 Write-Host "To start Suzent, run:"
-Write-Host "  scripts\start-tauri-dev.ps1" -ForegroundColor Cyan
+Write-Host "  suzent" -ForegroundColor Cyan

@@ -4,11 +4,13 @@ This directory contains automation scripts for the Suzent project.
 
 ## Development
 
-### `start-tauri-dev`
-Starts the full development environment (Python backend + Tauri frontend).
-
-- **Windows**: `scripts\start-tauri-dev.ps1`
-- **Linux/macOS**: `scripts/start-tauri-dev.sh`
+### `suzent start`
+ 
+ The main entry point for development. It simultaneously starts:
+ - FastAP/Uvicorn backend (Port determined dynamically, usually 8000+)
+ - Tauri/Vite frontend (Port 1420)
+ 
+ Usage: `suzent start`
 
 ## Build
 

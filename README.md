@@ -81,6 +81,29 @@ Unlike most agents, **SUZENT** features dual workspaces: a cross-session workspa
  # MAC / LINUX
  curl -fsSL https://raw.githubusercontent.com/cyzus/suzent/main/scripts/setup.sh | bash
  ```
+ 
+ Then simply run:
+ ```bash
+ suzent start
+ ```
+ 
+ You can also run:
+ - `suzent doctor` : Check system health
+ - `suzent --help` : See all commands
+ 
+ ### **UNINSTALLING**
+ 
+ To remove the global `suzent` command:
+ 
+ **Windows**:
+ ```powershell
+ .\scripts\uninstall.ps1
+ ```
+ 
+ **Mac/Linux**:
+ ```bash
+ ./scripts/uninstall.sh
+ ```
 
 ---
 

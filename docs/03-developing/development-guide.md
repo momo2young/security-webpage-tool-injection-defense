@@ -6,7 +6,7 @@ Get SUZENT running in development mode in under 2 minutes.
 
 | **Desktop app** | Native window | Yes | `python src/suzent/server.py` AND `cd src-tauri && npm run dev` |
 
-> **Note**: For Windows users, run `scripts\start-tauri-dev.ps1`. For macOS/Linux, run `chmod +x scripts/start-tauri-dev.sh && ./scripts/start-tauri-dev.sh`.
+> **Note**: Simply run `suzent start` to launch the full development environment.
 
 ## Prerequisites
 
