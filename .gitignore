@@ -34,12 +34,12 @@ logs/
 # IDE / editor
 .vscode/
 .idea/
+.claude/
 
 # Node.js / npm
 node_modules/
 **/node_modules/
-package-lock.json
-**/package-lock.json
+**/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -61,7 +61,8 @@ src-tauri/binaries/
 src-tauri/gen/
 
 # Rust
-Cargo.lock
+# Rust
+
 
 # Generated plan files (optional - remove this line if you want to track TODO.md)
 TODO.md
