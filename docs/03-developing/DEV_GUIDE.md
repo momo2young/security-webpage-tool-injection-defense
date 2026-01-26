@@ -4,11 +4,9 @@
 
 Get SUZENT running in development mode in under 2 minutes.
 
-| Mode | What opens | Rust required | Command |
-|------|------------|---------------|---------|
 | **Desktop app** | Native window | Yes | `python src/suzent/server.py` AND `cd src-tauri && npm run dev` |
 
-> **Note**: For Windows users, you can simply run `start-tauri-dev.ps1` from the root directory.
+> **Note**: For Windows users, run `scripts\start-tauri-dev.ps1`. For macOS/Linux, run `chmod +x scripts/start-tauri-dev.sh && ./scripts/start-tauri-dev.sh`.
 
 ## Prerequisites
 
@@ -127,7 +125,7 @@ Edit `src-tauri/tauri.conf.json` to customize:
 |------|---------|
 | Start backend | `python src/suzent/server.py` |
 | Start Tauri dev | `cd src-tauri && npm run dev` |
-| Start browser dev | `cd frontend && npm run dev` |
+
 | Build full app | `cd src-tauri && npm run build:full` |
 | Build backend only | `python scripts/build_backend.py` |
 | Build Tauri only | `cd src-tauri && npm run build` |
