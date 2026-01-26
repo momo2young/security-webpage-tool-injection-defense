@@ -53,9 +53,9 @@ def start(
     # Check if node_modules exists
     if not (frontend_dir / "node_modules").exists():
         typer.echo("    Installing dependencies...")
-        subprocess.run(["npm", "install"], cwd=frontend_dir, check=True)
+        subprocess.run(["npm", "install"], cwd=frontend_dir, check=True, shell=sys.platform == "win32")
 
-    subprocess.run(["npm", "run", "dev"], cwd=frontend_dir)
+    subprocess.run(["npm", "run", "dev"], cwd=frontend_dir, shell=sys.platform == "win32")
 
 
 @app.command()
@@ -75,7 +75,9 @@ def doctor():
     all_ok = True
     for name, cmd in checks.items():
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True)
+            # Use shell=True on Windows for npm/cargo which might be scripts/shims
+            use_shell = sys.platform == "win32" and name in ["npm", "uv"] 
+            res = subprocess.run(cmd, capture_output=True, text=True, shell=use_shell)
             if res.returncode == 0:
                 typer.echo(f"  ✅ {name:<10} : {res.stdout.strip()}")
             else:
