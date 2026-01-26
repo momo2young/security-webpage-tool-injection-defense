@@ -54,8 +54,8 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install nuitka orderedset zstandard
-          pip install -r requirements.txt
+          pip install nuitka ordered-set zstandard
+          pip install .
 
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version '^2.0.0'
