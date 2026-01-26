@@ -43,13 +43,30 @@ export const BrutalSelect: React.FC<BrutalSelectProps> = ({
   // Heuristic for scrollbar: average item height is ~38px. max-h-60 is 240px. 6 items ~ 228px.
   const showScrollbar = normalizedOptions.length > 6;
 
+  // Auto-flip determination
+  const [effectiveDropUp, setEffectiveDropUp] = useState(dropUp);
+
   // Calculate dropdown position
   const updatePosition = React.useCallback(() => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const dropdownHeight = Math.min(normalizedOptions.length * 40, 240); // Estimate height
 
-      if (dropUp) {
+      const spaceAbove = rect.top;
+      const spaceBelow = window.innerHeight - rect.bottom;
+
+      let shouldDropUp = dropUp;
+
+      // Auto-flip logic
+      if (dropUp && spaceAbove < dropdownHeight && spaceBelow > dropdownHeight) {
+        shouldDropUp = false;
+      } else if (!dropUp && spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+        shouldDropUp = true;
+      }
+
+      setEffectiveDropUp(shouldDropUp);
+
+      if (shouldDropUp) {
         setDropdownPosition({
           top: rect.top - dropdownHeight - 4,
           left: rect.left,
@@ -145,7 +162,7 @@ export const BrutalSelect: React.FC<BrutalSelectProps> = ({
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <svg
-          className={`w-4 h-4 transition-transform duration-200 ${isOpen ? (dropUp ? 'rotate-0' : 'rotate-180') : (dropUp ? 'rotate-180' : 'rotate-0')}`}
+          className={`w-4 h-4 transition-transform duration-200 ${isOpen ? (effectiveDropUp ? 'rotate-0' : 'rotate-180') : (effectiveDropUp ? 'rotate-180' : 'rotate-0')}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
