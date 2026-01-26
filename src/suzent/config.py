@@ -32,6 +32,11 @@ def get_project_root() -> Path:
 PROJECT_DIR = get_project_root()
 
 
+# Data directory
+DATA_DIR = PROJECT_DIR / ".suzent"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+
 def _normalize_keys(d: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize incoming keys to lowercase snake style the model expects.
 
@@ -142,12 +147,12 @@ class ConfigModel(BaseModel):
         None  # LLM model for fact extraction (None = use heuristics)
     )
     user_id: str = "default-user"  # Default user identifier for memory system
-    lancedb_uri: str = ".suzent/data/memory"  # Path to LanceDB storage
+    lancedb_uri: str = str(DATA_DIR / "memory")  # Path to LanceDB storage
 
     # Sandbox system
     sandbox_enabled: bool = False
     sandbox_server_url: str = "http://localhost:7263"
-    sandbox_data_path: str = "data/sandbox-data"
+    sandbox_data_path: str = str(DATA_DIR / "sandbox")
     sandbox_volumes: List[
         str
     ] = []  # Additional volume mounts (format: "host_path:container_path")

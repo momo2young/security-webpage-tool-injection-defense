@@ -154,8 +154,17 @@ class MemoryConfigModel(SQLModel, table=True):
 class ChatDatabase:
     """Handles database operations for chat persistence using SQLModel."""
 
-    def __init__(self, db_path: str = "chats.db"):
-        self.db_path = Path(db_path)
+    def __init__(self, db_path: str = None):
+        if db_path is None:
+            # Use data directory from config if available, otherwise relative to project
+            try:
+                from suzent.config import DATA_DIR
+
+                self.db_path = DATA_DIR / "chats.db"
+            except ImportError:
+                self.db_path = Path(".suzent/chats.db")
+        else:
+            self.db_path = Path(db_path)
 
         # Ensure parent directory exists
         self.db_path.parent.mkdir(parents=True, exist_ok=True)

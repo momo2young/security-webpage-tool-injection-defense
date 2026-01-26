@@ -61,11 +61,6 @@ src-tauri/binaries/
 src-tauri/gen/
 
 # Rust
-# Rust
-
-
-# Generated plan files (optional - remove this line if you want to track TODO.md)
-TODO.md
 
 # Misc
 .DS_Store
@@ -80,3 +75,4 @@ data/
 # Docker compose overrides
 *.override.yml
 config/skills.json
+.suzent/

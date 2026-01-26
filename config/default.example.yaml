@@ -14,8 +14,13 @@
 # Tools to enable by default (these names must match Tool class names)
 DEFAULT_TOOLS:
   - "WebSearchTool"
-  - "PlanningTool"
   - "WebpageTool"
+  - "PlanningTool"
+  - "ReadFileTool"
+  - "WriteFileTool"
+  - "EditFileTool"
+  - "GlobTool"
+  - "GrepTool"
 
 MCP_URLS:
   "HF Space MCP": "https://evalstate-hf-mcp-server.hf.space/mcp"
@@ -46,4 +51,4 @@ EXTRACTION_MODEL: "gemini/gemini-2.5-flash" # "" to disable
 SANDBOX_ENABLED: false
 SANDBOX_SERVER_URL: http://sandbox_ip:port
 SANDBOX_VOLUMES:
-  - "./data/notebook:/mnt/notebook"
+  - ".suzent/notebook:/mnt/notebook"

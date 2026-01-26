@@ -1,15 +1,25 @@
-import typer
-import subprocess
 import sys
+import subprocess
+import typer
 from pathlib import Path
 
 app = typer.Typer(help="Suzent CLI - Your Digital Co-worker Manager")
+
+IS_WINDOWS = sys.platform == "win32"
 
 
 def get_project_root() -> Path:
     """Get the root directory of the project."""
     # Assuming this file is in src/suzent/cli.py
     return Path(__file__).parent.parent.parent
+
+
+def run_command(
+    cmd: list[str], cwd: Path = None, check: bool = True, shell_on_windows: bool = False
+):
+    """Run a subprocess command with platform-specific adjustments."""
+    use_shell = IS_WINDOWS and shell_on_windows
+    subprocess.run(cmd, cwd=cwd, check=check, shell=use_shell)
 
 
 @app.command()
@@ -35,8 +45,8 @@ def start(
         backend_cmd.append("--debug")
 
     typer.echo("  • Starting Backend...")
-    # On Windows, we might want a new window or just background it
-    if sys.platform == "win32":
+    # On Windows, we need to handle the separate window/process carefully
+    if IS_WINDOWS:
         subprocess.Popen(
             ["start", "powershell", "-NoExit", "-Command"] + [" ".join(backend_cmd)],
             shell=True,
@@ -53,16 +63,10 @@ def start(
     # Check if node_modules exists
     if not (frontend_dir / "node_modules").exists():
         typer.echo("    Installing dependencies...")
-        subprocess.run(
-            ["npm", "install"],
-            cwd=frontend_dir,
-            check=True,
-            shell=sys.platform == "win32",
-        )
+        run_command(["npm", "install"], cwd=frontend_dir, shell_on_windows=True)
 
-    subprocess.run(
-        ["npm", "run", "dev"], cwd=frontend_dir, shell=sys.platform == "win32"
-    )
+    # Start dev server
+    run_command(["npm", "run", "dev"], cwd=frontend_dir, shell_on_windows=True)
 
 
 @app.command()
@@ -79,15 +83,19 @@ def doctor():
         "uv": ["uv", "--version"],
     }
 
-    if sys.platform == "win32":
+    if IS_WINDOWS:
         checks["linker"] = ["where", "link.exe"]
 
     all_ok = True
     for name, cmd in checks.items():
         try:
-            # Use shell=True on Windows for npm/cargo which might be scripts/shims
-            use_shell = sys.platform == "win32" and name in ["npm", "uv"]
+            # Use shell=True on Windows for npm/uv/etc which might be scripts/shims
+            is_script = name in ["npm", "uv"]
+
+            # Capture output
+            use_shell = IS_WINDOWS and is_script
             res = subprocess.run(cmd, capture_output=True, text=True, shell=use_shell)
+
             if res.returncode == 0:
                 typer.echo(f"  ✅ {name:<10} : {res.stdout.strip()}")
             else:
@@ -112,21 +120,19 @@ def upgrade():
     # 1. Git Pull
     typer.echo("  • Pulling latest changes...")
     try:
-        subprocess.run(["git", "pull"], cwd=root, check=True)
+        run_command(["git", "pull"], cwd=root)
     except subprocess.CalledProcessError:
         typer.echo("  ❌ Git pull failed. Please check for local conflicts.")
         raise typer.Exit(code=1)
 
     # 2. Update Backend Deps
     typer.echo("  • Updating backend dependencies...")
-    subprocess.run(["uv", "sync"], cwd=root, check=True, shell=sys.platform == "win32")
+    run_command(["uv", "sync"], cwd=root, shell_on_windows=True)
 
     # 3. Update Frontend Deps
     typer.echo("  • Updating frontend dependencies...")
     frontend_dir = root / "src-tauri"
-    subprocess.run(
-        ["npm", "install"], cwd=frontend_dir, check=True, shell=sys.platform == "win32"
-    )
+    run_command(["npm", "install"], cwd=frontend_dir, shell_on_windows=True)
 
     typer.echo("\n✨ Suzent successfully upgraded!")
 
@@ -134,7 +140,7 @@ def upgrade():
 @app.command()
 def setup_build_tools():
     """Install Visual Studio Build Tools (Windows Only)."""
-    if sys.platform != "win32":
+    if not IS_WINDOWS:
         typer.echo("❌ This command is only for Windows.")
         raise typer.Exit(code=1)
 
