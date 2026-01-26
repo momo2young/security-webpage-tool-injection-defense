@@ -1,4 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { listen } from '@tauri-apps/api/event';
+import { readFile } from '@tauri-apps/plugin-fs';
 import { FileAttachment, ImageAttachment } from '../types/api';
 import { API_BASE } from '../lib/api';
 
@@ -134,6 +136,67 @@ export function useUnifiedFileUpload() {
     }
   }, [validateFiles]);
 
+  // Handle Tauri Drag and Drop
+  useEffect(() => {
+    // Check if running in Tauri by checking for window.__TAURI__ or similar if needed, 
+    // but the listen function works gracefully or we can just try/catch.
+    // Actually, explicit check is better to avoid errors in browser mode if imports usually fail?
+    // The imports are standard modules handled by Vite, so they exist but might throw or no-op.
+
+    let unlistenDrop: (() => void) | undefined;
+    let unlistenEnter: (() => void) | undefined;
+    let unlistenLeave: (() => void) | undefined;
+
+    const setupListener = async () => {
+      try {
+        unlistenDrop = await listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
+          setIsDragging(false); // Ensure drag state is cleared on drop
+          const files: File[] = [];
+          for (const path of event.payload.paths) {
+            try {
+              const content = await readFile(path);
+              const name = path.split(/[\\/]/).pop() || 'unknown';
+              const type = getMimeType(name);
+              files.push(new File([content], name, { type }));
+            } catch (err) {
+              console.error('Failed to read dropped file:', path, err);
+            }
+          }
+
+          if (files.length > 0) {
+            const { valid, error: validationError } = validateFiles(files);
+            if (validationError) {
+              setError(validationError);
+            } else {
+              setSelectedFiles(prev => [...prev, ...valid]);
+              setError(null);
+            }
+          }
+        });
+
+        unlistenEnter = await listen('tauri://drag-enter', () => {
+          setIsDragging(true);
+        });
+
+        unlistenLeave = await listen('tauri://drag-leave', () => {
+          setIsDragging(false);
+        });
+
+      } catch (err) {
+        // Not in Tauri or plugin not initialized
+        console.debug('Tauri drag-drop listener failed to initialize (expected in browser)', err);
+      }
+    };
+
+    setupListener();
+
+    return () => {
+      if (unlistenDrop) unlistenDrop();
+      if (unlistenEnter) unlistenEnter();
+      if (unlistenLeave) unlistenLeave();
+    };
+  }, [validateFiles]);
+
   // Convert images to base64 for preview
   const convertImagesToBase64 = useCallback(async (images: File[]): Promise<ImageAttachment[]> => {
     const promises = images.map(file => {
@@ -238,4 +301,32 @@ export function useUnifiedFileUpload() {
     handleDrop,
     uploadFiles,
   };
+}
+
+// Helper to guess mime type
+function getMimeType(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  if (!ext) return 'application/octet-stream';
+
+  const mimeMap: Record<string, string> = {
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'svg': 'image/svg+xml',
+    'pdf': 'application/pdf',
+    'txt': 'text/plain',
+    'md': 'text/markdown',
+    'json': 'application/json',
+    'js': 'text/javascript',
+    'jsx': 'text/javascript',
+    'ts': 'text/typescript',
+    'tsx': 'text/typescript',
+    'py': 'text/x-python',
+    'html': 'text/html',
+    'css': 'text/css',
+  };
+
+  return mimeMap[ext] || 'application/octet-stream';
 }

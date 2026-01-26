@@ -58,6 +58,7 @@ frontend/vite-cache
 # Tauri build artifacts
 src-tauri/target/
 src-tauri/binaries/
+src-tauri/gen/
 
 # Rust
 Cargo.lock
