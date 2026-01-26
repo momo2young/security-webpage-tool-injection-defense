@@ -6,7 +6,7 @@ SUZENT has been wrapped with Tauri 2.0 to create native desktop applications for
 
 | Document | Purpose |
 |----------|---------|
-| [DEV_GUIDE.md](./DEV_GUIDE.md) | Complete development guide (includes Quick Start) |
+| [development-guide.md](./development-guide.md) | Complete development guide (includes Quick Start) |
 
 ## Architecture
 
@@ -88,7 +88,7 @@ cd frontend && npm run dev
 # Then open http://localhost:5173
 ```
 
-See [DEV_GUIDE.md](./DEV_GUIDE.md) for detailed development instructions.
+See [development-guide.md](./development-guide.md) for detailed development instructions.
 
 ## Production Build
 

@@ -72,7 +72,7 @@ Unlike most agents, **SUZENT** features dual workspaces: a cross-session workspa
 
 ### **NATIVE SETUP (RECOMMENDED)**
 
-The fastest path to getting started. Requires **Python 3.12+**, **[Node.js 18+](https://nodejs.org/en/download)**, and **[uv](https://docs.astral.sh/uv/)**.
+The fastest path to getting started. Requires **Python 3.12+**, **[Node.js 20+](https://nodejs.org/en/download)**, and **[uv](https://docs.astral.sh/uv/)**.
 
 ```bash
 # 1. CLONE YOUR NEW CO-WORKER
@@ -90,37 +90,24 @@ npm install
 cd ..
 
 # 4. WAKE UP SUZENT
-uv run start_dev.py
+# Windows:
+scripts\start-tauri-dev.ps1
+# Mac/Linux:
+./scripts/start-tauri-dev.sh
 ```
-
-▶ **OPEN: [LOCALHOST:5173](http://localhost:5173)**
 
 ---
 
-### **DOCKER SETUP (PRODUCTION / SELF-HOSTED SEARCH)**
+### **ADVANCED**
 
-For deployment or when you want the optional SearXNG privacy-focused search engine.
-
-```bash
-# 1. CLONE & CONFIGURE
-git clone https://github.com/cyzus/suzent.git
-cd suzent
-cp .env.example .env
-
-# 2. LAUNCH (CORE STACK)
-docker compose -f docker/docker-compose.yml up -d
-
-# 2b. OR LAUNCH WITH SEARXNG (PRIVACY SEARCH)
-docker compose -f docker/docker-compose.yml --profile searxng up -d
-```
-
-▶ **OPEN: [LOCALHOST:5173](http://localhost:5173)**
+- **[Docker Services](docs/03-developing/docker-services.md)**: Optional setup for running SearXNG locally.
+- **[Utility Scripts](docs/03-developing/scripts.md)**: Guide to build and maintenance scripts.
 
 ---
 
 ## **TECH STACK**
 
-*   **BACKEND**: Python 3.12, `smolagents`, `litellm`, Starlette, SQLite.
+*   **BACKEND**: Python 3.12, smolagents, litellm, Starlette, SQLite.
 *   **FRONTEND**: React, TypeScript, Tailwind, Vite.
 *   **MEMORY**: LanceDB (Local Vector Store).
 *   **SANDBOX**: MicroSandbox.

@@ -1,6 +1,8 @@
-# Docker Services
+# Docker Services (Optional)
 
-This directory contains optional Docker configurations for auxiliary services used during development or for enhanced privacy.
+This document describes optional Docker configurations for auxiliary services.
+
+> **Note**: The core application does NOT require Docker.
 
 ## Available Services
 

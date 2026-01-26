@@ -185,4 +185,4 @@ The first Rust build takes 5-10 minutes to compile all dependencies. Subsequent 
 
 ---
 
-For production builds, see [README_DESKTOP.md](./README_DESKTOP.md#production-build).
+For production builds, see [desktop-guide.md](./desktop-guide.md#production-build).
