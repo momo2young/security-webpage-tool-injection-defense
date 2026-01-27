@@ -55,6 +55,8 @@ cd ..
 # 7. Install Src-Tauri Dependencies (for CLI)
 echo -e "\033[0;33mInstalling src-tauri dependencies...\033[0m"
 cd src-tauri
+# Remove existing lockfile/modules to ensure platform-specific binaries are fetched
+rm -rf node_modules package-lock.json
 npm install
 cd ..
 
