@@ -86,11 +86,20 @@ if [[ ":\$PATH:" != *":$INSTALL_DIR:"* ]]; then
 
     if [ -n "$CONFIG_FILE" ]; then
         echo -e "Do you want to add $INSTALL_DIR to your PATH in $CONFIG_FILE? (y/n)"
+        
+        # Capture user input, handling piped execution
         if [ -t 0 ]; then
              read -r choice
         else
-             read -r choice < /dev/tty
+             if [ -c /dev/tty ]; then
+                 # Read from TTY if available
+                 read -r choice < /dev/tty
+             else
+                 echo -e "\033[0;33mUnable to read from TTY. Skipping PATH auto-configuration.\033[0m"
+                 choice="n"
+             fi
         fi
+
         if [[ "$choice" =~ ^[Yy]$ ]]; then
              echo "" >> "$CONFIG_FILE"
              echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >> "$CONFIG_FILE"
