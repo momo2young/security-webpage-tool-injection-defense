@@ -52,6 +52,12 @@ cd frontend
 npm install
 cd ..
 
+# 7. Install Src-Tauri Dependencies (for CLI)
+echo -e "\033[0;33mInstalling src-tauri dependencies...\033[0m"
+cd src-tauri
+npm install
+cd ..
+
 # 7. Setup Global CLI
 echo -e "\033[0;33mSetting up 'suzent' command...\033[0m"
 INSTALL_DIR="$HOME/.local/bin"
@@ -101,12 +107,16 @@ if [[ ":\$PATH:" != *":$INSTALL_DIR:"* ]]; then
         fi
 
         if [[ "$choice" =~ ^[Yy]$ ]]; then
-             echo "" >> "$CONFIG_FILE"
-             echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >> "$CONFIG_FILE"
-             echo -e "\033[0;32mAdded to $CONFIG_FILE\033[0m"
-             echo "Please run: source $CONFIG_FILE"
-             # Try to export for current session if possible (though limited in script)
-             export PATH="$INSTALL_DIR:$PATH"
+             if echo "" >> "$CONFIG_FILE" 2>/dev/null && echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >> "$CONFIG_FILE" 2>/dev/null; then
+                 echo -e "\033[0;32mAdded to $CONFIG_FILE\033[0m"
+                 echo "Please run: source $CONFIG_FILE"
+                 # Try to export for current session if possible
+                 export PATH="$INSTALL_DIR:$PATH"
+             else
+                 echo -e "\033[0;31mError: Could not write to $CONFIG_FILE (Permission denied)\033[0m"
+                 echo "Please add the following to your shell config manually:"
+                 echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+             fi
         else
              echo "Please add the following to your shell config manually:"
              echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
