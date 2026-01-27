@@ -2,10 +2,14 @@
 
 ## v0.1.4
 
+### New
+- new: bash tool support in host mode
+
 ### Fix
 - fix: upgrade workflow
 - fix: markdown code block rendering
 - fix: macos path not found
+- fix: optimize path resolver logic for sandbox/host mode
 
 ## v0.1.3
 

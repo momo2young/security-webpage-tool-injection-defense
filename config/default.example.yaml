@@ -21,6 +21,7 @@ DEFAULT_TOOLS:
   - "EditFileTool"
   - "GlobTool"
   - "GrepTool"
+  - "BashTool"
 
 MCP_URLS:
   "HF Space MCP": "https://evalstate-hf-mcp-server.hf.space/mcp"

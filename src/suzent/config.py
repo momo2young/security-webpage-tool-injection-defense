@@ -125,6 +125,7 @@ class ConfigModel(BaseModel):
         "EditFileTool",
         "GlobTool",
         "GrepTool",
+        "BashTool",
     ]
     tool_options: Optional[List[str]] = None
 

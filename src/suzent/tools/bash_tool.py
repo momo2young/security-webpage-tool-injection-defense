@@ -19,7 +19,6 @@ from typing import Optional
 
 from smolagents.tools import Tool
 
-from suzent.config import CONFIG
 from suzent.logger import get_logger
 
 logger = get_logger(__name__)
@@ -201,6 +200,8 @@ Returns the execution output or error message."""
         effective_timeout = timeout or 120
 
         # Use the persistence path as working directory (same as /persistence in sandbox)
+        from suzent.config import CONFIG
+
         sandbox_data_path = Path(CONFIG.sandbox_data_path).resolve()
         working_dir = sandbox_data_path / "sessions" / self.chat_id
         working_dir.mkdir(parents=True, exist_ok=True)
@@ -252,6 +253,8 @@ Returns the execution output or error message."""
 
         # Expose persistence and shared paths (same as sandbox mode paths)
         # Note: Directories are created in _execute_on_host before this is called
+        from suzent.config import CONFIG
+
         sandbox_data_path = Path(CONFIG.sandbox_data_path).resolve()
         if self.chat_id:
             env["PERSISTENCE_PATH"] = str(sandbox_data_path / "sessions" / self.chat_id)

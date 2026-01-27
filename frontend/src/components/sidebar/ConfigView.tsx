@@ -220,7 +220,7 @@ export function ConfigView(): React.ReactElement {
           value={config.tools || []}
           onChange={(newTools) => update({ tools: newTools })}
           options={backendConfig.tools
-            .filter((t: string) => !['MemorySearchTool', 'MemoryBlockUpdateTool', 'BashTool'].includes(t))
+            .filter((t: string) => !['MemorySearchTool', 'MemoryBlockUpdateTool'].includes(t))
             .map((tool: string) => ({
               value: tool,
               label: tool.replace(/Tool$/, '').replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()

@@ -233,11 +233,10 @@ def create_agent(
 
     for tool_name in custom_tool_names:
         try:
-            # Skip memory and sandbox tools - they are handled separately
+            # Skip memory tools and SkillTool - they are handled separately
             if tool_name in [
                 "MemorySearchTool",
                 "MemoryBlockUpdateTool",
-                "BashTool",
                 "SkillTool",
             ]:
                 continue
@@ -262,17 +261,6 @@ def create_agent(
     if memory_enabled and CONFIG.memory_enabled:
         memory_tools = _create_memory_tools()
         tools.extend(memory_tools)
-
-    # Always equip BashTool - mode (sandbox vs host) is configured at injection time
-    try:
-        tool_module = importlib.import_module("suzent.tools.bash_tool")
-        tool_class = getattr(tool_module, "BashTool")
-        # Check if not already added to avoid duplicates
-        if not any(isinstance(t, tool_class) for t in tools):
-            tools.append(tool_class())
-            logger.info("BashTool equipped")
-    except Exception as e:
-        logger.error(f"Failed to equip BashTool: {e}")
 
     # Auto-equip SkillTool if any skills are enabled
     skill_manager = get_skill_manager()
