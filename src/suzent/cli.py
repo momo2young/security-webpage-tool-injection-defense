@@ -1,4 +1,5 @@
 import sys
+import os
 import subprocess
 import typer
 from pathlib import Path
@@ -12,6 +13,16 @@ def get_project_root() -> Path:
     """Get the root directory of the project."""
     # Assuming this file is in src/suzent/cli.py
     return Path(__file__).parent.parent.parent
+
+
+def ensure_cargo_in_path():
+    """Ensure Rust's cargo is in PATH for non-Windows systems."""
+    if not IS_WINDOWS:
+        cargo_bin = Path.home() / ".cargo" / "bin"
+        if cargo_bin.exists():
+            current_path = os.environ.get("PATH", "")
+            if str(cargo_bin) not in current_path:
+                os.environ["PATH"] = f"{cargo_bin}:{current_path}"
 
 
 def run_command(
@@ -31,6 +42,7 @@ def start(
 ):
     """Start the Suzent development environment."""
     root = get_project_root()
+    ensure_cargo_in_path()  # Ensure Rust is available
 
     if docs:
         typer.echo("📚 Starting Documentation Server...")

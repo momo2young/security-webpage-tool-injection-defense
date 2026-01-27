@@ -88,7 +88,6 @@ if ! command -v "uv" &> /dev/null; then
 fi
 
 # 2.5. Install Rust (Required for Tauri)
-# 2.5. Install Rust (Required for Tauri)
 if ! command -v "cargo" &> /dev/null; then
     echo -e "\033[0;33mRust is missing. Installing Rust (rustup)...\033[0m"
     # Use --no-modify-path to prevent permission errors on restricted systems
@@ -141,6 +140,8 @@ mkdir -p "$INSTALL_DIR"
 # Create shim script
 cat > "$INSTALL_DIR/suzent" <<EOF
 #!/bin/bash
+# Ensure Rust is in PATH
+source "\$HOME/.cargo/env" 2>/dev/null || true
 cd "$(pwd)"
 uv run suzent "\$@"
 EOF
