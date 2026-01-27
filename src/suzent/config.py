@@ -155,7 +155,12 @@ class ConfigModel(BaseModel):
     sandbox_data_path: str = str(DATA_DIR / "sandbox")
     sandbox_volumes: List[
         str
-    ] = []  # Additional volume mounts (format: "host_path:container_path")
+    ] = []  # Volume mounts (format: "host_path:container_path")
+
+    # Workspace configuration for non-sandbox (host) execution
+    # Defaults to DATA_DIR (.suzent) for security - agent can't modify source code
+    # Use custom volumes to grant access to additional directories (skills, notebooks, etc.)
+    workspace_root: str = str(DATA_DIR)  # Root directory for host mode bash execution
 
     @classmethod
     def load_from_files(cls) -> "ConfigModel":

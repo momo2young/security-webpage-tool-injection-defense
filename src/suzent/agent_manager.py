@@ -57,8 +57,6 @@ async def init_memory_system() -> bool:
     global memory_manager, memory_store, main_event_loop
 
     # Store reference to main event loop
-    import asyncio
-
     main_event_loop = asyncio.get_running_loop()
 
     if not CONFIG.memory_enabled:
@@ -179,9 +177,8 @@ def create_agent(
     Raises:
         ValueError: If an unknown agent type is specified.
     """
-    # Extract configuration with CONFIG-based fallbacks
-    # Extract configuration with CONFIG-based fallbacks
-    # Validate model is enabled
+    # Extract configuration with CONFIG-based fallbacks and validate model
+
     enabled_models = get_enabled_models_from_db()
 
     if not enabled_models:
@@ -209,7 +206,6 @@ def create_agent(
     )
     tool_names = (config.get("tools") or CONFIG.default_tools).copy()
     memory_enabled = config.get("memory_enabled", CONFIG.memory_enabled)
-    sandbox_enabled = config.get("sandbox_enabled", CONFIG.sandbox_enabled)
     additional_authorized_imports = (
         config.get("additional_authorized_imports")
         or CONFIG.additional_authorized_imports
@@ -267,18 +263,16 @@ def create_agent(
         memory_tools = _create_memory_tools()
         tools.extend(memory_tools)
 
-    # Equip sandbox tool if enabled
-    if sandbox_enabled:
-        try:
-            # We can use the mapping if available, or just import directly
-            tool_module = importlib.import_module("suzent.tools.bash_tool")
-            tool_class = getattr(tool_module, "BashTool")
-            # Check if not already added to avoid duplicates
-            if not any(isinstance(t, tool_class) for t in tools):
-                tools.append(tool_class())
-                logger.info("BashTool equipped (Sandbox enabled)")
-        except Exception as e:
-            logger.error(f"Failed to equip BashTool: {e}")
+    # Always equip BashTool - mode (sandbox vs host) is configured at injection time
+    try:
+        tool_module = importlib.import_module("suzent.tools.bash_tool")
+        tool_class = getattr(tool_module, "BashTool")
+        # Check if not already added to avoid duplicates
+        if not any(isinstance(t, tool_class) for t in tools):
+            tools.append(tool_class())
+            logger.info("BashTool equipped")
+    except Exception as e:
+        logger.error(f"Failed to equip BashTool: {e}")
 
     # Auto-equip SkillTool if any skills are enabled
     skill_manager = get_skill_manager()
@@ -591,6 +585,13 @@ async def get_or_create_agent(config: Dict[str, Any], reset: bool = False) -> Co
         return agent_instance
 
 
+def _get_config_value(config: Optional[dict], key: str, default: Any) -> Any:
+    """Get a config value with fallback to default if config is None or key missing."""
+    if config is None:
+        return default
+    return config.get(key, default)
+
+
 def inject_chat_context(
     agent: CodeAgent, chat_id: str, user_id: str = None, config: dict = None
 ) -> None:
@@ -606,92 +607,79 @@ def inject_chat_context(
     if not chat_id or not hasattr(agent, "_tool_instances"):
         return
 
-    from suzent.config import CONFIG
-
     # Use configured user_id if not provided
     if user_id is None:
         user_id = CONFIG.user_id
 
-    # --- Dynamic Sandbox Tool Management ---
-    # Determine effective sandbox status
-    sandbox_enabled = (
-        config.get("sandbox_enabled", CONFIG.sandbox_enabled)
-        if config
-        else CONFIG.sandbox_enabled
+    # Get effective configuration values
+    sandbox_enabled = _get_config_value(
+        config, "sandbox_enabled", CONFIG.sandbox_enabled
     )
+    workspace_root = _get_config_value(config, "workspace_root", CONFIG.workspace_root)
 
-    if not sandbox_enabled:
-        # Remove BashTool if present
-        # Update agent.tools dictionary if it exists
-        if hasattr(agent, "tools") and isinstance(agent.tools, dict):
-            if "BashTool" in agent.tools:
-                del agent.tools["BashTool"]
+    # Ensure BashTool is present
+    has_bash = any(t.__class__.__name__ == "BashTool" for t in agent._tool_instances)
+    if not has_bash:
+        try:
+            from suzent.tools.bash_tool import BashTool
 
-        # Update _tool_instances list
-        agent._tool_instances = [
-            t for t in agent._tool_instances if t.__class__.__name__ != "BashTool"
-        ]
+            bash_tool = BashTool()
+            agent._tool_instances.append(bash_tool)
+            if hasattr(agent, "tools") and isinstance(agent.tools, dict):
+                agent.tools["BashTool"] = bash_tool
+            if (
+                hasattr(agent, "toolbox")
+                and hasattr(agent.toolbox, "tools")
+                and isinstance(agent.toolbox.tools, dict)
+            ):
+                agent.toolbox.tools["BashTool"] = bash_tool
+        except Exception as e:
+            logger.error(f"Failed to dynamically equip BashTool: {e}")
 
-        # Also check agent.toolbox if it exists (smolagents structure)
-        if (
-            hasattr(agent, "toolbox")
-            and hasattr(agent.toolbox, "tools")
-            and isinstance(agent.toolbox.tools, dict)
-        ):
-            if "BashTool" in agent.toolbox.tools:
-                del agent.toolbox.tools["BashTool"]
-
-    else:
-        # Add BashTool if missing
-        has_bash = any(
-            t.__class__.__name__ == "BashTool" for t in agent._tool_instances
-        )
-        if not has_bash:
-            try:
-                from suzent.tools.bash_tool import BashTool
-
-                bash_tool = BashTool()
-                agent._tool_instances.append(bash_tool)
-                if hasattr(agent, "tools") and isinstance(agent.tools, dict):
-                    agent.tools["BashTool"] = bash_tool
-            except Exception as e:
-                logger.error(f"Failed to dynamically equip BashTool: {e}")
+    # Tool name sets for efficient lookup
+    memory_tool_names = {"MemorySearchTool", "MemoryBlockUpdateTool"}
+    file_tool_names = {
+        "ReadFileTool",
+        "WriteFileTool",
+        "EditFileTool",
+        "GlobTool",
+        "GrepTool",
+    }
 
     # --- Tool Context Injection ---
     for tool_instance in agent._tool_instances:
+        tool_name = tool_instance.__class__.__name__
+
         # Inject chat_id for tools like PlanningTool
         if hasattr(tool_instance, "set_chat_context"):
             tool_instance.set_chat_context(chat_id)
 
         # Inject user_id and chat_id for memory tools
-        if tool_instance.__class__.__name__ in [
-            "MemorySearchTool",
-            "MemoryBlockUpdateTool",
-        ]:
+        if tool_name in memory_tool_names:
             if hasattr(tool_instance, "set_context"):
                 tool_instance.set_context(chat_id=chat_id, user_id=user_id)
 
-        # Inject chat_id and custom volumes for BashTool
-        if tool_instance.__class__.__name__ == "BashTool":
+        # Configure BashTool with mode and context
+        elif tool_name == "BashTool":
             tool_instance.chat_id = chat_id
-            tool_instance.chat_id = chat_id
+            tool_instance.sandbox_enabled = sandbox_enabled
+            tool_instance.workspace_root = workspace_root
+
             # Inject per-chat sandbox volumes if configured
             volumes = get_effective_volumes(
-                config.get("sandbox_volumes") if config else None
+                _get_config_value(config, "sandbox_volumes", None)
             )
+            tool_instance.custom_volumes = volumes
 
-            if volumes and hasattr(tool_instance, "set_custom_volumes"):
+            if sandbox_enabled and hasattr(tool_instance, "set_custom_volumes"):
                 tool_instance.set_custom_volumes(volumes)
 
+            logger.debug(
+                f"BashTool configured: sandbox={sandbox_enabled}, workspace={workspace_root}"
+            )
+
         # Inject PathResolver into file tools
-        file_tool_names = [
-            "ReadFileTool",
-            "WriteFileTool",
-            "EditFileTool",
-            "GlobTool",
-            "GrepTool",
-        ]
-        if tool_instance.__class__.__name__ in file_tool_names:
+        elif tool_name in file_tool_names:
             if hasattr(tool_instance, "set_context"):
                 resolver = _create_path_resolver(chat_id, config)
                 tool_instance.set_context(resolver)
@@ -710,22 +698,18 @@ def _create_path_resolver(chat_id: str, config: Optional[dict]) -> Any:
     """
     from suzent.tools.path_resolver import PathResolver
 
-    # 1. Determine sandbox_enabled (Chat Config > Global Config)
-    sandbox_enabled = (
-        config.get("sandbox_enabled", CONFIG.sandbox_enabled)
-        if config
-        else CONFIG.sandbox_enabled
+    sandbox_enabled = _get_config_value(
+        config, "sandbox_enabled", CONFIG.sandbox_enabled
     )
-
-    # 2. Determine sandbox_volumes (Chat Config > Global Config) and auto-mounts
+    workspace_root = _get_config_value(config, "workspace_root", CONFIG.workspace_root)
     custom_volumes = get_effective_volumes(
-        config.get("sandbox_volumes") if config else None
+        _get_config_value(config, "sandbox_volumes", None)
     )
 
-    # logger.debug(f"Creating PathResolver for {chat_id} with volumes: {custom_volumes}")
     return PathResolver(
         chat_id,
         sandbox_enabled,
         sandbox_data_path=CONFIG.sandbox_data_path,
         custom_volumes=custom_volumes,
+        workspace_root=workspace_root,
     )

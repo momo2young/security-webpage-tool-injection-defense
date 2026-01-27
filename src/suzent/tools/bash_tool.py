@@ -1,16 +1,25 @@
 """
-Sandbox Tool for Agent
-======================
+BashTool for Agent
+==================
 
-Provides isolated code execution within agent conversations.
-Each chat session gets its own sandbox with persistent storage.
+Provides code execution within agent conversations.
+Each chat session gets its own session with persistent storage.
+
+Supports two modes:
+- Sandbox mode: Execute in isolated Docker container (requires microsandbox)
+- Host mode: Execute directly on host machine (restricted to workspace)
 """
 
 from __future__ import annotations
 
+import os
+import subprocess
+from pathlib import Path
 from typing import Optional
+
 from smolagents.tools import Tool
 
+from suzent.config import CONFIG
 from suzent.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,17 +37,23 @@ class BashTool(Tool):
     """
 
     name = "BashTool"
-    description = """Execute code in a secure, isolated sandbox environment.
+    description = """Execute code in a secure environment (sandbox or host mode).
 
 Supported languages:
 - python: Execute Python code
 - nodejs: Execute Node.js code
 - command: Execute shell commands
 
-Storage paths inside sandbox:
+Storage paths (works in both modes):
 - /persistence: Private storage (persists across sessions, this chat only)
 - /shared: Shared storage (accessible by all chats)
 - Custom mounts: Per-chat volumes configured in settings
+
+In host mode (non-sandbox), these environment variables are available:
+- WORKSPACE_ROOT: The workspace directory
+- PERSISTENCE_PATH: The resolved persistence directory path
+- SHARED_PATH: The resolved shared directory path
+- MOUNT_*: Custom volume paths (e.g., MOUNT_SKILLS for /mnt/skills)
 
 Returns the execution output or error message."""
 
@@ -66,6 +81,12 @@ Returns the execution output or error message."""
         self._manager = None
         self.chat_id: Optional[str] = None
         self.custom_volumes: Optional[list] = None
+        self.sandbox_enabled: bool = (
+            True  # Default to sandbox mode, overridden by config
+        )
+        self.workspace_root: Optional[str] = (
+            None  # Set by inject_chat_context for host mode
+        )
 
     @property
     def manager(self):
@@ -93,7 +114,7 @@ Returns the execution output or error message."""
         timeout: Optional[int] = None,
     ) -> str:
         """
-        Execute code or command in the sandbox.
+        Execute code or command in the sandbox or on host.
 
         Args:
             content: Code or command to execute
@@ -104,21 +125,37 @@ Returns the execution output or error message."""
             Output from execution, or error message
         """
         if not self.chat_id:
-            return "Error: No chat context. Cannot determine sandbox session."
+            return "Error: No chat context. Cannot determine execution session."
 
         # Default to Python if not specified
         lang = language or "python"
 
+        # Branch based on sandbox mode
+        if self.sandbox_enabled:
+            return self._execute_in_sandbox(content, lang, timeout)
+        else:
+            return self._execute_on_host(content, lang, timeout)
+
+    def _execute_in_sandbox(
+        self,
+        content: str,
+        language: str,
+        timeout: Optional[int] = None,
+    ) -> str:
+        """Execute code in isolated Docker sandbox."""
         try:
             # Manager is now synchronous - no async needed
             result = self.manager.execute(
-                session_id=self.chat_id, content=content, language=lang, timeout=timeout
+                session_id=self.chat_id,
+                content=content,
+                language=language,
+                timeout=timeout,
             )
 
             if result.success:
                 output = result.output or "(no output)"
                 logger.info(
-                    f"Sandbox execution successful [{lang}] for chat {self.chat_id}"
+                    f"Sandbox execution successful [{language}] for chat {self.chat_id}"
                 )
                 return output
             else:
@@ -128,3 +165,111 @@ Returns the execution output or error message."""
         except Exception as e:
             logger.error(f"Sandbox tool error: {e}")
             return f"Sandbox Error: {str(e)}"
+
+    def _execute_on_host(
+        self,
+        content: str,
+        language: str,
+        timeout: Optional[int] = None,
+    ) -> str:
+        """
+        Execute code directly on host machine, restricted to workspace.
+
+        Args:
+            content: Code or command to execute
+            language: Execution language (python, nodejs, command)
+            timeout: Execution timeout in seconds (default: 120)
+
+        Returns:
+            Output from execution, or error message
+        """
+        if not self.workspace_root:
+            return "[Error: workspace_root not configured for host execution]"
+
+        # Build command based on language
+        if language == "python":
+            cmd = ["python", "-c", content]
+        elif language == "nodejs":
+            cmd = ["node", "-e", content]
+        else:  # command/bash/shell
+            if os.name == "nt":  # Windows
+                # Use PowerShell for better compatibility
+                cmd = ["powershell", "-NoProfile", "-Command", content]
+            else:
+                cmd = ["bash", "-c", content]
+
+        effective_timeout = timeout or 120
+
+        # Use the persistence path as working directory (same as /persistence in sandbox)
+        sandbox_data_path = Path(CONFIG.sandbox_data_path).resolve()
+        working_dir = sandbox_data_path / "sessions" / self.chat_id
+        working_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=str(working_dir),  # Working directory is /persistence equivalent
+                capture_output=True,
+                text=True,
+                timeout=effective_timeout,
+                env=self._get_host_env(),
+            )
+
+            output = result.stdout
+            if result.stderr:
+                output += f"\n[stderr]: {result.stderr}"
+            if result.returncode != 0:
+                output += f"\n[exit code: {result.returncode}]"
+
+            logger.info(
+                f"Host execution successful [{language}] for chat {self.chat_id}"
+            )
+            return output if output.strip() else "(no output)"
+
+        except subprocess.TimeoutExpired:
+            logger.warning(f"Host execution timed out after {effective_timeout}s")
+            return f"[Error: Command timed out after {effective_timeout} seconds]"
+        except FileNotFoundError as e:
+            logger.error(f"Host execution command not found: {e}")
+            return f"[Error: Command not found - {e}]"
+        except Exception as e:
+            logger.error(f"Host execution error: {e}")
+            return f"[Error: {str(e)}]"
+
+    def _get_host_env(self) -> dict:
+        """
+        Get environment variables for host execution.
+
+        Includes:
+        - All current environment variables
+        - WORKSPACE_ROOT pointing to the workspace directory
+        - PERSISTENCE_PATH pointing to the session's persistence directory
+        - SHARED_PATH pointing to the shared directory
+        - Custom volume paths as MOUNT_* environment variables
+        """
+        env = os.environ.copy()
+        env["WORKSPACE_ROOT"] = str(Path(self.workspace_root).resolve())
+
+        # Expose persistence and shared paths (same as sandbox mode paths)
+        # Note: Directories are created in _execute_on_host before this is called
+        sandbox_data_path = Path(CONFIG.sandbox_data_path).resolve()
+        if self.chat_id:
+            env["PERSISTENCE_PATH"] = str(sandbox_data_path / "sessions" / self.chat_id)
+
+        env["SHARED_PATH"] = str(sandbox_data_path / "shared")
+
+        # Expose custom volume paths as env vars
+        if self.custom_volumes:
+            from suzent.tools.path_resolver import PathResolver
+
+            for mount_str in self.custom_volumes:
+                parsed = PathResolver.parse_volume_string(mount_str)
+                if parsed:
+                    host_path, container_path = parsed
+                    # Convert /mnt/skills -> MOUNT_SKILLS
+                    env_name = container_path.replace("/", "_").strip("_").upper()
+                    if env_name.startswith("MNT_"):
+                        env_name = "MOUNT_" + env_name[4:]
+                    env[env_name] = str(Path(host_path).resolve())
+
+        return env

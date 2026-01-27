@@ -1,45 +1,111 @@
-# Filesystem
+# Filesystem & Execution
 
-The filesystem module provides secure file access for agents through a virtual filesystem that isolates each chat session's data.
+Suzent provides secure file access and code execution through two modes: **Sandbox Mode** (isolated MicroVM) and **Host Mode** (direct execution with restrictions).
 
-## Virtual Filesystem
+## Execution Modes
 
-Agents access files through virtual paths that map to isolated storage locations:
+| Mode | BashTool | File Tools | Path Style |
+|------|----------|------------|------------|
+| **Sandbox** | Runs in MicroVM | Virtual filesystem | `/persistence`, `/shared`, `/mnt/*` |
+| **Host** | Runs on host | Host filesystem | `$PERSISTENCE_PATH`, `$SHARED_PATH`, `$MOUNT_*` |
+
+Toggle sandbox in the chat settings when creating a conversation.
+
+---
+
+## Virtual Filesystem (Both Modes)
 
 | Virtual Path | Maps To | Purpose |
 |-------------|---------|---------|
-| `/persistence` | `data/sandbox-data/sessions/{chat_id}/` | Per-chat storage |
-| `/shared` | `data/sandbox-data/shared/` | Shared across all chats |
-| `/uploads` | `data/sandbox-data/sessions/{chat_id}/uploads/` | Uploaded files |
+| `/persistence` | `.suzent/sandbox/sessions/{chat_id}/` | Per-chat storage |
+| `/shared` | `.suzent/sandbox/shared/` | Shared across all chats |
+| `/uploads` | `.suzent/sandbox/sessions/{chat_id}/uploads/` | Uploaded files |
+| `/mnt/*` | Custom volumes | Host directories |
 
-**Relative paths** default to `/persistence`:
-- `data.csv` → `/persistence/data.csv`
+**Relative paths** default to `/persistence`: `data.csv` → `/persistence/data.csv`
 
-**Custom mounts** let you access host directories:
+### Custom Volume Mounts
 
 ```yaml
 # config/default.yaml
 sandbox_volumes:
   - "D:/datasets:/data"
+  - "D:/skills:/mnt/skills"
 ```
 
 Now `/data/file.csv` maps to `D:/datasets/file.csv` on your host.
 
+---
+
+## Sandbox Mode
+
+Uses **Microsandbox** (Firecracker MicroVMs) for isolated execution.
+
+### Features
+- **Isolation**: Each session runs in its own MicroVM
+- **Auto-Healing**: Automatically restarts crashed sessions
+- **Multi-language**: Python, Node.js, shell commands
+
+### Setup
+
+1. **Docker**: Required to run `microsandbox` service
+2. **Configure** `docker/sandbox-compose.yml`:
+
+```yaml
+services:
+  microsandbox:
+    image: microsandbox/microsandbox:latest
+    privileged: true
+    volumes:
+      - microsandbox-data:/root/.local/share/microsandbox
+      - ..:/workspace
+      # Windows: Map for custom volumes
+      - C:/Users:/mnt/c/Users
+```
+
+3. **Configure** `config/default.yaml`:
+
+```yaml
+sandbox_enabled: true
+sandbox_server_url: "http://localhost:7263"
+```
+
+---
+
+## Host Mode
+
+Executes directly on the host machine with path restrictions.
+
+### Environment Variables
+
+In host mode, use these environment variables in bash commands:
+
+| Variable | Points To |
+|----------|-----------|
+| `$PERSISTENCE_PATH` | Session directory (same as `pwd`) |
+| `$SHARED_PATH` | Shared directory |
+| `$MOUNT_SKILLS` | Skills directory |
+| `$MOUNT_*` | Other mounted volumes |
+
+### Security
+
+- Working directory (`pwd`) is the session's persistence folder
+- Only paths within `.suzent/`, `/persistence`, `/shared`, and custom mounts are allowed
+- Source code directories are **blocked** by default
+
+---
+
 ## File Tools
 
 ### ReadFileTool
-
-Read files with automatic format conversion.
+Read files with automatic format conversion (text, PDF, DOCX, XLSX, images with OCR).
 
 ```python
 ReadFileTool(file_path="/persistence/data.csv")
 ReadFileTool(file_path="report.pdf", offset=10, limit=50)
 ```
 
-**Supports:** Text files, PDFs, DOCX, XLSX, images (with OCR)
-
 ### WriteFileTool
-
 Create or overwrite files.
 
 ```python
@@ -50,7 +116,6 @@ WriteFileTool(file_path="/persistence/output.txt", content="Hello")
 > Overwrites entire file. Use `EditFileTool` for small changes.
 
 ### EditFileTool
-
 Make precise text replacements.
 
 ```python
@@ -62,7 +127,6 @@ EditFileTool(
 ```
 
 ### GlobTool
-
 Find files by pattern.
 
 ```python
@@ -71,7 +135,6 @@ GlobTool(pattern="*.csv", path="/data")  # CSVs in /data
 ```
 
 ### GrepTool
-
 Search file contents.
 
 ```python
@@ -79,42 +142,7 @@ GrepTool(pattern="def.*:", path="/persistence")  # Find functions
 GrepTool(pattern="TODO", include="*.py")  # TODOs in Python files
 ```
 
-## Examples
-
-### Basic Operations
-
-```python
-# Write and read
-WriteFileTool(file_path="/persistence/data.json", content='{"x": 1}')
-ReadFileTool(file_path="/persistence/data.json")
-
-# Edit
-EditFileTool(
-    file_path="/persistence/data.json",
-    old_string='"x": 1',
-    new_string='"x": 2'
-)
-```
-
-### Using Custom Mounts
-
-```python
-# Read from host directory
-ReadFileTool(file_path="/data/dataset.csv")
-
-# Save results back to host
-WriteFileTool(file_path="/data/output.csv", content=results)
-```
-
-### Search and Discovery
-
-```python
-# Find all Python files
-GlobTool(pattern="**/*.py")
-
-# Search for specific code
-GrepTool(pattern="def process", include="*.py")
-```
+---
 
 ## Security
 
@@ -125,16 +153,16 @@ All paths are validated to prevent directory traversal:
 - ✅ `/data/file.txt` (if mounted)
 - ❌ `/etc/passwd`
 - ❌ `../../../secret`
+- ❌ Project source code (in host mode)
+
+---
 
 ## Troubleshooting
 
-**File not found:** Check the file exists in `data/sandbox-data/sessions/{chat_id}/`
-
-**Path traversal error:** Paths must be within `/persistence`, `/shared`, or custom mounts
-
-**Custom volume not accessible:** Verify `sandbox_volumes` in config and Docker volume mapping
-
-## Related
-
-- [Sandbox Module](sandbox.md) - Secure code execution
-- [Tools Overview](tools/tools.md) - All available tools
+| Issue | Solution |
+|-------|----------|
+| **File not found** | Check `.suzent/sandbox/sessions/{chat_id}/` |
+| **Path traversal error** | Ensure path is within allowed directories |
+| **Volume not accessible** | Verify `sandbox_volumes` in config |
+| **Timeout/ConnectionRefused** | Check `sandbox_server_url` and Docker status |
+| **WSL issues** | Use WSL IP instead of `localhost` |

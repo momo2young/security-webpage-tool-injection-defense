@@ -6,6 +6,8 @@ filesystem paths, abstracting the difference between sandbox and non-sandbox
 execution environments.
 """
 
+import fnmatch
+import os
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -32,9 +34,10 @@ class PathResolver:
         self,
         chat_id: str,
         sandbox_enabled: bool,
-        sandbox_data_path: str = "data/sandbox-data",
-        uploads_path: str = "data/uploads",
+        sandbox_data_path: Optional[str] = None,
+        uploads_path: Optional[str] = None,
         custom_volumes: Optional[List[str]] = None,
+        workspace_root: Optional[str] = None,
     ):
         """
         Initialize the path resolver.
@@ -42,14 +45,22 @@ class PathResolver:
         Args:
             chat_id: The chat session identifier
             sandbox_enabled: Whether sandbox mode is active
-            sandbox_data_path: Base path for sandbox data (default: "data/sandbox-data")
-            uploads_path: Base path for non-sandbox uploads (default: "data/uploads")
+            sandbox_data_path: Base path for sandbox data (default: from CONFIG)
+            uploads_path: Base path for uploads (default: from CONFIG)
             custom_volumes: List of "host:container" volume mapping strings
+            workspace_root: Root directory for host mode execution (default: from CONFIG)
         """
+        from suzent.config import CONFIG
+
         self.chat_id = chat_id
         self.sandbox_enabled = sandbox_enabled
-        self.sandbox_data_path = Path(sandbox_data_path).resolve()
-        self.uploads_path = Path(uploads_path).resolve()
+        self.sandbox_data_path = Path(
+            sandbox_data_path or CONFIG.sandbox_data_path
+        ).resolve()
+        self.uploads_path = Path(
+            uploads_path or CONFIG.sandbox_data_path
+        ).resolve()  # Use sandbox path for consistency
+        self.workspace_root = Path(workspace_root or CONFIG.workspace_root).resolve()
         self.custom_mounts: Dict[str, Path] = {}  # container_path -> host_path
 
         # Parse custom volumes (supported in both modes for consistency)
@@ -85,8 +96,6 @@ class PathResolver:
         Convert Windows path to Linux/WSL path if applicable.
         E.g. D:\\workspace -> /mnt/d/workspace
         """
-        import os
-
         if os.name != "nt":
             return path
 
@@ -182,8 +191,8 @@ class PathResolver:
 
     def _resolve_path(self, virtual_path: str) -> Path:
         """Resolve path using unified logic (custom mounts, persistence, shared)."""
-        # 1. Check custom mounts
-        # check for longest matching prefix to handle nested mounts correctly
+        # 1. Check custom mounts first (works in both sandbox and host modes)
+        # Check for longest matching prefix to handle nested mounts correctly
         best_match = None
         best_match_len = 0
 
@@ -211,38 +220,108 @@ class PathResolver:
                     f"Path traversal detected in custom volume: {resolved}"
                 )
 
-        # 2. Standard Sandbox Paths
-        if virtual_path.startswith("/persistence/") or virtual_path == "/persistence":
-            rel_path = virtual_path[len("/persistence") :].lstrip("/")
-            base = self.sandbox_data_path / "sessions" / self.chat_id
-            resolved = (base / rel_path).resolve() if rel_path else base.resolve()
+        # 2. Branch based on sandbox mode for absolute host paths
+        if not self.sandbox_enabled:
+            # HOST MODE: check for absolute host paths first
+            is_windows_absolute = len(virtual_path) > 1 and virtual_path[1] == ":"
+            is_unix_absolute = virtual_path.startswith("/") and not any(
+                virtual_path.startswith(prefix)
+                for prefix in ["/persistence", "/shared", "/uploads", "/mnt"]
+            )
+            if is_windows_absolute or is_unix_absolute:
+                resolved = Path(virtual_path).resolve()
+                return self._validate_within_workspace(resolved)
 
-        elif virtual_path.startswith("/shared/") or virtual_path == "/shared":
-            rel_path = virtual_path[len("/shared") :].lstrip("/")
-            base = self.sandbox_data_path / "shared"
-            resolved = (base / rel_path).resolve() if rel_path else base.resolve()
-
-        elif virtual_path.startswith("/uploads/") or virtual_path == "/uploads":
-            # Map /uploads to /persistence/uploads for convenience
-            rel_path = virtual_path[len("/uploads") :].lstrip("/")
-            base = self.sandbox_data_path / "sessions" / self.chat_id / "uploads"
-            base.mkdir(parents=True, exist_ok=True)
-            resolved = (base / rel_path).resolve() if rel_path else base.resolve()
-
-        elif virtual_path.startswith("/"):
-            # Absolute paths default to /persistence if no other match
-            rel_path = virtual_path.lstrip("/")
-            base = self.sandbox_data_path / "sessions" / self.chat_id
-            resolved = (base / rel_path).resolve()
-
-        else:
-            # Relative paths are relative to /persistence
-            base = self.sandbox_data_path / "sessions" / self.chat_id
-            resolved = (base / virtual_path).resolve()
+        # 3. Resolve virtual paths (same logic for both sandbox and host modes)
+        resolved = self._resolve_virtual_path(virtual_path)
 
         # Security check: ensure resolved path is within allowed directories
         self._validate_path(resolved)
         return resolved
+
+    def _resolve_virtual_path(self, path: str) -> Path:
+        """
+        Resolve virtual paths like /persistence, /shared, /uploads.
+        Used by both sandbox and host modes.
+
+        Args:
+            path: Virtual path to resolve
+
+        Returns:
+            Resolved Path on host filesystem
+        """
+        if path.startswith("/persistence/") or path == "/persistence":
+            rel_path = path[len("/persistence") :].lstrip("/")
+            base = self.sandbox_data_path / "sessions" / self.chat_id
+            return (base / rel_path).resolve() if rel_path else base.resolve()
+
+        if path.startswith("/shared/") or path == "/shared":
+            rel_path = path[len("/shared") :].lstrip("/")
+            base = self.sandbox_data_path / "shared"
+            return (base / rel_path).resolve() if rel_path else base.resolve()
+
+        if path.startswith("/uploads/") or path == "/uploads":
+            rel_path = path[len("/uploads") :].lstrip("/")
+            base = self.sandbox_data_path / "sessions" / self.chat_id / "uploads"
+            base.mkdir(parents=True, exist_ok=True)
+            return (base / rel_path).resolve() if rel_path else base.resolve()
+
+        if path.startswith("/"):
+            # Absolute paths default to /persistence if no other match
+            rel_path = path.lstrip("/")
+            base = self.sandbox_data_path / "sessions" / self.chat_id
+            return (base / rel_path).resolve()
+
+        # Relative paths are relative to /persistence
+        base = self.sandbox_data_path / "sessions" / self.chat_id
+        return (base / path).resolve()
+
+    def _validate_within_workspace(self, resolved: Path) -> Path:
+        """
+        Ensure resolved path is within workspace, sandbox-data, or custom volumes.
+
+        Used for validating absolute host paths in host mode.
+
+        Args:
+            resolved: The resolved absolute path to validate
+
+        Returns:
+            The validated path if within allowed boundaries
+
+        Raises:
+            ValueError: If path is outside all allowed directories
+        """
+        # Check if within workspace
+        try:
+            resolved.relative_to(self.workspace_root)
+            return resolved
+        except ValueError:
+            pass
+
+        # Check if within sandbox data directories (same validation as sandbox mode)
+        allowed_sandbox_roots = [
+            self.sandbox_data_path / "sessions" / self.chat_id,
+            self.sandbox_data_path / "shared",
+        ]
+        for root in allowed_sandbox_roots:
+            try:
+                resolved.relative_to(root.resolve())
+                return resolved
+            except ValueError:
+                continue
+
+        # Check if within any custom volume host path
+        for host_path in self.custom_mounts.values():
+            try:
+                resolved.relative_to(host_path.resolve())
+                return resolved  # Within custom volume
+            except ValueError:
+                continue
+
+        raise ValueError(
+            f"Path '{resolved}' is outside workspace, sandbox-data, and custom volumes. "
+            f"Workspace: {self.workspace_root}, Sandbox: {self.sandbox_data_path}"
+        )
 
     def _validate_path(self, resolved: Path) -> None:
         """Validate that path is within allowed directories."""
@@ -263,17 +342,6 @@ class PathResolver:
         raise ValueError(
             f"Path traversal detected: {resolved} is outside allowed directories"
         )
-
-    def _validate_non_sandbox_path(self, resolved: Path) -> None:
-        """Validate that path is within allowed non-sandbox directories."""
-        allowed_root = self.uploads_path / self.chat_id
-
-        try:
-            resolved.relative_to(allowed_root.resolve())
-        except ValueError:
-            raise ValueError(
-                f"Path traversal detected: {resolved} is outside {allowed_root}"
-            )
 
     def is_path_allowed(self, path: Path) -> bool:
         """
@@ -321,48 +389,12 @@ class PathResolver:
         """
         Check if a file at this virtual path would be hidden by a mount.
 
-        Example: if /persistence/data is a mount point, then a file at
-        host path .../persistence/data/file.txt (from base layer) is shadowed.
+        Note: This is a stub implementation that returns False.
+        Complex mount shadowing detection is not yet implemented.
         """
-        # Ensure consistent separator
-        virtual_path = virtual_path.replace("\\", "/")
-
-        for mount_point in self.custom_mounts.keys():
-            # If the path equals a mount point, it's the mount itself (not shadowed)
-            if virtual_path == mount_point:
-                continue
-
-            # If path is inside a mount point, it belongs to that mount
-            if virtual_path.startswith(f"{mount_point}/"):
-                continue
-
-            # If we are here, the path is NOT inside this mount.
-            # But we need to check if this mount sits ON TOP of our path.
-            # In a flat virtual root list this is subtle, but primarily we care about
-            # base persistence vs custom mounts.
-
-            # Implementation for now:
-            # If we are scanning a base root (like /persistence) and encounter a directory
-            # that is ALSO a mount point, we should stop descending into it if we are
-            # representing the base layer.
-            # However, `is_shadowed` is asked about a specific FILE.
-
-            # The tool logic will generally be:
-            # 1. List files in /persistence (Host: .../sessions/123)
-            # 2. If we find .../sessions/123/mnt/data/file.txt
-            #    Virtual Path: /persistence/mnt/data/file.txt
-            # 3. BUT if /persistence/mnt/data IS a custom mount point,
-            #    then that file.txt is physically shadowed by the mount in the container.
-
-            if mount_point == virtual_path or mount_point.startswith(
-                f"{virtual_path}/"
-            ):
-                # This logic is for avoiding traversal INTO a mount point from below,
-                # not exactly shadowing.
-                pass
-
-        return False  # TODO: Implement robust shadowing check if complex nesting is needed.
+        # TODO: Implement robust shadowing check if complex nesting is needed.
         # For now, strict mount lists in get_virtual_roots + standard resolution is safe.
+        return False
 
     def to_virtual_path(self, host_path: Path) -> Optional[str]:
         """
@@ -426,8 +458,6 @@ class PathResolver:
         """
         Find files matching a glob pattern, handling virtual roots transparently.
         """
-        import fnmatch
-
         results = []
         seen_virtual_paths = set()
 

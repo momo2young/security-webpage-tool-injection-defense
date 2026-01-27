@@ -115,8 +115,14 @@ Examples:
                     matches = self._search_file(file_path, regex, ctx)
                     if matches:
                         files_with_matches += 1
+                        # Return host path in host mode, virtual path in sandbox mode
+                        display_path = (
+                            str(file_path)
+                            if not self._resolver.sandbox_enabled
+                            else v_path
+                        )
                         for line_num, content in matches:
-                            results.append((v_path, line_num, content))
+                            results.append((display_path, line_num, content))
                 except Exception as e:
                     logger.debug(f"Could not search {file_path}: {e}")
 

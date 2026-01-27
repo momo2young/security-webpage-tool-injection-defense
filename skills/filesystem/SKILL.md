@@ -3,23 +3,32 @@ name: filesystem-skill
 description: Become a helpful co-worker in the workspace. Use it whenever you need to access, manage, or reference files.
 ---
 
-## Important Directories
-- `/persistence` - your persistence directory for this chat session
-- `/persistence/uploads` - files uploaded by the user in this chat session
-- `/shared` - workspace shared across different chat sessions
+## Execution Modes
 
+### Sandbox Mode
+When sandbox is enabled, use **virtual paths**:
+- `/persistence` - your persistence directory for this chat session
+- `/persistence/uploads` - files uploaded by the user
+- `/shared` - workspace shared across chat sessions
 - `/mnt/skills` - skills directory
-- `/mnt/...` - all other directories are mounted under /mnt/
+- `/mnt/...` - custom mounted directories
+
+### Host Mode (Non-Sandbox)
+When sandbox is disabled:
+- **GlobTool/GrepTool** return **host paths** (e.g., `D:\workspace\...`)
+- **ReadFileTool/WriteFileTool** accept both virtual and host paths
+- **BashTool** uses host paths; `pwd` is the session persistence folder
+- Environment variables: `$PERSISTENCE_PATH`, `$SHARED_PATH`, `$MOUNT_*`
+
+Or use **relative paths** from the working directory.
 
 ## File Path Formatting
-When you create, modify, or reference files, always format them as markdown links using the file:// protocol:
+When referencing files for the user, format as clickable markdown links:
 
-[filename](file:///full/path/to/file) or `full/path/to/file`
+`[filename](file:///full/path/to/file)`
 
 Examples:
 - "I saved the report to [report.pdf](file:///persistence/report.pdf)"
-- "Check [data.csv](file:///mnt/data/data.csv) for the analysis results"
-- "I've created [config.json](file:///persistence/config.json) with your settings"
-
-This makes the path clickable for the user to view the file.
+- "Check [data.csv](file:///mnt/data/data.csv) for the analysis"
+- "Created [config.json](file:///persistence/config.json)"
 

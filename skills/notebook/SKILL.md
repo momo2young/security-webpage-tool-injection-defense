@@ -1,20 +1,22 @@
 ---
 name: notebook-skill
-description: Gain access to the Obsidian notebook vault in `/mnt/notebook`.
+description: Gain access to the Obsidian notebook vault.
 ---
 
 # Notebook Skill
 
-This skill enables skills-compatible agents to gain access to the user's Obsidian vault, create and edit valid Obsidian Flavored Markdown, including all Obsidian-specific syntax extensions.
+This skill enables agents to access the user's Obsidian vault, create and edit Obsidian Flavored Markdown.
 
-## Directory Structure
+## Access Path
 
-The Obsidian vault is mounted at `/mnt/notebook`.
+| Mode | Path |
+|------|------|
+| **Sandbox** | `/mnt/notebook` |
+| **Host** | `$MOUNT_NOTEBOOK` or `cd $MOUNT_NOTEBOOK` |
 
-## Flavor
+## Obsidian Markdown Flavor
 
-Obsidian uses a combination of Markdown flavors:
 - [CommonMark](https://commonmark.org/)
 - [GitHub Flavored Markdown](https://github.github.com/gfm/)
 - [LaTeX](https://www.latex-project.org/) for math
-- Obsidian-specific extensions (wikilinks, callouts, embeds, etc.)
+- Obsidian extensions: wikilinks `[[page]]`, callouts, embeds `![[file]]`

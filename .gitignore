@@ -76,3 +76,9 @@ data/
 *.override.yml
 config/skills.json
 .suzent/
+
+# Skills
+skills/docx
+skills/pdf
+skills/xlsx
+skills/pptx

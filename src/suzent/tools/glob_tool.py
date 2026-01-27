@@ -91,7 +91,13 @@ Examples:
             # Format results for GlobTool (needs host path for is_dir check)
             results = []
             for host_path, virtual_path in found_files:
-                results.append((virtual_path, host_path.is_dir()))
+                # Return host path in host mode, virtual path in sandbox mode
+                display_path = (
+                    str(host_path)
+                    if not self._resolver.sandbox_enabled
+                    else virtual_path
+                )
+                results.append((display_path, host_path.is_dir()))
 
             # Sort results: Files first, then alphabetical
             results.sort(key=lambda x: (not x[1], x[0].lower()))
