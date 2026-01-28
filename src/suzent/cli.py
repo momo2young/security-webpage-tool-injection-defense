@@ -15,6 +15,7 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent.parent
 
 
+
 def ensure_cargo_in_path():
     """Ensure Rust's cargo is in PATH for non-Windows systems."""
     if not IS_WINDOWS:
@@ -23,6 +24,40 @@ def ensure_cargo_in_path():
             current_path = os.environ.get("PATH", "")
             if str(cargo_bin) not in current_path:
                 os.environ["PATH"] = f"{cargo_bin}:{current_path}"
+
+
+def get_pid_on_port(port: int) -> int | None:
+    """Get the PID of the process using the specified port."""
+    try:
+        if IS_WINDOWS:
+            # Run netstat -ano | findstr :<port>
+            cmd = f"netstat -ano | findstr :{port}"
+            result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+            if result.returncode == 0 and result.stdout:
+                # Output format: TCP    0.0.0.0:8000    0.0.0.0:0    LISTENING    1234
+                for line in result.stdout.strip().splitlines():
+                    parts = line.split()
+                    if len(parts) >= 5 and f":{port}" in parts[1]:
+                        return int(parts[-1])
+        else:
+            # Run lsof -t -i:<port>
+            # -t: terse (PID only)
+            # -i: internet files
+            cmd = ["lsof", "-t", f"-i:{port}"]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout:
+                return int(result.stdout.strip().split("\n")[0])
+    except Exception:
+        pass  # Fail safe
+    return None
+
+
+def kill_process(pid: int):
+    """Kill a process by PID."""
+    if IS_WINDOWS:
+        subprocess.run(["taskkill", "/F", "/PID", str(pid)], check=True, shell=True)
+    else:
+        subprocess.run(["kill", "-9", str(pid)], check=True)
 
 
 def run_command(
@@ -50,6 +85,22 @@ def start(
         return
 
     typer.echo("🚀 Starting SUZENT...")
+
+    # Check port 8000
+    pid = get_pid_on_port(8000)
+    if pid:
+        typer.echo(f"\n⚠️  Port 8000 is already in use by PID {pid}.")
+        if typer.confirm("   Do you want to kill this process to continue?"):
+            typer.echo(f"   🔪 Killing PID {pid}...")
+            try:
+                kill_process(pid)
+                typer.echo("   ✅ Process killed.")
+            except Exception as e:
+                typer.echo(f"   ❌ Failed to kill process: {e}")
+                raise typer.Exit(code=1)
+        else:
+            typer.echo("   ❌ Startup aborted.")
+            raise typer.Exit(code=1)
 
     # 1. Start Backend
     backend_cmd = ["python", "src/suzent/server.py"]
