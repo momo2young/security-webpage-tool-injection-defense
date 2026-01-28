@@ -78,6 +78,16 @@ def build_backend() -> None:
         f"--include-data-dir={project_root / 'skills'}=skills",
         f"--output-dir={output_dir}",
         f"--output-filename={output_name}",
+        # Exclude heavy unused modules to prevent C compiler heap exhaustion
+        "--nofollow-import-to=sqlalchemy.dialects.postgresql",
+        "--nofollow-import-to=sqlalchemy.dialects.mysql",
+        "--nofollow-import-to=sqlalchemy.dialects.oracle",
+        "--nofollow-import-to=sqlalchemy.dialects.mssql",
+        "--nofollow-import-to=pytest",  # Exclude testing framework
+        "--nofollow-import-to=lancedb.conftest",  # Exclude lancedb test config
+        "--nofollow-import-to=litellm.proxy",  # Exclude litellm server/proxy components
+        "--nofollow-import-to=pandas.tests",
+        "--nofollow-import-to=numpy.tests",
         str(project_root / "src" / "suzent" / "server.py"),
         *get_platform_flags(),
     ]

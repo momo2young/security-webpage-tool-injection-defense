@@ -5,6 +5,9 @@
 ### New
 - new: bash tool support in host mode
 
+### Update
+- update: inject selected context folder to system prompt
+
 ### Fix
 - fix: upgrade workflow
 - fix: markdown code block rendering
@@ -14,6 +17,7 @@
 ## v0.1.3
 
 ### Packaging
+- exclude heavy unused modules to prevent C compiler heap exhaustion
 - release executable.
 
 ## v0.1.2
