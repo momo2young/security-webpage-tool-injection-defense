@@ -250,26 +250,6 @@ Remember:
 Return your response as valid JSON with a "facts" array."""
 
 
-# ===== Legacy Support =====
-
-
-def format_fact_extraction_user_prompt_simple(content: str) -> str:
-    """
-    Legacy simple format for extracting facts from just a user message.
-    Kept for backward compatibility.
-
-    Args:
-        content: User message content
-
-    Returns:
-        Formatted extraction prompt
-    """
-    return f"""Extract facts from this user message:
-
-{content}
-
-Remember: Only extract facts that are worth remembering long-term. Skip questions, greetings, and ephemeral content."""
-
 
 # ===== Phase 5: Core Memory Summarization =====
 
