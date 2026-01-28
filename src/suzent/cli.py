@@ -2,6 +2,7 @@ import sys
 import os
 import subprocess
 import typer
+import shutil
 from pathlib import Path
 
 app = typer.Typer(help="Suzent CLI - Your Digital Co-worker Manager")
@@ -140,11 +141,17 @@ def start(
         run_command(["npm", "run", "dev"], cwd=src_tauri_dir, shell_on_windows=True)
     except subprocess.CalledProcessError:
         typer.echo("\n⚠️  Dev server failed to start.")
-        typer.echo("    Attempting to fix by reinstalling frontend dependencies...")
+        typer.echo("    Attempting to fix by performing a CLEAN install of dependencies...")
         
-        # Install deps in both locations to be safe
-        run_command(["npm", "install"], cwd=frontend_app_dir, shell_on_windows=True)
-        run_command(["npm", "install"], cwd=src_tauri_dir, shell_on_windows=True)
+        # Clean install: Remove node_modules first
+        for d in [frontend_app_dir, src_tauri_dir]:
+            nm = d / "node_modules"
+            if nm.exists():
+                typer.echo(f"    🗑️  Removing {nm}...")
+                shutil.rmtree(nm, ignore_errors=True)
+            
+            typer.echo(f"    📥 Installing dependencies in {d.name}...")
+            run_command(["npm", "install"], cwd=d, shell_on_windows=True)
         
         typer.echo("    Retrying dev server...")
         run_command(["npm", "run", "dev"], cwd=src_tauri_dir, shell_on_windows=True)
