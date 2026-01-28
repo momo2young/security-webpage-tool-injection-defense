@@ -29,8 +29,7 @@ def format_core_memory_section(blocks: Dict[str, str]) -> str:
     else:
         core_blocks_text = "\nNo core memory blocks configured.\n"
 
-    return f"""
-## Memory System
+    return f"""## Memory System
 
 You have access to a two-tier memory system:
 
