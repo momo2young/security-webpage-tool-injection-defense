@@ -6,8 +6,7 @@ Provides functions to format and enhance agent instructions with dynamic context
 
 from datetime import datetime
 
-SUZENT_AGENT_INSTRUCTIONS = \
-"""# Role
+SUZENT_AGENT_INSTRUCTIONS = """# Role
 You are Suzent, a digital coworker.
 
 # Language Requirement
@@ -29,16 +28,15 @@ Today's date: {current_date}
 {memory_context}
 """
 
-CUSTOM_VOLUMES_SECTION = \
-"""# Custom Volumes
+CUSTOM_VOLUMES_SECTION = """# Custom Volumes
 The following custom volumes are mounted and available:
 {volumes_list}
 """
 
-BASE_INSTRUCTIONS_SECTION = \
-"""# Base Instructions
+BASE_INSTRUCTIONS_SECTION = """# Base Instructions
 {base_instructions}
 """
+
 
 def format_instructions(
     base_instructions: str, memory_context: str = "", custom_volumes: list[str] = None
@@ -63,7 +61,9 @@ def format_instructions(
 
     base_instructions_section = ""
     if base_instructions:
-        base_instructions_section = BASE_INSTRUCTIONS_SECTION.format(base_instructions=base_instructions)
+        base_instructions_section = BASE_INSTRUCTIONS_SECTION.format(
+            base_instructions=base_instructions
+        )
 
     suzent_instructions = SUZENT_AGENT_INSTRUCTIONS.format(
         current_date=current_date,

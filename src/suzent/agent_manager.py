@@ -313,15 +313,13 @@ def create_agent(
         raise ValueError(f"Unknown agent: {agent_name}")
 
     base_instructions = config.get("instructions", CONFIG.instructions)
-    
+
     # Calculate effective custom volumes to report in prompt
     sandbox_volumes = config.get("sandbox_volumes")
     custom_volumes = get_effective_volumes(sandbox_volumes)
 
     instructions = format_instructions(
-        base_instructions, 
-        memory_context=memory_context, 
-        custom_volumes=custom_volumes
+        base_instructions, memory_context=memory_context, custom_volumes=custom_volumes
     )
 
     params = {

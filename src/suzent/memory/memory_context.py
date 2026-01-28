@@ -250,7 +250,6 @@ Remember:
 Return your response as valid JSON with a "facts" array."""
 
 
-
 # ===== Phase 5: Core Memory Summarization =====
 
 CORE_MEMORY_SUMMARIZATION_PROMPT = """You are an expert memory organizer.
