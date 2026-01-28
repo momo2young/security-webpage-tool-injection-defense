@@ -83,8 +83,19 @@ def start(
         typer.echo("    Installing tauri dependencies...")
         run_command(["npm", "install"], cwd=src_tauri_dir, shell_on_windows=True)
 
-    # Start dev server
-    run_command(["npm", "run", "dev"], cwd=src_tauri_dir, shell_on_windows=True)
+    # Start dev server, with retry logic for dependencies
+    try:
+        run_command(["npm", "run", "dev"], cwd=src_tauri_dir, shell_on_windows=True)
+    except subprocess.CalledProcessError:
+        typer.echo("\n⚠️  Dev server failed to start.")
+        typer.echo("    Attempting to fix by reinstalling frontend dependencies...")
+        
+        # Install deps in both locations to be safe
+        run_command(["npm", "install"], cwd=frontend_app_dir, shell_on_windows=True)
+        run_command(["npm", "install"], cwd=src_tauri_dir, shell_on_windows=True)
+        
+        typer.echo("    Retrying dev server...")
+        run_command(["npm", "run", "dev"], cwd=src_tauri_dir, shell_on_windows=True)
 
 
 @app.command()
