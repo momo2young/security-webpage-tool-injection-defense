@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import { BrutalButton } from './BrutalButton';
 import { FilePreview } from './sidebar/FilePreview';
 import { isBinaryServedFile } from '../lib/fileUtils';
 
@@ -64,6 +65,22 @@ export const FileViewer: React.FC<FileViewerProps> = ({ filePath, fileName, chat
         }
     };
 
+    const openInExplorer = async () => {
+        if (!filePath) return;
+        try {
+            await fetch(`${API_BASE}/system/open_explorer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    path: filePath,
+                    chat_id: chatId
+                })
+            });
+        } catch (e) {
+            console.error("Failed to open explorer", e);
+        }
+    };
+
     if (!filePath || !chatId) return null;
 
     return (
@@ -80,13 +97,24 @@ export const FileViewer: React.FC<FileViewerProps> = ({ filePath, fileName, chat
                     <h2 className="text-lg font-bold text-brutal-black truncate font-mono uppercase tracking-wider">
                         {fileName || 'File Preview'}
                     </h2>
-                    <button
-                        onClick={onClose}
-                        className="p-2 bg-brutal-red border-2 border-brutal-black text-white hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all shadow-brutal"
-                        title="Close (Esc)"
-                    >
-                        <XMarkIcon className="w-6 h-6" />
-                    </button>
+                    <div className="flex gap-2">
+                        <BrutalButton
+                            variant="primary"
+                            size="icon"
+                            onClick={openInExplorer}
+                            title="Reveal in Explorer"
+                        >
+                            <ArrowTopRightOnSquareIcon className="w-5 h-5" />
+                        </BrutalButton>
+                        <BrutalButton
+                            variant="danger"
+                            size="icon"
+                            onClick={onClose}
+                            title="Close (Esc)"
+                        >
+                            <XMarkIcon className="w-5 h-5" />
+                        </BrutalButton>
+                    </div>
                 </div>
 
                 {/* Content */}

@@ -8,14 +8,11 @@ Supports reading text files directly and converting various file formats
 from pathlib import Path
 from typing import Optional
 
-from markitdown import MarkItDown
 from smolagents.tools import Tool
-
 from suzent.logger import get_logger
 from suzent.tools.path_resolver import PathResolver
 
 logger = get_logger(__name__)
-
 
 class ReadFileTool(Tool):
     """
@@ -61,7 +58,7 @@ Examples:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._resolver: Optional[PathResolver] = None
-        self._converter = MarkItDown()
+        self._converter = None
 
     def set_context(self, resolver: PathResolver) -> None:
         """Set the path resolver context."""
@@ -179,6 +176,11 @@ Examples:
     ) -> str:
         """Convert file to markdown using MarkItDown."""
         try:
+            if self._converter is None:
+                from markitdown import MarkItDown
+                logger.info("Initializing MarkItDown converter (lazy load)...")
+                self._converter = MarkItDown()
+
             logger.info(f"Converting file to markdown: {path}")
             result = self._converter.convert(str(path))
 

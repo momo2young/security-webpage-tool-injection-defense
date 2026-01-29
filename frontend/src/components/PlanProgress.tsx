@@ -86,7 +86,7 @@ export const PlanProgress: React.FC<PlanProgressProps> = ({ plan, isDocked, onTo
                                 key={phase.id || index}
                                 className={`
                             relative border-2 border-brutal-black p-2 transition-all
-                            ${isInProgress ? 'bg-white shadow-[3px_3px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]' : 'bg-neutral-50 hover:bg-white'}
+                            ${isInProgress ? 'bg-white shadow-[2px_2px_0px_0px_#000] translate-y-[2px]' : 'bg-neutral-50 hover:bg-white'}
                             ${isCompleted ? 'opacity-70' : ''}
                           `}
                             >

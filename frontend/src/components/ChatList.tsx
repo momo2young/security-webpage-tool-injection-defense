@@ -117,7 +117,7 @@ export const ChatList: React.FC = () => {
             beginNewChat();
             if (switchToView) switchToView('chat');
           }}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-brutal-black border-3 border-brutal-black shadow-brutal hover:bg-brutal-blue hover:text-white hover:shadow-brutal-lg active:translate-x-[2px] active:translate-y-[2px] active:shadow-none text-white font-bold uppercase transition-all"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-brutal-black border-3 border-brutal-black shadow-[2px_2px_0_0_#000] hover:bg-brutal-blue hover:text-white brutal-btn text-white font-bold uppercase transition-all"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -192,7 +192,7 @@ export const ChatList: React.FC = () => {
                   }
                 }}
                 className={`group relative p-3 cursor-pointer transition-all duration-200 animate-brutal-drop ${currentChatId === chat.id
-                  ? 'bg-brutal-yellow border-3 border-brutal-black shadow-brutal translate-x-[-2px] translate-y-[-2px]'
+                  ? 'bg-brutal-yellow border-3 border-brutal-black shadow-[2px_2px_0_0_#000] translate-y-[2px]'
                   : 'bg-white hover:bg-neutral-50 border-3 border-brutal-black hover:shadow-brutal-sm'
                   }`}
                 style={{ animationDelay: `${idx * 0.05}s` }}

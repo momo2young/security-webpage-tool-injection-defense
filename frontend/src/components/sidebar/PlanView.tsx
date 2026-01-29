@@ -98,7 +98,7 @@ export const PlanView: React.FC<PlanViewProps> = ({ plan, currentPlan, snapshotP
               return (
                 <li
                   key={phase.id ?? `${getPlanKey(plan)}-${phase.number}`}
-                  className={`${bgColor} border-3 border-brutal-black p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${isNewPlan ? 'animate-brutal-drop' : ''}`}
+                  className={`${bgColor} border-3 border-brutal-black p-2.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform brutal-btn ${isNewPlan ? 'animate-brutal-drop' : ''}`}
                   style={{ animationDelay }}
                 >
                   <div className="flex justify-between items-start gap-2">

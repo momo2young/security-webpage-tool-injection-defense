@@ -107,7 +107,7 @@ export const ArchivalMemoryList: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => setIsCompact(!isCompact)}
-              className={`px-3 py-1 border-2 border-brutal-black font-bold text-xs uppercase transition-all shadow-[2px_2px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${isCompact ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100'
+              className={`px-3 py-1 border-2 border-brutal-black font-bold text-xs uppercase transition-all shadow-[2px_2px_0_0_#000000] brutal-btn ${isCompact ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100'
                 }`}
               title={isCompact ? "Switch to Card View" : "Switch to Compact View"}
             >
@@ -115,7 +115,7 @@ export const ArchivalMemoryList: React.FC = () => {
             </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`px-3 py-1 border-2 border-brutal-black font-bold text-xs uppercase transition-all shadow-[2px_2px_0_0_#000000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none ${showFilters ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100'
+              className={`px-3 py-1 border-2 border-brutal-black font-bold text-xs uppercase transition-all shadow-[2px_2px_0_0_#000000] brutal-btn ${showFilters ? 'bg-brutal-black text-white' : 'bg-white hover:bg-neutral-100'
                 }`}
             >
               {showFilters ? '▲' : '▼'} Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
@@ -136,7 +136,7 @@ export const ArchivalMemoryList: React.FC = () => {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 border-2 border-brutal-black bg-white hover:bg-brutal-black hover:text-white flex items-center justify-center font-bold transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 border-2 border-brutal-black bg-white hover:bg-brutal-black hover:text-white flex items-center justify-center font-bold transition-all brutal-btn shadow-[2px_2px_0_0_#000]"
             >
               ×
             </button>
@@ -311,7 +311,7 @@ export const ArchivalMemoryList: React.FC = () => {
       {archivalHasMore && !archivalLoading && archivalMemories.length > 0 && (
         <button
           onClick={handleLoadMore}
-          className="w-full py-3 border-3 border-brutal-black bg-white hover:bg-neutral-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none shadow-brutal font-bold uppercase transition-all"
+          className="w-full py-3 border-3 border-brutal-black bg-white hover:bg-neutral-100 brutal-btn shadow-[2px_2px_0_0_#000] font-bold uppercase transition-all"
         >
           Load More
         </button>

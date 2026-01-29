@@ -197,7 +197,7 @@ export const FolderContextPicker: React.FC<FolderContextPickerProps> = ({
                             const folderName = hostPath.split(/[/\\]/).pop() || hostPath;
 
                             return (
-                                <div key={idx} className="flex items-center justify-between bg-white px-2 py-1.5 border-2 border-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all cursor-pointer" onClick={() => onRemoveVolume?.(idx)}>
+                                <div key={idx} className="flex items-center justify-between bg-white px-2 py-1.5 border-2 border-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] brutal-btn transition-all cursor-pointer" onClick={() => onRemoveVolume?.(idx)}>
                                     <div className="flex items-center gap-2 min-w-0">
                                         <div className="bg-brutal-green p-0.5 border border-brutal-black">
                                             <CheckIcon className="w-3 h-3 text-brutal-black" />
@@ -233,7 +233,7 @@ export const FolderContextPicker: React.FC<FolderContextPickerProps> = ({
                                     onClick={() => handleRecentClick(item.path)}
                                     className={`
                                         w-full text-left px-2 py-2 flex items-center gap-2 text-xs font-medium border-2 transition-all
-                                        shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none
+                                        shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] brutal-btn
                                         ${isActive
                                             ? 'bg-brutal-green border-brutal-black text-brutal-black'
                                             : 'bg-white border-brutal-black text-brutal-black hover:bg-neutral-50'}
@@ -261,7 +261,7 @@ export const FolderContextPicker: React.FC<FolderContextPickerProps> = ({
                     onClick={handleNativePick}
                     className={`
                         w-full flex items-center justify-center gap-2 px-2 py-2 text-xs font-bold uppercase transition-all border-2 border-brutal-black
-                        bg-white text-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none
+                        bg-white text-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] brutal-btn
                     `}
                 >
                     <PlusIcon className="w-4 h-4" />
@@ -280,7 +280,7 @@ export const FolderContextPicker: React.FC<FolderContextPickerProps> = ({
                 onClick={() => setIsOpen(!isOpen)}
                 disabled={disabled}
                 className={`
-                    flex items-center gap-1.5 px-2 py-1 border-2 border-brutal-black active:translate-y-[1px] shadow-brutal-sm hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed group text-xs font-bold uppercase
+                    flex items-center gap-1.5 px-2 py-1 border-2 border-brutal-black brutal-btn shadow-[2px_2px_0_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed group text-xs font-bold uppercase
                     ${activeCount > 0 ? 'bg-brutal-green text-brutal-black' : 'bg-white text-brutal-black hover:bg-neutral-100'}
                 `}
             >

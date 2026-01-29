@@ -83,7 +83,7 @@ export const UserMessage: React.FC<UserMessageProps> = ({ message, chatId, onIma
       {message.content && (
         <div className="flex justify-end">
           <div className="bg-brutal-yellow border-3 border-brutal-black shadow-brutal-lg px-5 py-4 max-w-full font-medium relative select-text">
-            <div className="prose prose-sm max-w-none break-words text-brutal-black font-sans">
+            <div className="prose prose-sm max-w-none break-words text-brutal-black font-sans whitespace-pre-wrap">
               <ClickableContent content={message.content} onFileClick={onFileClick} />
             </div>
           </div>

@@ -40,7 +40,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ src, onClose }) => {
                 />
                 <button
                     onClick={onClose}
-                    className="mt-4 px-6 py-2 bg-brutal-red text-white border-2 border-brutal-black font-bold text-sm uppercase shadow-brutal hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                    className="mt-4 px-6 py-2 bg-brutal-red text-white border-2 border-brutal-black font-bold text-sm uppercase shadow-[2px_2px_0_0_#000] brutal-btn"
                 >
                     Close
                 </button>

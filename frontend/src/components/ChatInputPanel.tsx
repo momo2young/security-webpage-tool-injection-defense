@@ -321,7 +321,7 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
                                 stopStreaming();
                             }
                         }}
-                        className={`h-9 border-2 border-brutal-black shadow-brutal hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-brutal-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all duration-100 px-4 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white uppercase ml-1 shrink-0 ${stopStreaming && streamingForCurrentChat ? 'bg-brutal-red' : 'bg-brutal-blue'}`}
+                        className={`h-9 border-2 border-brutal-black shadow-[2px_2px_0_0_#000] brutal-btn duration-100 px-4 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed text-white uppercase ml-1 shrink-0 ${stopStreaming && streamingForCurrentChat ? 'bg-brutal-red' : 'bg-brutal-blue'}`}
                         disabled={
                             stopStreaming && streamingForCurrentChat
                                 ? stopInFlight

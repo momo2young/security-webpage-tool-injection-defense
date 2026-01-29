@@ -83,7 +83,7 @@ export const MemoryView: React.FC = () => {
               <p className="text-brutal-black font-mono text-sm mb-4">{coreMemoryError}</p>
               <button
                 onClick={() => loadCoreMemory()}
-                className="px-6 py-2 border-3 border-brutal-black bg-white hover:bg-neutral-100 font-bold uppercase shadow-brutal active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                className="px-6 py-2 border-3 border-brutal-black bg-white hover:bg-neutral-100 font-bold uppercase shadow-[2px_2px_0_0_#000] brutal-btn transition-all"
               >
                 🔄 Retry Connection
               </button>
@@ -140,7 +140,7 @@ export const MemoryView: React.FC = () => {
         {/* Archival Memory Section - Takes 8 columns on large screens */}
         <div className="xl:col-span-7 space-y-4">
           <div className="bg-white p-1 border-b-3 border-brutal-black mb-2">
-             <h3 className="font-brutal text-xl uppercase tracking-tight text-brutal-black">
+            <h3 className="font-brutal text-xl uppercase tracking-tight text-brutal-black">
               Archival Database
             </h3>
             <p className="text-xs text-neutral-600 font-mono">

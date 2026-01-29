@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .brutal-btn {
+    @apply hover:-translate-y-[1px] hover:shadow-[4px_4px_0_0_#000] active:translate-y-[2px] active:shadow-none transition-all;
+  }
+}
+
 html,
 body,
 #root {

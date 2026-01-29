@@ -385,7 +385,7 @@ export function ConfigView(): React.ReactElement {
                 />
               </>
             )}
-            <button type="button" onClick={addServer} className="shrink-0 px-3 py-1 bg-brutal-green border-3 border-brutal-black text-brutal-black text-xs font-bold uppercase disabled:opacity-50 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none" disabled={addType === 'url' ? !srvUrl : !stdioCmd}>Add</button>
+            <button type="button" onClick={addServer} className="shrink-0 px-3 py-1 bg-brutal-green border-3 border-brutal-black text-brutal-black text-xs font-bold uppercase disabled:opacity-50 brutal-btn transition-all" disabled={addType === 'url' ? !srvUrl : !stdioCmd}>Add</button>
           </div>
           {servers.length === 0 && (
             <div className="text-[11px] text-brutal-black font-bold uppercase">
@@ -397,7 +397,7 @@ export function ConfigView(): React.ReactElement {
             style={servers.length > 4 ? { scrollbarGutter: 'stable both-edges' } : undefined}
           >
             {servers.map((s, idx) => (
-              <li key={s.name} className="flex items-center gap-2 bg-white border-3 border-brutal-black px-2 py-1 group shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-transform animate-brutal-drop" style={{ animationDelay: `${idx * 0.05}s` }}>
+              <li key={s.name} className="flex items-center gap-2 bg-white border-3 border-brutal-black px-2 py-1 group shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] brutal-btn transition-transform animate-brutal-drop" style={{ animationDelay: `${idx * 0.05}s` }}>
                 <input aria-label="Enable server" type="checkbox" checked={s.enabled} onChange={() => toggleServer(s.name)} disabled={loading} className="w-4 h-4 border-2 border-brutal-black accent-brutal-black" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

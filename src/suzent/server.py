@@ -62,7 +62,7 @@ from suzent.routes.sandbox_routes import (
     upload_files,
 )
 from suzent.routes.skill_routes import get_skills, reload_skills, toggle_skill
-from suzent.routes.system_routes import list_host_files
+from suzent.routes.system_routes import list_host_files, open_in_explorer
 
 # Load environment variables
 load_dotenv()
@@ -165,6 +165,7 @@ app = Starlette(
         Route("/sandbox/upload", upload_files, methods=["POST"]),
         # System endpoints
         Route("/system/files", list_host_files, methods=["GET"]),
+        Route("/system/open_explorer", open_in_explorer, methods=["POST"]),
         # Memory endpoints
         Route("/memory/core", get_core_memory, methods=["GET"]),
         Route("/memory/core", update_core_memory_block, methods=["PUT"]),

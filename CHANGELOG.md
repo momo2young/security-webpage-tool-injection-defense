@@ -4,6 +4,7 @@
 
 ### New
 - new: bash tool support in host mode
+- UI: add open in file explorer in file view
 
 ### Update
 - update: inject selected context folder to system prompt

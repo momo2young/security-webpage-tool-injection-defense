@@ -34,7 +34,7 @@ const FileButton: React.FC<{
         e.stopPropagation();
         onFileClick(path, fileName, e.shiftKey);
       }}
-      className="inline-flex items-center gap-1 bg-brutal-yellow border-2 border-brutal-black px-2 py-0.5 font-mono text-xs font-bold text-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all cursor-pointer"
+      className="inline-flex items-center gap-1 bg-brutal-yellow border-2 border-brutal-black px-2 py-0.5 font-mono text-xs font-bold text-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] brutal-btn transition-all cursor-pointer"
       title={`Click to view ${path} (Shift+Click for full screen)`}
       role="button"
       tabIndex={0}
@@ -211,7 +211,7 @@ export const MarkdownRenderer = React.memo<MarkdownRendererProps>(({ content, on
             // Check if paragraph contains only simple text (for ClickableContent detection)
             const isSimpleText = React.Children.toArray(pArg.children).every(
               (child) => typeof child === 'string' ||
-              (React.isValidElement(child) && (child.type === 'strong' || child.type === 'em'))
+                (React.isValidElement(child) && (child.type === 'strong' || child.type === 'em'))
             );
 
             // Apply ClickableContent for plain text paragraphs to detect file paths

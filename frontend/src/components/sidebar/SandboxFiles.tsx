@@ -1,5 +1,6 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
+import { API_BASE } from '../../lib/api';
+import { BrutalButton } from '../BrutalButton';
 import { useChatStore } from '../../hooks/useChatStore';
 import { FilePreview } from './FilePreview';
 import { isBinaryServedFile, isImageFile, isMarkdownFile, isCodeFile } from '../../lib/fileUtils';
@@ -13,7 +14,8 @@ import {
     PhotoIcon,
     ArrowUturnLeftIcon,
     ArrowUpTrayIcon,
-    ArrowsPointingOutIcon
+    ArrowsPointingOutIcon,
+    ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline';
 
 interface FileItem {
@@ -101,6 +103,25 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({
             setLoadingFile(false);
         }
     }, [currentChatId, config.sandbox_volumes]);
+
+    const openCurrentInExplorer = async () => {
+        if (!currentChatId) return;
+
+        try {
+            await fetch(`${API_BASE}/system/open_explorer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    path: currentPath,
+                    chat_id: currentChatId
+                })
+            });
+        } catch (e) {
+            console.error("Failed to open explorer", e);
+        }
+    };
+
+    // Handle external file opening from chat messages
 
     // Handle external file opening from chat messages
     useEffect(() => {
@@ -242,26 +263,27 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({
             <div className="flex flex-col h-full bg-white border-l-2 border-brutal-black">
                 {/* Header */}
                 <div className="flex items-center gap-3 p-3 border-b-3 border-brutal-black bg-white shrink-0 sticky top-0 z-20 shadow-[0_2px_0_0_rgba(0,0,0,1)]">
-                    <button
+                    <BrutalButton
                         onClick={handleBack}
-                        className="p-1.5 bg-white border-2 border-brutal-black hover:shadow-[2px_2px_0_0_#000] active:translate-y-[2px] active:shadow-none transition-all"
                         title="Back"
+                        size="icon"
                     >
                         <ChevronLeftIcon className="w-5 h-5 stroke-2" />
-                    </button>
+                    </BrutalButton>
                     <div className="bg-white border-2 border-brutal-black px-3 py-1.5 flex-1 min-w-0 shadow-[2px_2px_0_0_#000]">
                         <span className="font-bold text-xs truncate block font-mono uppercase tracking-wider">
                             {filename}
                         </span>
                     </div>
                     {onMaximize && (
-                        <button
+                        <BrutalButton
+                            variant="warning"
+                            size="icon"
                             onClick={() => onMaximize(selectedFile, filename)}
-                            className="p-1.5 bg-brutal-yellow border-2 border-brutal-black hover:shadow-[2px_2px_0_0_#000] active:translate-y-[2px] active:shadow-none transition-all"
                             title="Maximize (full screen)"
                         >
                             <ArrowsPointingOutIcon className="w-5 h-5 stroke-2" />
-                        </button>
+                        </BrutalButton>
                     )}
                 </div>
 
@@ -295,20 +317,28 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({
         <div className="flex flex-col h-full bg-white border-l-2 border-brutal-black relative">
             {/* Path Header */}
             <div className="bg-white p-3 border-b-3 border-brutal-black flex items-center gap-3 shrink-0">
-                <button
+                <BrutalButton
                     onClick={() => fetchFiles(currentPath)}
-                    className={`p-1.5 bg-white border-2 border-brutal-black hover:bg-neutral-100 transition-colors ${loading ? 'animate-spin' : ''}`}
+                    className={loading ? 'animate-spin' : ''}
                     title="Refresh"
+                    size="icon"
                 >
                     <ArrowPathIcon className="w-4 h-4 stroke-2" />
-                </button>
-                <button
+                </BrutalButton>
+                <BrutalButton
+                    onClick={openCurrentInExplorer}
+                    title="Open in Explorer"
+                    size="icon"
+                >
+                    <ArrowTopRightOnSquareIcon className="w-4 h-4 stroke-2" />
+                </BrutalButton>
+                <BrutalButton
                     onClick={handleUploadClick}
-                    className="p-1.5 bg-white border-2 border-brutal-black hover:bg-neutral-100 transition-colors"
                     title="Upload File"
+                    size="icon"
                 >
                     <ArrowUpTrayIcon className="w-4 h-4 stroke-2" />
-                </button>
+                </BrutalButton>
                 <input
                     type="file"
                     id="sandbox-file-upload"
@@ -339,7 +369,7 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({
                         {currentPath !== '/' && (
                             <button
                                 onClick={handleUp}
-                                className="flex items-center gap-3 p-3 bg-white border-2 border-brutal-black hover:bg-neutral-100 hover:translate-x-1 hover:shadow-[4px_4px_0_0_#000] transition-all group text-left"
+                                className="flex items-center gap-3 p-3 bg-white border-2 border-brutal-black hover:bg-neutral-100 brutal-btn transition-all group text-left w-full"
                             >
                                 <ArrowUturnLeftIcon className="w-5 h-5 stroke-2" />
                                 <span className="font-bold text-xs font-mono uppercase">.. / UP</span>
@@ -358,8 +388,7 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({
                                     onClick={() => handleItemClick(item)}
                                     className={`
                                         flex items-center gap-3 p-2 bg-white border-2 border-brutal-black 
-                                        hover:shadow-[4px_4px_0_0_#000] hover:-translate-y-[2px] hover:bg-neutral-50
-                                        active:translate-y-0 active:shadow-none
+                                        hover:bg-neutral-50 brutal-btn
                                         transition-all group text-left
                                     `}
                                 >

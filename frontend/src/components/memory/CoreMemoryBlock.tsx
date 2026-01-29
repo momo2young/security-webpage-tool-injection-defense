@@ -114,7 +114,7 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
 
   return (
     <div className={`border-3 border-brutal-black bg-white shadow-brutal rounded-none p-4 transition-all ${hasUnsavedChanges && isEditing ? 'ring-4 ring-brutal-black' : ''
-      } hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brutal-lg`}>
+      } brutal-btn`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -134,13 +134,13 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
             <>
               <button
                 onClick={handleCopy}
-                className="px-3 py-1 border-2 border-brutal-black bg-white hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all"
+                className="px-3 py-1 border-2 border-brutal-black bg-white hover:bg-neutral-100 brutal-btn shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all"
               >
                 {copied ? '✓ Copied' : 'Copy'}
               </button>
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-3 py-1 border-2 border-brutal-black bg-white hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all"
+                className="px-3 py-1 border-2 border-brutal-black bg-white hover:bg-neutral-100 brutal-btn shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all"
               >
                 Edit
               </button>
@@ -150,14 +150,14 @@ export const CoreMemoryBlock: React.FC<CoreMemoryBlockProps> = ({
               <button
                 onClick={handleCancel}
                 disabled={isSaving}
-                className="px-3 py-1 border-2 border-brutal-black bg-white hover:bg-neutral-100 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all disabled:opacity-50"
+                className="px-3 py-1 border-2 border-brutal-black bg-white hover:bg-neutral-100 brutal-btn shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving || isOverLimit || !hasUnsavedChanges}
-                className="px-3 py-1 border-2 border-brutal-black bg-brutal-black text-brutal-white hover:bg-neutral-800 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all disabled:opacity-50"
+                className="px-3 py-1 border-2 border-brutal-black bg-brutal-black text-brutal-white hover:bg-neutral-800 brutal-btn shadow-[2px_2px_0_0_#000000] font-bold text-xs uppercase transition-all disabled:opacity-50"
               >
                 {isSaving ? 'Saving...' : 'Save'}
               </button>

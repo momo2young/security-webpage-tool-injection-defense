@@ -150,7 +150,7 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
                                 onClick={() => handleToggle(option.value)}
                                 className={`flex items-center gap-3 px-3 py-2 border-2 text-xs font-bold uppercase transition-all duration-100 w-full text-left group ${active
                                     ? 'bg-brutal-green text-brutal-black border-brutal-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] translate-x-[-1px] translate-y-[-1px]'
-                                    : 'border-brutal-black text-brutal-black bg-white hover:bg-neutral-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
+                                    : 'border-brutal-black text-brutal-black bg-white hover:bg-neutral-100 brutal-btn shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
                                     }`}
                             >
                                 <div className={`w-4 h-4 border-2 border-brutal-black flex items-center justify-center transition-colors ${active ? 'bg-brutal-black' : 'bg-white'}`}>
@@ -220,7 +220,7 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
                 ref={buttonRef}
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full bg-white border-3 border-brutal-black px-3 py-2 font-bold text-sm text-left flex items-center justify-between transition-all duration-200 hover:bg-brutal-yellow focus:outline-none ${isOpen ? 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] translate-x-[1px] translate-y-[1px]' : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}
+                className={`w-full bg-white border-3 border-brutal-black px-3 py-2 font-bold text-sm text-left flex items-center justify-between transition-all duration-200 hover:bg-brutal-yellow focus:outline-none ${isOpen ? 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] translate-x-[1px] translate-y-[1px]' : 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] brutal-btn'}`}
             >
                 <span className="truncate">
                     {displayLabel}
