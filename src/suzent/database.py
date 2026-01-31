@@ -199,10 +199,11 @@ class ChatDatabase:
         config: Dict[str, Any],
         messages: List[Dict[str, Any]] = None,
         agent_state: bytes = None,
+        chat_id: str = None,
     ) -> str:
         """Create a new chat and return its ID."""
         now = datetime.now()
-        chat_id = str(uuid.uuid4())
+        chat_id = chat_id or str(uuid.uuid4())
         chat = ChatModel(
             id=chat_id,
             title=title,

@@ -1,0 +1,13 @@
+{
+    "allowed_users": [],
+    "telegram": {
+        "enabled": true,
+        "token": "",
+        "allowed_users": []
+    },
+    "discord": {
+        "enabled": false,
+        "token": "",
+        "allowed_users": []
+    }
+}

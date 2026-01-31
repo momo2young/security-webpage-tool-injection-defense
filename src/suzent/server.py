@@ -63,6 +63,9 @@ from suzent.routes.sandbox_routes import (
 )
 from suzent.routes.skill_routes import get_skills, reload_skills, toggle_skill
 from suzent.routes.system_routes import list_host_files, open_in_explorer
+from suzent.channels.manager import ChannelManager
+from suzent.channels.telegram import TelegramChannel
+from suzent.core.social_brain import SocialBrain
 
 # Load environment variables
 load_dotenv()
@@ -86,6 +89,10 @@ log_file = os.getenv("LOG_FILE")  # Optional: set LOG_FILE=/path/to/suzent.log
 setup_logging(level=log_level, log_file=log_file)
 
 logger = get_logger(__name__)
+
+# --- Social Messaging State ---
+social_brain: SocialBrain = None
+channel_manager: ChannelManager = None
 
 
 async def startup():
@@ -111,12 +118,87 @@ async def startup():
 
     await init_memory_system()
 
+    # Initialize Social Messaging System
+    global social_brain, channel_manager
+    try:
+        import json
+        from pathlib import Path
+        
+        channel_manager = ChannelManager()
+        
+        # Load social config
+        # Try finding it in config dir relative to cwd or source?
+        # Assuming run from root, config/social.json
+        config_path = Path("config/social.json")
+        social_config = {}
+        
+        if config_path.exists():
+            try:
+                with open(config_path, "r") as f:
+                    social_config = json.load(f)
+                logger.info(f"Loaded social config from {config_path}")
+            except Exception as e:
+                logger.error(f"Failed to load social config: {e}")
+
+        # Telegram
+        # Check Env first (priority) or Config? 
+        # Usually Config file allows complex structure, Env overrides secrets.
+        # Let's support both: Env overrides Config.
+        
+        tele_config = social_config.get("telegram", {})
+        telegram_token = os.environ.get("TELEGRAM_TOKEN") or tele_config.get("token")
+        
+        # Only enable if token exists AND (enabled in config OR token in env implies enabled)
+        tele_enabled = tele_config.get("enabled", True) # Default true if config missing, but we need token
+        
+        if telegram_token and tele_enabled:
+            logger.info("Initializing Telegram Channel...")
+            telegram = TelegramChannel(telegram_token)
+            channel_manager.register_channel(telegram)
+
+        # Start Manager
+        await channel_manager.start_all()
+
+        # Start Brain
+        # Allowlist: Env overrides/merges with Config?
+        # Global Allowlist
+        allowed_users = set(social_config.get("allowed_users", []))
+        
+        env_allowed = os.environ.get("ALLOWED_SOCIAL_USERS", "")
+        if env_allowed:
+             allowed_users.update([u.strip() for u in env_allowed.split(",") if u.strip()])
+        
+        # Per-Platform Allowlists
+        platform_allowlists = {}
+        for platform, settings in social_config.items():
+            if isinstance(settings, dict) and "allowed_users" in settings:
+                 platform_allowlists[platform] = settings.get("allowed_users", [])
+
+        social_brain = SocialBrain(
+            channel_manager, 
+            allowed_users=list(allowed_users),
+            platform_allowlists=platform_allowlists
+        )
+        await social_brain.start()
+
+    except Exception as e:
+        logger.error(f"Failed to initialize Social Messaging: {e}")
+
 
 async def shutdown():
     """Cleanup services on application shutdown."""
     from suzent.agent_manager import shutdown_memory_system
 
     logger.info("Application shutdown - cleaning up services")
+    
+    global social_brain, channel_manager
+
+    if social_brain:
+        await social_brain.stop()
+
+    if channel_manager:
+        await channel_manager.stop_all()
+
     await shutdown_memory_system()
 
 

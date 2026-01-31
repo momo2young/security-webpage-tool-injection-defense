@@ -8,6 +8,7 @@
 - [Memory](02-concepts/memory/README.md): The dual-tier memory architecture.
 - [Tools](02-concepts/tools/tools.md): Available tools and usage guides.
 - [Skills](02-concepts/skills/skills.md): Extend agent capabilities with custom skills.
+- [Social Messaging](02-concepts/social-messaging.md): Telegram integration and remote control.
 
 ## Development
 - **[Utility Scripts](03-developing/scripts.md)**: Maintenance scripts.

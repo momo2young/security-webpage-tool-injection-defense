@@ -1,12 +1,12 @@
 # Suzent Quickstart Guide
 
-This guide will help you set up Suzent from scratch, even if you're new to development tools.
+This guide will help you set up Suzent, your sovereign digital co-worker.
 
 ---
 
 ## 1. Get an API Key
 
-Suzent needs an "brain" to work. You need an API key from one of these providers:
+Suzent is model-agnostic but needs a "brain" to work. You need an API key from one of these providers:
 
 ### OpenAI (ChatGPT)
 1. Go to [platform.openai.com](https://platform.openai.com/)
@@ -27,96 +27,91 @@ Suzent needs an "brain" to work. You need an API key from one of these providers
 
 ---
 
-## 2. Set Up the Project
+## 2. Installation (Native Setup)
 
-### Windows
-1. Install **Docker Desktop**: [Download here](https://www.docker.com/products/docker-desktop/)
-2. Install **Git**: [Download here](https://git-scm.com/download/win)
-3. Open **PowerShell** and run:
+The recommended way to run Suzent is natively on your machine using our setup script.
 
+**Prerequisites:**
+- **Node.js 20+**: [Download here](https://nodejs.org/)
+- **Git**: [Download here](https://git-scm.com/downloads)
+
+### Fast Install
+
+Run the following command in your terminal to install `suzent` and its dependencies (UV, Rust, etc.):
+
+**Windows (PowerShell):**
 ```powershell
-# Clone the project
-git clone https://github.com/cyzus/suzent.git
-cd suzent
-
-# Create configuration file
-Copy-Item .env.example .env
-
-# Open .env in Notepad (or your favorite editor)
-notepad .env
+powershell -c "irm https://raw.githubusercontent.com/cyzus/suzent/main/scripts/setup.ps1 | iex"
 ```
-4. Paste your API key into the `.env` file:
+
+**Mac / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/cyzus/suzent/main/scripts/setup.sh | bash
+```
+
+> **Note:** The setup script will attempt to install `uv` (Python package manager) and `Rust` (for core performance) if they are missing. On Windows, it may also install C++ Build Tools if needed.
+
+---
+
+## 3. Configure Your Agent
+
+1. The setup script created a `.env` file in the project directory.
+2. Open this file in any text editor.
+3. Paste your API Key from **Step 1**:
+
 ```env
 OPENAI_API_KEY=sk-your-key-here
 # or
 GEMINI_API_KEY=your-key-here
 ```
-5. Save and close the file.
 
-### Mac / Linux
-# Clone the project
-```bash
-git clone https://github.com/cyzus/suzent.git
-cd suzent
-
-# Configure environment
-cp .env.example .env
-nano .env
-```
-3. Paste your API key, save (Ctrl+O), and exit (Ctrl+X).
+4. Save and close the file.
 
 ---
 
-## 3. Run Suzent
+## 4. Launch Suzent
 
-In your terminal (PowerShell or Terminal), run:
+To start your agent, simply run:
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d
+suzent start
 ```
 
-- This downloads necessary parts (images) and starts them. 
-- It might take a few minutes the first time.
-- If successful, you'll see "Started" next to `suzent-frontend`, `suzent-backend`, etc.
+This will:
+- Check system health.
+- Start the Backend (Brain) on port `8000`.
+- Start the Frontend (UI) on port `5173`.
+- Automatically manage local processes.
 
----
-
-## 4. Start Chatting
-
-1. Open your browser to [**http://localhost:5173**](http://localhost:5173).
-2. You should see the chat interface.
-3. Type "Hello!" to test it out.
-4. Try a search: "Search for the latest news on AI agents."
+**Start Chatting:** Open your browser to [**http://localhost:5173**](http://localhost:5173).
 
 ---
 
 ## Troubleshooting
 
-### "Docker is not running"
-Make sure you started the **Docker Desktop** application and verified the whale icon is in your taskbar/menu bar.
+### "Command not found: suzent"
+Restart your terminal after installation to refresh your `PATH`. If it still fails, check the output of the setup script for manually adding the scripts folder to your PATH.
 
-### "Connection refused"
-Wait a minute. Sometimes the backend takes a moment to start up completely. Refresh the page.
-
-### Memory/Search not working?
-Check the logs to see if a service failed:
+### "System Health Check Failed"
+Run the doctor command to identify missing tools:
 ```bash
-docker compose -f docker/docker-compose.yml logs
+suzent doctor
 ```
 
-### Developing Suzent?
-If you want to modify the code, use **Dev Mode** which only runs the database and search engine in Docker, letting you run the app locally:
+### Port Conflicts
+If Suzent fails to start because ports are in use, `suzent start` will ask if you want to kill the conflicting processes. You can say 'y' to proceed.
+
+### Updating Suzent
+To get the latest features and fixes:
 ```bash
-# Start infra only
-docker compose -f docker/docker-compose.dev.yml up -d
-
-# install dependencies
-uv sync --all-extras
-
-# Run app locally
-python src/suzent/server.py
-
-cd frontend
-npm install
-npm run dev
+suzent upgrade
 ```
+
+---
+
+## Advanced
+
+### Local Web Search (Privacy Focused)
+By default, Suzent uses DuckDuckGo for search (no setup required). To use a private, self-hosted search engine (SearXNG), you can use Docker.
+
+See: [Docker Services](../03-developing/docker-services.md)
