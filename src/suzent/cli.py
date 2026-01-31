@@ -263,14 +263,31 @@ def setup_build_tools():
     ]
 
     try:
-        subprocess.run(cmd, check=True)
-        typer.echo(
-            "\n✅ Build Tools installed successfully! Please RESTART your terminal."
+        # Capture output to handle "already installed" cases
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=False, encoding="utf-8", errors="replace"
         )
-    except subprocess.CalledProcessError:
-        typer.echo(
-            "\n❌ Installation failed. You may need to run this as Administrator."
-        )
+        
+        # Check success or specific "failure" conditions that are actually success
+        # Winget might return non-zero if no upgrade is found, depending on version
+        if result.returncode == 0:
+            typer.echo(
+                "\n✅ Build Tools installed successfully! Please RESTART your terminal."
+            )
+        elif "No available upgrade found" in result.stdout or "Found an existing package already installed" in result.stdout:
+             typer.echo(
+                "\n✅ Build Tools already installed. Please RESTART your terminal if 'link.exe' is not found."
+            )
+        else:
+            # Real failure
+            typer.echo(f"\n❌ Installation failed with code {result.returncode}")
+            typer.echo(f"Stdout: {result.stdout}")
+            typer.echo(f"Stderr: {result.stderr}")
+            typer.echo("You may need to run this as Administrator.")
+            raise typer.Exit(code=1)
+
+    except Exception as e:
+        typer.echo(f"\n❌ Unexpected error: {e}")
         raise typer.Exit(code=1)
 
 

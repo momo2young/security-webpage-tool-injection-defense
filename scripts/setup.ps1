@@ -61,15 +61,32 @@ if ($currentPath -notlike "*$scriptsDir*") {
 }
 
 # 8. Check for C++ Build Tools (Linker)
+# 8. Check for C++ Build Tools (Linker)
 if (-not (Get-Command "link.exe" -ErrorAction SilentlyContinue)) {
-    Write-Host "⚠️  C++ Linker (link.exe) not found!" -ForegroundColor Yellow
-    Write-Host "   This is required for compiling Rust dependencies."
-    Write-Host "   Running auto-installer..." -ForegroundColor Cyan
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    $installed = $false
     
-    # We use 'uv run suzent' because 'suzent' might not be in the current shell's PATH yet
-    uv run suzent setup-build-tools
+    if (Test-Path $vswhere) {
+        $output = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if ($output) {
+            $installed = $true
+            Write-Host "⚠️  C++ Build Tools detected at: $output" -ForegroundColor Yellow
+            Write-Host "   However, 'link.exe' is not in your PATH."
+            Write-Host "   Rust builds might fail unless you run from a Developer Command Prompt or add it to PATH."
+            Write-Host "   Skipping auto-installer as tools are present." -ForegroundColor Green
+        }
+    }
 
-    Write-Host "⚠️  Please RESTART your terminal after installation to ensure the linker is in PATH." -ForegroundColor Yellow
+    if (-not $installed) {
+        Write-Host "⚠️  C++ Linker (link.exe) not found!" -ForegroundColor Yellow
+        Write-Host "   This is required for compiling Rust dependencies."
+        Write-Host "   Running auto-installer..." -ForegroundColor Cyan
+        
+        # We use 'uv run suzent' because 'suzent' might not be in the current shell's PATH yet
+        uv run suzent setup-build-tools
+
+        Write-Host "⚠️  Please RESTART your terminal after installation to ensure the linker is in PATH." -ForegroundColor Yellow
+    }
 }
 
 Write-Host "✅ Setup Complete!" -ForegroundColor Green
