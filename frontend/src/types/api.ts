@@ -49,6 +49,7 @@ export interface ChatSummary {
   updatedAt: string;
   messageCount: number;
   lastMessage?: string;
+  platform?: string;
 }
 
 export type PlanPhaseStatus = 'pending' | 'in_progress' | 'completed';

@@ -24,6 +24,7 @@ export const ChatList: React.FC = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showRefreshIndicator, setShowRefreshIndicator] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'personal' | 'social'>('personal');
 
   // Sync local search with global search on mount
   useEffect(() => {
@@ -89,6 +90,14 @@ export const ChatList: React.FC = () => {
     }
   };
 
+  // Filter chats based on view mode
+  const displayedChats = chats.filter(chat => {
+    if (viewMode === 'social') {
+      return !!chat.platform;
+    }
+    return !chat.platform;
+  });
+
   if (loadingChats) {
     return (
       <div className="p-4">
@@ -110,58 +119,80 @@ export const ChatList: React.FC = () => {
         </div>
       )}
 
-      {/* New Chat Button */}
-      <div className="p-4 border-b-3 border-brutal-black flex items-center justify-between gap-3 bg-white">
-        <button
-          onClick={() => {
-            beginNewChat();
-            if (switchToView) switchToView('chat');
-          }}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-brutal-black border-3 border-brutal-black shadow-[2px_2px_0_0_#000] hover:bg-brutal-blue hover:text-white brutal-btn text-white font-bold uppercase transition-all"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          New Chat
-        </button>
-      </div>
-
-      {/* Search Bar */}
-      <div className="p-4 border-b-3 border-brutal-black bg-white">
-        <div className="relative">
-          <input
-            type="text"
-            value={localSearchQuery}
-            onChange={(e) => setLocalSearchQuery(e.target.value)}
-            placeholder="SEARCH CHATS..."
-            className="w-full px-3 py-2 pl-10 bg-white border-3 border-brutal-black font-bold text-sm uppercase placeholder-neutral-400 focus:outline-none focus:shadow-brutal transition-shadow"
-          />
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-black pointer-events-none"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={3}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          {localSearchQuery && (
-            <button
-              onClick={() => setLocalSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-neutral-100 border-2 border-brutal-black transition-colors"
-              title="Clear search"
+      {/* Unified Header: Search + Filter + Action */}
+      <div className="p-3 border-b-3 border-brutal-black bg-white space-y-3">
+        {/* Row 1: Search + New Chat */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={localSearchQuery}
+              onChange={(e) => setLocalSearchQuery(e.target.value)}
+              placeholder={viewMode === 'social' ? "SEARCH SOCIAL..." : "SEARCH CHATS..."}
+              className="w-full px-3 py-2 pl-9 bg-neutral-50 border-2 border-brutal-black font-bold text-xs uppercase placeholder-neutral-400 focus:outline-none focus:bg-white focus:shadow-brutal-sm transition-all"
+            />
+            <svg
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-black pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2.5}
             >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {localSearchQuery && (
+              <button
+                onClick={() => setLocalSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-neutral-200 rounded transition-colors"
+                title="Clear Search"
+              >
+                <svg className="w-3 h-3 text-brutal-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* New Chat Button (Square, Original Colors) */}
+          {viewMode === 'personal' && (
+            <button
+              onClick={() => {
+                beginNewChat();
+                if (switchToView) switchToView('chat');
+              }}
+              className="flex items-center justify-center w-[38px] bg-brutal-black text-white border-2 border-brutal-black shadow-[2px_2px_0_0_#000] hover:bg-brutal-blue hover:text-white hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0_0_#000] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none transition-all flex-shrink-0"
+              title="New Chat"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </button>
           )}
         </div>
+
+        {/* Row 2: Full Width Filter Toggles (Only if Social chats exist OR if already in Social view) */}
+        {(chats.some(c => !!c.platform) || viewMode === 'social') && (
+          <div className="flex shadow-[2px_2px_0_0_#000]">
+            {(['personal', 'social'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`flex-1 py-1.5 text-[10px] font-bold uppercase border-2 border-brutal-black transition-all relative ${mode === 'personal' ? 'mr-[-2px]' : ''
+                  } ${viewMode === mode
+                    ? 'bg-brutal-black text-white z-10'
+                    : 'bg-white text-neutral-500 hover:bg-neutral-50 hover:text-brutal-black'
+                  }`}
+              >
+                {mode === 'personal' ? 'Desktop' : 'Social'}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
-        {chats.length === 0 ? (
+        {displayedChats.length === 0 ? (
           <div className="p-8 text-center">
             {searchQuery ? (
               <div className="w-16 h-16 mx-auto mb-3">
@@ -169,19 +200,19 @@ export const ChatList: React.FC = () => {
               </div>
             ) : (
               <div className="w-12 h-12 bg-neutral-200 border-2 border-brutal-black mx-auto mb-3 flex items-center justify-center text-2xl">
-                💬
+                {viewMode === 'social' ? '🌐' : '💬'}
               </div>
             )}
             <p className="text-brutal-black text-sm font-bold uppercase">
-              {searchQuery ? 'No results found' : 'No chats yet'}
+              {searchQuery ? 'No results found' : (viewMode === 'social' ? 'No social chats' : 'No chats yet')}
             </p>
             <p className="text-neutral-500 text-xs mt-1">
-              {searchQuery ? 'Try a different search term' : 'Start a new conversation to begin'}
+              {searchQuery ? 'Try a different search term' : (viewMode === 'social' ? 'Connect Telegram/Slack to see chats here' : 'Start a new conversation to begin')}
             </p>
           </div>
         ) : (
           <div className="p-3 space-y-3">
-            {chats.map((chat: ChatSummary, idx: number) => (
+            {displayedChats.map((chat: ChatSummary, idx: number) => (
               <div
                 key={chat.id}
                 onClick={() => {
@@ -215,9 +246,17 @@ export const ChatList: React.FC = () => {
 
                 <div className="flex items-start justify-between pl-2">
                   <div className="flex-1 min-w-0">
-                    <h3 className={`font-bold text-sm truncate uppercase ${currentChatId === chat.id ? 'text-brutal-black' : 'text-neutral-800'}`}>
-                      {chat.title || 'Untitled Chat'}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      {/* Platform Badge */}
+                      {chat.platform && (
+                        <span className="text-[10px] font-bold uppercase px-1 py-0.5 bg-neutral-200 border border-brutal-black">
+                          {chat.platform}
+                        </span>
+                      )}
+                      <h3 className={`font-bold text-sm truncate uppercase ${currentChatId === chat.id ? 'text-brutal-black' : 'text-neutral-800'}`}>
+                        {chat.title || 'Untitled Chat'}
+                      </h3>
+                    </div>
 
                     {chat.lastMessage && (
                       <p className={`text-xs mt-1 line-clamp-2 font-mono ${currentChatId === chat.id ? 'text-brutal-black/80' : 'text-neutral-600'}`}>

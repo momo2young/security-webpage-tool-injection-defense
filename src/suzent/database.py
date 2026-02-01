@@ -37,6 +37,7 @@ class ChatSummaryModel(BaseModel):
     updatedAt: str
     messageCount: int
     lastMessage: Optional[str] = None
+    platform: Optional[str] = None
 
 
 class ChatModel(SQLModel, table=True):
@@ -308,6 +309,7 @@ class ChatDatabase:
                         updatedAt=chat.updated_at.isoformat(),
                         messageCount=len(messages),
                         lastMessage=last_message,
+                        platform=chat.config.get("platform"),
                     )
                 )
 
