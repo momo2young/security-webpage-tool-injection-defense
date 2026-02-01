@@ -1,5 +1,23 @@
 # Suzent Changelog
 
+## v0.2.0
+
+### New Feature: Social Messaging
+Suzent now supports full integration with major social platforms!
+- **Telegram, Slack, Discord, Feishu (Lark) Support**: Chat with your agent directly in your favorite apps.
+- **Smart Routing**: The agent respects context—replying inside Threads, Channels, or Groups automatically.
+- **Multi-Modal**: Send text and files/images to the agent.
+- **Access Control**: Configure allowed users via `social.json`.
+
+### Improvements
+- **Configuration**: Unified credentials management in `config/social.json`.
+- **Core**: Enhanced driver stability for connection handling (Socket Mode for Slack, Polling for others).
+
+### Fix
+- fix: "Reply in DM" routing bug.
+- fix: Privacy mode documentation for Telegram.
+- fix: Linting and formatting improvements.
+
 ## v0.1.4
 
 ### New
