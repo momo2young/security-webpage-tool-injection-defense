@@ -109,6 +109,7 @@ async def startup():
     # Initialize Browser Session Manager with Main Loop for thread safety
     import asyncio
     from suzent.tools.browsing_tool import BrowserSessionManager
+
     try:
         BrowserSessionManager.get_instance().set_main_loop(asyncio.get_running_loop())
     except Exception as e:
@@ -215,6 +216,7 @@ async def shutdown():
     # Clean up browser session
     try:
         from suzent.tools.browsing_tool import BrowserSessionManager
+
         await BrowserSessionManager.get_instance().close_session()
     except Exception as e:
         logger.error(f"Error shutting down browser session: {e}")
