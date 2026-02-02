@@ -66,6 +66,7 @@ def build_backend() -> None:
         "--standalone",
         "--onefile",
         "--python-flag=no_site",
+        "--assume-yes-for-downloads",  # Auto-accept downloads in CI/CD environments
         "--include-package=suzent",
         "--include-package=crawl4ai",
         "--include-package=lancedb",
