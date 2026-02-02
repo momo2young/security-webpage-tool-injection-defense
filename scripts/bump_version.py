@@ -142,6 +142,7 @@ def main():
     print("\nDone! Don't forget to commit:")
     print(f'git commit -am "chore: bump version to {new_version}"')
     print(f"git tag v{new_version}")
+    print("git push && git push --tags")
 
 
 if __name__ == "__main__":
