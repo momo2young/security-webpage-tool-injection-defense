@@ -37,6 +37,8 @@ from suzent.routes.config_routes import (
     save_api_keys,
     save_preferences,
     verify_provider,
+    get_social_config,
+    save_social_config,
 )
 from suzent.routes.plan_routes import get_plan, get_plans
 from suzent.routes.mcp_routes import (
@@ -141,6 +143,9 @@ async def startup():
             except Exception as e:
                 logger.error(f"Failed to load social config: {e}")
 
+        social_model = social_config.get("model")
+
+
         # Load Channels Dynamically
         channel_manager.load_drivers_from_config(social_config)
 
@@ -168,7 +173,15 @@ async def startup():
             channel_manager,
             allowed_users=list(allowed_users),
             platform_allowlists=platform_allowlists,
+            model=social_model,
         )
+        # Expose social_brain to app state for dynamic updates
+        # We need to access 'app' here. But 'app' is defined below.
+        # Startup functions in Starlette unfortunately don't receive 'app' as arg usually?
+        # Actually startup is just a coroutine.
+        # But 'app' is global in this file.
+        app.state.social_brain = social_brain
+        
         await social_brain.start()
 
     except Exception as e:
@@ -216,6 +229,9 @@ app = Starlette(
             "/config/providers/{provider_id}/verify", verify_provider, methods=["POST"]
         ),
         Route("/config/embedding-models", get_embedding_models, methods=["GET"]),
+        Route("/config/embedding-models", get_embedding_models, methods=["GET"]),
+        Route("/config/social", get_social_config, methods=["GET"]),
+        Route("/config/social", save_social_config, methods=["POST"]),
         # MCP server management endpoints
         Route("/mcp_servers", list_mcp_servers, methods=["GET"]),
         Route("/mcp_servers", add_mcp_server, methods=["POST"]),

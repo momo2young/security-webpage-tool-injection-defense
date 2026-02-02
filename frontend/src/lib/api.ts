@@ -233,3 +233,40 @@ export function getSandboxParams(chatId: string, path: string, volumes?: string[
   }
   return params.toString();
 }
+
+// -----------------------------------------------------------------------------
+// Social Configuration
+// -----------------------------------------------------------------------------
+
+export interface SocialConfig {
+  allowed_users: string[];
+  model?: string;
+  [key: string]: any;
+}
+
+export async function fetchSocialConfig(): Promise<SocialConfig> {
+  try {
+    const res = await fetch(`${API_BASE}/config/social`);
+    if (!res.ok) return { allowed_users: [] };
+    const data = await res.json();
+    return data.config || { allowed_users: [] };
+  } catch (e) {
+    console.error('Error fetching social config:', e);
+    return { allowed_users: [] };
+  }
+}
+
+export async function saveSocialConfig(config: SocialConfig): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/config/social`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config })
+    });
+    if (!res.ok) throw new Error('Failed to save social config');
+    return true;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+}

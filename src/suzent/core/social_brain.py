@@ -35,6 +35,7 @@ class SocialBrain:
         channel_manager: ChannelManager,
         allowed_users: list = None,
         platform_allowlists: dict = None,
+        model: str = None,
     ):
         self.channel_manager = channel_manager
         self.allowed_users = set(allowed_users) if allowed_users else set()
@@ -43,8 +44,13 @@ class SocialBrain:
             if platform_allowlists
             else {}
         )
+        self.model = model
         self._running = False
         self._task: Optional[asyncio.Task] = None
+
+    def update_model(self, model: str):
+        """Update the model used for social interactions."""
+        self.model = model
 
     async def start(self):
         """Start the processing loop."""
@@ -145,6 +151,7 @@ class SocialBrain:
                 "_user_id": CONFIG.user_id,  # Default user
                 "_chat_id": social_chat_id,
                 "memory_enabled": True,  # Enable memory for social too
+                "model": self.model,
             }
 
             # Get Agent

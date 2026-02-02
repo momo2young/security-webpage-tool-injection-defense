@@ -293,12 +293,6 @@ export const ChatInputPanel: React.FC<ChatInputPanelProps> = ({
                 </div>
 
                 <div className="flex flex-nowrap gap-2 items-center justify-end flex-1 min-w-0">
-                    <div className="text-[10px] text-brutal-black font-mono font-bold select-none uppercase opacity-50 hidden sm:block whitespace-nowrap mr-2 shrink-0">
-                        ↵ SEND • ⇧↵ NEW LINE
-                    </div>
-
-
-
                     {configReady && (
                         <div className="relative shrink-0">
                             <BrutalSelect

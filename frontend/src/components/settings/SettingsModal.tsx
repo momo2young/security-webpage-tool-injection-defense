@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useChatStore } from '../../hooks/useChatStore';
-import { ApiProvider, fetchApiKeys, fetchEmbeddingModels, saveApiKeys, saveUserPreferences, UserConfig, verifyProvider } from '../../lib/api';
+import { ApiProvider, fetchApiKeys, fetchEmbeddingModels, fetchSocialConfig, saveApiKeys, saveSocialConfig, saveUserPreferences, SocialConfig, UserConfig, verifyProvider } from '../../lib/api';
 import { BrutalMultiSelect } from '../BrutalMultiSelect';
 import { BrutalSelect } from '../BrutalSelect';
 
@@ -27,7 +27,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps): React.Re
   const [embeddingModels, setEmbeddingModels] = useState<string[]>([]);
   const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState<string>('');
   const [selectedExtractionModel, setSelectedExtractionModel] = useState<string>('');
-  const [activeCategory, setActiveCategory] = useState<'providers' | 'memory'>('providers');
+  const [activeCategory, setActiveCategory] = useState<'providers' | 'memory' | 'social'>('providers');
+
+  // Social Config State
+  const [socialConfig, setSocialConfig] = useState<SocialConfig>({ allowed_users: [] });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -64,6 +67,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps): React.Re
     // Fetch embedding models
     fetchEmbeddingModels().then(models => {
       setEmbeddingModels(models);
+    });
+
+    // Fetch social config
+    fetchSocialConfig().then(config => {
+      setSocialConfig(config);
     });
 
     // Initialize from existing preferences
@@ -158,6 +166,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps): React.Re
       });
     }
 
+    // Save social config
+    await saveSocialConfig(socialConfig);
+
     await refreshBackendConfig();
 
     setSaving(false);
@@ -192,6 +203,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps): React.Re
                 id: 'memory', label: 'Memory System', icon: (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                )
+              },
+              {
+                id: 'social', label: 'Social Channels', icon: (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                   </svg>
                 )
               }
@@ -447,6 +465,133 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps): React.Re
                             />
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeCategory === 'social' && (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-4xl font-brutal font-black uppercase text-brutal-black">Social Channels</h2>
+                      </div>
+
+                      <div className="bg-white border-4 border-brutal-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 mb-6">
+                        <div className="flex items-start gap-4 mb-6">
+                          <div className="w-12 h-12 bg-black border-2 border-brutal-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-white">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold uppercase">General Settings</h3>
+                            <p className="text-sm text-neutral-600 mt-1">Configure global settings for social interactions.</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold uppercase text-neutral-800">
+                              Social Model
+                            </label>
+                            <BrutalSelect
+                              value={socialConfig.model || ''}
+                              onChange={(val) => setSocialConfig(prev => ({ ...prev, model: val }))}
+                              options={[
+                                { value: '', label: 'Use Default System Model' },
+                                ...((backendConfig?.models || []).map((model: string) => ({ value: model, label: model })))
+                              ]}
+                              placeholder="SELECT MODEL..."
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold uppercase text-neutral-800">
+                              Global Allowed Users (comma separated IDs)
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full bg-white border-2 border-brutal-black px-3 py-2 font-mono text-xs focus:outline-none focus:bg-neutral-50"
+                              value={socialConfig.allowed_users.join(', ')}
+                              onChange={(e) => setSocialConfig(prev => ({ ...prev, allowed_users: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                              placeholder="user123, 987654..."
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                        {Object.entries(socialConfig).map(([key, value]) => {
+                          if (key === 'allowed_users' || key === 'model') return null;
+                          if (typeof value !== 'object' || value === null) return null;
+
+                          // Safely cast to any to access properties dynamically
+                          const platformConfig = value as any;
+                          const isEnabled = !!platformConfig.enabled;
+
+                          return (
+                            <div key={key} className="bg-white border-4 border-brutal-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col">
+                              <div className="p-4 bg-neutral-50 flex justify-between items-center border-b-4 border-brutal-black">
+                                <span className="font-black uppercase text-xl tracking-wide">{key}</span>
+                                <div className={`w-4 h-4 rounded-full border-2 border-brutal-black ${isEnabled ? 'bg-brutal-green' : 'bg-transparent'}`}></div>
+                              </div>
+
+                              <div className="p-6 space-y-4">
+                                <div className="flex items-center gap-2 mb-4">
+                                  <input
+                                    type="checkbox"
+                                    checked={isEnabled}
+                                    onChange={(e) => setSocialConfig(prev => ({
+                                      ...prev,
+                                      [key]: { ...platformConfig, enabled: e.target.checked }
+                                    }))}
+                                    className="w-5 h-5 border-2 border-brutal-black rounded-none focus:ring-0 text-brutal-black"
+                                  />
+                                  <label className="font-bold uppercase text-sm">Enable Integration</label>
+                                </div>
+
+                                {Object.entries(platformConfig).map(([fieldKey, fieldVal]) => {
+                                  if (fieldKey === 'enabled' || fieldKey === 'allowed_users') return null;
+
+                                  const isSecret = fieldKey.includes('token') || fieldKey.includes('secret') || fieldKey.includes('key');
+
+                                  return (
+                                    <div key={fieldKey} className="space-y-1">
+                                      <label className="text-[10px] font-bold uppercase text-neutral-500 tracking-wider">
+                                        {fieldKey.replace(/_/g, ' ')}
+                                      </label>
+                                      <input
+                                        type={isSecret ? "password" : "text"}
+                                        value={fieldVal as string}
+                                        onChange={(e) => setSocialConfig(prev => ({
+                                          ...prev,
+                                          [key]: { ...platformConfig, [fieldKey]: e.target.value }
+                                        }))}
+                                        className="w-full bg-white border-2 border-brutal-black px-3 py-2 font-mono text-xs focus:outline-none focus:bg-neutral-50"
+                                      />
+                                    </div>
+                                  );
+                                })}
+
+                                <div className="space-y-1 pt-2 border-t-2 border-dashed border-neutral-300">
+                                  <label className="text-[10px] font-bold uppercase text-neutral-500 tracking-wider">
+                                    Allowed Users (Specific to {key})
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={(platformConfig.allowed_users || []).join(', ')}
+                                    onChange={(e) => setSocialConfig(prev => ({
+                                      ...prev,
+                                      [key]: {
+                                        ...platformConfig,
+                                        allowed_users: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                                      }
+                                    }))}
+                                    placeholder="user_id_1, user_id_2..."
+                                    className="w-full bg-white border-2 border-brutal-black px-3 py-2 font-mono text-xs focus:outline-none focus:bg-neutral-50"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
