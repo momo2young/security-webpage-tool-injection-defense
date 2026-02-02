@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🐛 Fixed
 - **UX**: hide the progress bar when the right sidebar is expanded.
+- **UI**: fix memory search cancel button displacement issue.
 
 ## [v0.2.1] - 2026-02-02
 

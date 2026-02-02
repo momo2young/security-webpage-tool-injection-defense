@@ -245,22 +245,24 @@ class BrowserSessionManager:
                 "timestamp": metadata.get("timestamp")
             }
             
-            # Broadcast loop
+            # Broadcast loop - use a copy to avoid modification during iteration
             disconnected = []
-            for ws in self._websockets:
+            for ws in list(self._websockets):
                 try:
                     await ws.send_json(message)
                 except Exception:
                     disconnected.append(ws)
             
-            # Cleanup disconnected
+            # Cleanup disconnected - safe removal (ws may already be removed by remove_client)
             for ws in disconnected:
-                self._websockets.remove(ws)
+                if ws in self._websockets:
+                    self._websockets.remove(ws)
                 
         except Exception as e:
             logger.error(f"Error handling screencast frame: {e}")
 
     async def start_streaming(self):
+        # No-op if browser not initialized yet (lazy init)
         if self._streaming or not self._client:
             return
         logger.info("Starting CDP Screencast...")
@@ -284,15 +286,13 @@ class BrowserSessionManager:
         self._streaming = False
 
     async def add_client(self, websocket: WebSocket):
+        """Accept WebSocket client without launching browser (lazy init)."""
         await websocket.accept()
         self._websockets.append(websocket)
-        # Ensure streaming is active if we have clients
-        if not self._streaming and self._client:
+        # If browser already running, start streaming for this client
+        if self._client and not self._streaming:
             await self.start_streaming()
-        elif not self._client:
-             # Lazy init if browser isn't open yet
-            await self.ensure_session()
-            await self.start_streaming()
+        # Otherwise, browser will be launched lazily when needed
 
     async def remove_client(self, websocket: WebSocket):
         if websocket in self._websockets:
@@ -303,10 +303,20 @@ class BrowserSessionManager:
 
     async def handle_client_message(self, message: dict):
         """Process interaction events from the frontend."""
-        if not self._page:
+        action = message.get("type")
+        
+        # Lazy init: launch browser on navigate command
+        if action == "navigate":
+            url = message.get("url")
+            if url:
+                await self.ensure_session()
+                await self.start_streaming()
+                await self._page.goto(url)
             return
             
-        action = message.get("type")
+        # Other actions require browser to be already running
+        if not self._page:
+            return
         
         try:
             if action == "click":
@@ -328,10 +338,6 @@ class BrowserSessionManager:
                 dx, dy = message.get("dx", 0), message.get("dy", 0)
                 await self._page.mouse.wheel(dx, dy)
                 
-            elif action == "navigate":
-                url = message.get("url")
-                if url:
-                    await self._page.goto(url)
         except Exception as e:
              logger.error(f"Error handling client browser interaction: {e}")
 
