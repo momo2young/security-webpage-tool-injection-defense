@@ -260,7 +260,7 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({
         const filename = selectedFile.split('/').pop() || selectedFile;
 
         return (
-            <div className="flex flex-col h-full bg-white border-l-2 border-brutal-black">
+            <div className="flex flex-col h-full bg-white">
                 {/* Header */}
                 <div className="flex items-center gap-3 p-3 border-b-3 border-brutal-black bg-white shrink-0 sticky top-0 z-20 shadow-[0_2px_0_0_rgba(0,0,0,1)]">
                     <BrutalButton
@@ -314,7 +314,7 @@ export const SandboxFiles: React.FC<SandboxFilesProps> = ({
 
     // File List View
     return (
-        <div className="flex flex-col h-full bg-white border-l-2 border-brutal-black relative">
+        <div className="flex flex-col h-full bg-white relative">
             {/* Path Header */}
             <div className="bg-white p-3 border-b-3 border-brutal-black flex items-center gap-3 shrink-0">
                 <BrutalButton

@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.2.2] - 2026-02-02
 ### 🚀 Added
-- **Browser**: Add browser tab to the sidebar.
+- **Browser**: Add browser tool and include a browser tab in the right sidebar.
 - **Social Messaging Configuration**: Add social messaging configuration to the frontend.
+
+### ⚡ Changed
+- **UI**: Move the plan view to the bottom of the right sidebar.
+
+### 🐛 Fixed
+- **UX**: hide the progress bar when the right sidebar is expanded.
 
 ## [v0.2.1] - 2026-02-02
 

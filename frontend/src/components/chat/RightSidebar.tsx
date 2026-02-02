@@ -23,7 +23,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   fileToPreview,
   onMaximizeFile
 }) => {
-  const [activeTab, setActiveTab] = useState<'plan' | 'files' | 'browser'>('plan');
+  const [activeTab, setActiveTab] = useState<'files' | 'browser'>('files');
   const [isFileExpanded, setIsFileExpanded] = useState(false);
 
   // Auto-switch to files tab when a file is provided
@@ -50,15 +50,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       <div className="h-14 bg-white border-b-3 border-brutal-black flex items-center justify-between px-0 shrink-0">
         <div className="flex h-full w-full">
           <button
-            onClick={() => setActiveTab('plan')}
-            className={`flex-1 px-2 font-brutal font-bold text-sm tracking-wider uppercase h-full border-r-3 border-brutal-black transition-colors ${activeTab === 'plan'
-              ? 'bg-brutal-black text-white'
-              : 'bg-white hover:bg-neutral-100 text-brutal-black'
-              }`}
-          >
-            PLAN
-          </button>
-          <button
             onClick={() => setActiveTab('files')}
             className={`flex-1 px-2 font-brutal font-bold text-sm tracking-wider uppercase h-full border-r-3 border-brutal-black transition-colors ${activeTab === 'files'
               ? 'bg-brutal-black text-white'
@@ -80,18 +71,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto bg-neutral-50/50 scrollbar-thin scrollbar-track-neutral-200 scrollbar-thumb-brutal-black flex flex-col">
-        {activeTab === 'plan' && (
-          <div className="p-4">
-            <PlanProgress
-              plan={plan}
-              isDocked={true}
-              onToggleDock={onClose}
-              isExpanded={isPlanExpanded}
-              onToggleExpand={onTogglePlanExpand}
-            />
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto bg-neutral-50/50 scrollbar-thin scrollbar-track-neutral-200 scrollbar-thumb-brutal-black flex flex-col min-h-0">
         {activeTab === 'files' && (
           <div className="flex-1 h-full">
             <SandboxFiles
@@ -106,6 +86,18 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
         <div className={`flex-1 h-full flex flex-col ${activeTab === 'browser' ? 'flex' : 'hidden'}`}>
           <BrowserView />
         </div>
+      </div>
+
+      {/* Permanent Plan View */}
+      <div className="border-t-3 border-brutal-black bg-white p-4 shrink-0 max-h-[30%] overflow-y-auto scrollbar-thin">
+        <PlanProgress
+          plan={plan}
+          isDocked={true}
+          onToggleDock={onClose}
+          isExpanded={isPlanExpanded}
+          onToggleExpand={onTogglePlanExpand}
+          isSidebarOpen={true}
+        />
       </div>
     </div>
   );
