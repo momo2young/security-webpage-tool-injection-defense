@@ -16,6 +16,13 @@ from .models import (
     MemoryExtractionResult,
     FactExtractionResponse,
 )
+from .lifecycle import (
+    init_memory_system,
+    shutdown_memory_system,
+    get_memory_manager,
+    get_main_event_loop,
+    create_memory_tools,
+)
 
 __all__ = [
     "MemoryManager",
@@ -23,6 +30,12 @@ __all__ = [
     "MemorySearchTool",
     "MemoryBlockUpdateTool",
     "memory_context",
+    # Lifecycle management
+    "init_memory_system",
+    "shutdown_memory_system",
+    "get_memory_manager",
+    "get_main_event_loop",
+    "create_memory_tools",
     # Pydantic models
     "Message",
     "AgentAction",

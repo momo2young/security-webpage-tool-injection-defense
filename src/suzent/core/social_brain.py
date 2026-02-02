@@ -8,12 +8,10 @@ from PIL import Image
 from suzent.logger import get_logger
 from suzent.channels.manager import ChannelManager
 from suzent.channels.base import UnifiedMessage
-from suzent.agent_manager import (
-    get_or_create_agent,
-    inject_chat_context,
-    get_memory_manager,
-    serialize_agent,
-)
+from suzent.agent_manager import get_or_create_agent
+from suzent.core.context_injection import inject_chat_context
+from suzent.core.agent_serializer import serialize_agent
+from suzent.memory.lifecycle import get_memory_manager
 from suzent.streaming import stream_agent_responses
 from suzent.memory import AgentStepsSummary, ConversationTurn, Message
 from suzent.config import CONFIG, get_effective_volumes

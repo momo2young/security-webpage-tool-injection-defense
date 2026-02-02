@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 
 from suzent.logger import get_logger
 from suzent.config import CONFIG
-from suzent.agent_manager import get_memory_manager
+from suzent.memory.lifecycle import get_memory_manager
 
 logger = get_logger(__name__)
 

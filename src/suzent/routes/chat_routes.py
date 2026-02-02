@@ -18,13 +18,10 @@ from PIL import Image
 from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse
 
-from suzent.agent_manager import (
-    deserialize_agent,
-    get_memory_manager,
-    get_or_create_agent,
-    inject_chat_context,
-    serialize_agent,
-)
+from suzent.agent_manager import deserialize_agent, get_or_create_agent
+from suzent.core.agent_serializer import serialize_agent
+from suzent.core.context_injection import inject_chat_context
+from suzent.memory.lifecycle import get_memory_manager
 from suzent.config import CONFIG
 from suzent.database import get_database
 from suzent.image_utils import compress_image_with_bytes

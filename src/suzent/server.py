@@ -98,7 +98,7 @@ channel_manager: ChannelManager = None
 
 async def startup():
     """Initialize services on application startup."""
-    from suzent.agent_manager import init_memory_system
+    from suzent.memory.lifecycle import init_memory_system
     from suzent.database import get_database
 
     logger.info("Application startup - initializing services")
@@ -177,7 +177,7 @@ async def startup():
 
 async def shutdown():
     """Cleanup services on application shutdown."""
-    from suzent.agent_manager import shutdown_memory_system
+    from suzent.memory.lifecycle import shutdown_memory_system
 
     logger.info("Application shutdown - cleaning up services")
 
